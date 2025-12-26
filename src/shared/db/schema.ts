@@ -8,18 +8,18 @@ export const transactionStatus = pgEnum("transaction_status", ['pending', 'paid'
 
 export const users = pgTable("users", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
-	username: varchar({ length: 30 }).notNull(),
-	email: varchar({ length: 255 }),
-	emailVerified: timestamp("email_verified", { withTimezone: true, mode: 'string' }),
+	username: varchar({ length: 30 }),
+	email: varchar({ length: 255 }).notNull(),
+	emailVerified: timestamp("email_verified", { withTimezone: true, mode: 'date' }),
 	name: varchar({ length: 120 }),
 	image: text(),
+	password: varchar({ length: 255 }).notNull(),
 	currency: char({ length: 3 }).default('ARS').notNull(),
 	timezone: varchar({ length: 64 }).default('America/Argentina/Mendoza').notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	lastLoginAt: timestamp("last_login_at", { withTimezone: true, mode: 'string' }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+	lastLoginAt: timestamp("last_login_at", { withTimezone: true, mode: 'date' }),
 }, (table) => [
-	unique("users_username_key").on(table.username),
 	unique("users_email_key").on(table.email),
 ]);
 
@@ -66,7 +66,9 @@ export const categories = pgTable("categories", {
 	kind: entryKind().notNull(),
 	name: varchar({ length: 60 }).notNull(),
 	isActive: boolean("is_active").default(true).notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	isDefault: boolean("is_default").default(false).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],
@@ -81,7 +83,9 @@ export const paymentMethods = pgTable("payment_methods", {
 	userId: uuid("user_id").notNull(),
 	name: varchar({ length: 60 }).notNull(),
 	isActive: boolean("is_active").default(true).notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	isDefault: boolean("is_default").default(false).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],
