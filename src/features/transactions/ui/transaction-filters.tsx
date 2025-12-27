@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchDebounce } from '@/shared/lib/hooks/useSearchDebounce';
 import { Search, X } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -97,13 +98,25 @@ export function TransactionFilters({
     [categoryIds, onFiltersChange]
   );
 
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      onFiltersChange({ q: value || undefined });
+  // Búsqueda robusta con debounce genérico
+  const [searchValue, setSearchValue] = useState(q ?? '');
+  useSearchDebounce({
+    value: searchValue,
+    delay: 300,
+    minLength: 2,
+    enabled: true,
+    onDebounced: (debounced) => {
+      if (debounced !== q) {
+        onFiltersChange({ q: debounced });
+      }
     },
-    [onFiltersChange]
-  );
+  });
+  useEffect(() => {
+    setSearchValue(q ?? '');
+  }, [q]);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+  };
 
   const getCategoryName = (categoryId: string) => {
     return availableCategories.find((c) => c.id === categoryId)?.name || 'Desconocida';
@@ -130,7 +143,7 @@ export function TransactionFilters({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por título o descripción..."
-            value={q || ''}
+            value={searchValue}
             onChange={handleSearchChange}
             className="pl-9"
           />

@@ -33,13 +33,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Pagination } from '@/shared/ui/pagination';
 import { TableLoadingOverlay } from '@/shared/ui/table-loading-overlay';
-import { TableRowsSkeleton } from '@/shared/ui/table-rows-skeleton';
 import type { InvestmentDTO, InvestmentQueryParams } from '../model/investment.dto';
 import { InvestmentForm } from './investment-form';
 import { DeleteInvestmentDialog } from './delete-investment-dialog';
+import { InvestmentListSkeleton } from './investment-list-skeleton';
 import { useInvestmentMutations } from '../hooks/useInvestments';
 import type { CreateInvestmentInput } from '@/entities/investment/model/investment.schema';
-import { useCurrency, useDebouncedValue } from '@/shared/lib/hooks';
+import { useCurrency } from '@/shared/lib/hooks';
+import { useSearchDebounce } from '@/shared/lib/hooks/useSearchDebounce';
 
 interface InvestmentListProps {
   investments: InvestmentDTO[];
@@ -81,8 +82,19 @@ export function InvestmentList({
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState<InvestmentDTO | null>(null);
+  // Búsqueda robusta con debounce genérico
   const [searchValue, setSearchValue] = useState(filters.q ?? '');
-  const debouncedSearch = useDebouncedValue(searchValue, 350);
+  useSearchDebounce({
+    value: searchValue,
+    delay: 300,
+    minLength: 2,
+    enabled: true,
+    onDebounced: (debounced) => {
+      if (debounced !== filters.q) {
+        onFiltersChange({ q: debounced });
+      }
+    },
+  });
 
   const { create, update, delete: deleteInvestment } = useInvestmentMutations();
   const { formatCurrency } = useCurrency();
@@ -330,15 +342,6 @@ export function InvestmentList({
     setSearchValue(filters.q ?? '');
   }, [filters.q]);
 
-  // Aplicar búsqueda con debounce para no disparar requests por cada tecla
-  useEffect(() => {
-    const normalized = debouncedSearch.trim();
-    const next = normalized.length > 0 ? normalized : undefined;
-    if (next !== filters.q) {
-      onFiltersChange({ q: next });
-    }
-  }, [debouncedSearch, filters.q, onFiltersChange]);
-
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
   };
@@ -380,7 +383,7 @@ export function InvestmentList({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por título o plataforma"
-                  value={filters.q || ''}
+                  value={searchValue}
                   onChange={handleSearchChange}
                   className="pl-9"
                 />
@@ -415,7 +418,7 @@ export function InvestmentList({
 
         <CardContent>
           {isInitialLoading ? (
-            <TableRowsSkeleton rows={5} columns={4} />
+            <InvestmentListSkeleton />
           ) : !hasData ? (
             <EmptyState
               icon={TrendingUp}
