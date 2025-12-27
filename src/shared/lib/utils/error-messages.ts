@@ -40,8 +40,8 @@ export enum ErrorType {
 /**
  * Detecta el tipo de error basándose en el mensaje
  */
-export function detectErrorType(error: Error): ErrorType {
-  const message = error.message;
+export function detectErrorType(error: Error | string): ErrorType {
+  const message = typeof error === 'string' ? error : error.message;
 
   if (message.includes('Ya existe')) {
     return ErrorType.DUPLICATE;
@@ -73,9 +73,9 @@ export function detectErrorType(error: Error): ErrorType {
 /**
  * Formatea el mensaje de error con el icono/prefijo apropiado
  */
-export function formatErrorMessage(error: Error): string {
+export function formatErrorMessage(error: Error | string): string {
   const type = detectErrorType(error);
-  const message = error.message;
+  const message = typeof error === 'string' ? error : error.message;
 
   switch (type) {
     case ErrorType.DUPLICATE:

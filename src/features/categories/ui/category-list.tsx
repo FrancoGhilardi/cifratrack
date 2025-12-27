@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
+import { Pencil, Trash2, FolderOpen } from 'lucide-react';
 import { Badge } from '@/shared/ui/badge';
-import { Button } from '@/shared/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { EmptyState } from '@/shared/ui/empty-state';
-import { Pencil, Trash2, Plus, FolderOpen } from 'lucide-react';
+import { DataTable } from '@/shared/ui/data-table';
+import type { DataTableColumn } from '@/shared/ui/data-table';
 import type { CategoryDTO } from '../api/categories.api';
 import { CategoryForm } from './category-form';
 import { DeleteCategoryDialog } from './delete-category-dialog';
@@ -71,85 +69,57 @@ export function CategoryList({ categories, kind, showCreateButton = false }: Cat
     ? 'No hay categorías de ingreso. Crea una para comenzar.'
     : 'No hay categorías de egreso. Crea una para comenzar.';
 
+  const columns: DataTableColumn<CategoryDTO>[] = [
+    {
+      header: 'Nombre',
+      accessorKey: 'name',
+      className: 'font-medium',
+    },
+    {
+      header: 'Estado',
+      cell: (cat) => (
+        <Badge variant={cat.isActive ? 'default' : 'secondary'}>
+          {cat.isActive ? 'Activa' : 'Inactiva'}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Por defecto',
+      cell: (cat) => cat.isDefault ? <Badge variant="outline">Por defecto</Badge> : null,
+    },
+  ];
+
   return (
     <>
-      <Card className="border-0">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>
-              Administra tus categorías de {kind === 'income' ? 'ingresos' : 'egresos'}
-            </CardDescription>
-          </div>
-          {showCreateButton && (
-            <Button onClick={handleCreate} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva categoría
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent>
-          {categories.length === 0 ? (
-            <EmptyState
-              icon={FolderOpen}
-              title="Sin categorías"
-              description={emptyMessage}
-              action={
-                <Button onClick={handleCreate} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear categoría
-                </Button>
-              }
-            />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Por defecto</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell>
-                      <Badge variant={category.isActive ? 'default' : 'secondary'}>
-                        {category.isActive ? 'Activa' : 'Inactiva'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {category.isDefault && (
-                        <Badge variant="outline">Por defecto</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(category)}
-                        disabled={category.isDefault}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(category)}
-                        disabled={category.isDefault}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        title={title}
+        description={`Administra tus categorías de ${kind === 'income' ? 'ingresos' : 'egresos'}`}
+        data={categories}
+        columns={columns}
+        actions={[
+          {
+            label: 'Editar categoría',
+            icon: Pencil,
+            onClick: handleEdit,
+            variant: 'ghost',
+            disabled: (cat) => cat.isDefault,
+          },
+          {
+            label: 'Eliminar categoría',
+            icon: Trash2,
+            onClick: handleDelete,
+            variant: 'ghost',
+            disabled: (cat) => cat.isDefault,
+          },
+        ]}
+        onCreate={handleCreate}
+        createButtonLabel="Nueva categoría"
+        showCreateButton={showCreateButton}
+        emptyStateIcon={FolderOpen}
+        emptyStateTitle="Sin categorías"
+        emptyStateDescription={emptyMessage}
+        getItemKey={(cat) => cat.id}
+      />
 
       <CategoryForm
         isOpen={isFormOpen}

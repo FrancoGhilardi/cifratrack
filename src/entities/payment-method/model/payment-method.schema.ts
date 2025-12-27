@@ -8,6 +8,7 @@ export const createPaymentMethodSchema = z.object({
   name: nonEmptyStringSchema
     .max(60, 'El nombre no puede superar los 60 caracteres')
     .min(2, 'El nombre debe tener al menos 2 caracteres'),
+  isActive: z.boolean().default(true),
 });
 
 /**

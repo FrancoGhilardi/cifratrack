@@ -16,6 +16,11 @@ export interface IPaymentMethodRepository {
   findById(id: string, userId: string): Promise<PaymentMethod | null>;
 
   /**
+   * Buscar forma de pago por nombre
+   */
+  findByName(name: string, userId: string): Promise<PaymentMethod | null>;
+
+  /**
    * Crear nueva forma de pago
    */
   create(userId: string, data: CreatePaymentMethodInput): Promise<PaymentMethod>;

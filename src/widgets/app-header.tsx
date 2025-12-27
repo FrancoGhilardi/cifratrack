@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { useActiveRoute } from '@/shared/lib/hooks/useActiveRoute';
 import { ThemeToggle } from '@/shared/ui/theme-toggle';
-import { LayoutDashboard, Tags, LogOut } from 'lucide-react';
+import { LayoutDashboard, Tags, CreditCard, LogOut } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Categorías', href: '/categories', icon: Tags },
+  { name: 'Formas de pago', href: '/payment-methods', icon: CreditCard },
 ];
 
 /**
