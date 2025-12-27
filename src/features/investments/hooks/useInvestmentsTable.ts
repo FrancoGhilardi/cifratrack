@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import type { InvestmentQueryParams } from '../model/investment.dto';
+import type { InvestmentQueryParams, PaginatedInvestmentsResponse } from '../model/investment.dto';
 import { investmentKeys } from '../model/query-keys';
 import { fetchInvestments } from '../api/investments.api';
 
@@ -34,10 +34,10 @@ export function useInvestmentsTable() {
     };
   }, [searchParams]);
 
-  const query = useQuery({
+  const query = useQuery<PaginatedInvestmentsResponse>({
     queryKey: investmentKeys.list(params as Record<string, unknown>),
     queryFn: () => fetchInvestments(params),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const updateParams = useCallback(

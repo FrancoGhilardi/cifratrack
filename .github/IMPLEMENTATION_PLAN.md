@@ -633,16 +633,11 @@ Crear en `src/features/profile/`:
 ## FASE 9: Layout y navegación
 **Objetivo:** Sidebar, header, navegación entre secciones
 
-### 9.1 Widgets compartidos
+
+### 9.1 Widgets compartidos ✓
+**Estado:** Completado (27/12/2025)
 Crear en `src/widgets/`:
-- `sidebar/sidebar.tsx`: navegación principal
-  - Dashboard
-  - Movimientos
-  - Categorías
-  - Formas de Pago
-  - Inversiones
-  - Recurrentes
-  - Perfil
+- ✅ `sidebar/sidebar.tsx`: navegación principal (Dashboard, Movimientos, Categorías, Formas de Pago, Inversiones, Recurrentes, Perfil)
 - `header/header.tsx`: usuario logueado + logout
 
 ### 9.2 Layout de app

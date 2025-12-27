@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/shared/ui/button";
 import {
@@ -59,7 +59,7 @@ export function InvestmentForm({
   );
 
   const form = useForm<CreateInvestmentInput>({
-    resolver: zodResolver(createInvestmentSchema),
+    resolver: zodResolver(createInvestmentSchema) as Resolver<CreateInvestmentInput>,
     defaultValues: getDefaultValues(),
   });
 
