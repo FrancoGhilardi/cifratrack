@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ne } from 'drizzle-orm';
 import { db } from '@/shared/db/client';
 import { users } from '@/shared/db/schema';
 import { User } from '@/entities/user/model/user.entity';
@@ -134,16 +134,13 @@ export class UserRepository implements IUserRepository {
   }
 
   async emailExists(email: string, excludeUserId?: string): Promise<boolean> {
-    const conditions = [eq(users.email, email.toLowerCase())];
-    
-    if (excludeUserId) {
-      conditions.push(eq(users.id, excludeUserId));
-    }
+    const baseCondition = eq(users.email, email.toLowerCase());
+    const whereClause = excludeUserId ? and(baseCondition, ne(users.id, excludeUserId)) : baseCondition;
 
     const result = await db
       .select({ id: users.id })
       .from(users)
-      .where(excludeUserId ? and(...conditions) : conditions[0])
+      .where(whereClause)
       .limit(1);
 
     return result.length > 0;
