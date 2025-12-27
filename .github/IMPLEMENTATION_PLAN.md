@@ -9,10 +9,11 @@
 
 ---
 
-## FASE 1: Configuración de infraestructura base
+## FASE 1: Configuración de infraestructura base ✓
+**Estado:** Completado  
 **Objetivo:** Establecer la base técnica (DB, Auth, estructura de carpetas, libs compartidas)
 
-### 1.1 Estructura de carpetas
+### 1.1 Estructura de carpetas ✓
 Crear la estructura completa según AGENTS.md:
 ```
 src/
@@ -26,14 +27,11 @@ src/
   widgets/
 ```
 
-### 1.2 Variables de entorno
-- Crear `.env.local` con:
-  - `DATABASE_URL` (Supabase)
-  - `NEXTAUTH_SECRET`
-  - `NEXTAUTH_URL`
-- Crear `src/shared/config/env.ts` con validación zod
+### 1.2 Variables de entorno ✓
+- ✅ `.env.local` configurado con DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL
+- ✅ `src/shared/config/env.ts` con validación zod
 
-### 1.3 Base de datos (Drizzle + Supabase)
+### 1.3 Base de datos (Drizzle + Supabase) ✓
 1. Instalar dependencias:
    ```bash
    pnpm add drizzle-orm postgres
@@ -48,38 +46,42 @@ src/
    - Tablas de Auth.js: `users`, `accounts`, `sessions`, `verification_tokens`
    - Tablas base: `categories`, `payment_methods`
 
-4. Generar y ejecutar primera migración
+4. ✅ Migraciones generadas y ejecutadas (0000, 0001)
 
-### 1.4 Librerías compartidas base
-Crear en `src/shared/lib/`:
-- **errors.ts**: `ApiError`, `DomainError`, `ValidationError`
-- **types.ts**: `ApiOk<T>`, `ApiErr`, `Paginated<T>`
-- **response.ts**: helpers `ok()`, `err()`, `paginated()`
-- **money.ts**: clase `Money` (value object)
-- **date.ts**: utilidades de fecha, clase `Month`, `DateRange`
-- **pagination.ts**: `PaginationParams`, validadores de sort/filter
-- **validation.ts**: helpers de validación zod comunes
+### 1.4 Librerías compartidas base ✓
+**Implementado en `src/shared/lib/`:**
+- ✅ **errors.ts**: `AppError` base + clases de error especializadas
+- ✅ **types.ts**: tipos base de API y paginación
+- ✅ **response.ts**: helpers `ok()`, `err()` para respuestas tipadas
+- ✅ **money.ts**: clase `Money` (value object) con operaciones
+- ✅ **date.ts**: utilidades de fecha, `toYYYYMM()`, `formatMonth()`
+- ✅ **pagination.ts**: validadores y tipos de paginación
+- ✅ **validation.ts**: helpers zod comunes
+- ✅ **utils/error-messages.ts**: `getFriendlyErrorMessage()` centralizado
+- ✅ **hooks/** personalizados: `useCurrency`, `useMonthNavigation`
+- ✅ **query-provider.tsx**: TanStack Query setup
 
 ---
 
-## FASE 2: Autenticación (Auth.js + Credentials MVP)
+## FASE 2: Autenticación (Auth.js + Credentials MVP) ✓
+**Estado:** Completado  
 **Objetivo:** Sistema de login/register funcional con cookies httpOnly
 
-### 2.1 Instalación de Auth.js
+### 2.1 Instalación de Auth.js ✓
 ```bash
 pnpm add next-auth@beta
 pnpm add bcryptjs
 pnpm add -D @types/bcryptjs
 ```
 
-### 2.2 Entidad User (dominio)
-Crear en `src/entities/user/`:
-- `model/user.entity.ts`: clase `User` (id, email, name, hashedPassword, createdAt)
-- `model/user.schema.ts`: schemas zod (registro, login)
-- `repo.ts`: interface `IUserRepository`
+### 2.2 Entidad User (dominio) ✓
+**Implementado en `src/entities/user/`:**
+- ✅ `model/user.entity.ts`: clase `User` con propiedades y factory methods
+- ✅ `model/user.schema.ts`: schemas zod para registro y login
+- ✅ `repo.ts`: interface `IUserRepository`
 
-### 2.3 Feature Auth
-Crear en `src/features/auth/`:
+### 2.3 Feature Auth ✓
+**Implementado en `src/features/auth/`:**
 
 **Repositorio:**
 - `repo.impl.ts`: implementación con Drizzle
@@ -101,32 +103,32 @@ Crear en `src/features/auth/`:
 - Integrar usecases en callbacks
 
 **API Routes:**
-- Next.js Auth.js maneja automáticamente `app/api/auth/[...nextauth]/route.ts`
+- ✅ `app/api/auth/[...nextauth]/route.ts`: handlers de Auth.js
+- ✅ `app/api/auth/register/route.ts`: endpoint de registro
 
 **Seeds:**
-- `seeds/default-categories.ts`: lista de categorías por defecto
-- `seeds/default-payment-methods.ts`: lista de formas de pago
+- ✅ `seeds/default-categories.ts`: 20 categorías por defecto (10 income, 10 expense)
+- ✅ `seeds/default-payment-methods.ts`: 3 métodos por defecto (Efectivo, Débito, Crédito)
 
-### 2.4 UI de Auth
-Crear en `app/(auth)/`:
-- `login/page.tsx`: formulario con react-hook-form + zod
-- `register/page.tsx`: formulario de registro
-- Hooks en `features/auth/hooks/`:
-  - `useRegister()`
-  - `useLogin()`
+### 2.4 UI de Auth ✓
+**Implementado en `app/(auth)/`:**
+- ✅ `login/page.tsx`: formulario con react-hook-form + zod
+- ✅ `register/page.tsx`: formulario de registro con seeds automáticos
+- ✅ Hooks en `features/auth/hooks/`:
+  - `useRegister()`: mutación con TanStack Query
+  - `useLogin()`: autenticación con next-auth
+- ✅ API integration completa con manejo de errores
 
-**Componentes shadcn/ui necesarios:**
-- Button
-- Input
-- Form
-- Card
+**Componentes shadcn/ui integrados:**
+- ✅ Button, Input, Form, Card, Label
 
 ---
 
-## FASE 3: Dashboard básico (resumen mensual)
+## FASE 3: Dashboard básico (resumen mensual) ✓
+**Estado:** Completado  
 **Objetivo:** Pantalla principal con resumen de ingresos/egresos del mes
 
-### 3.1 Extender schema DB
+### 3.1 Extender schema DB ✓
 Agregar tabla `transactions` en `src/shared/db/schema.ts`:
 ```ts
 - id, userId, title, description
@@ -150,28 +152,26 @@ Agregar tabla `transaction_categories`:
 - allocated_amount
 ```
 
-Crear migración.
+✅ Migración 0001 creada y ejecutada.
 
-### 3.2 Entidades Transaction y Category
-Crear en `src/entities/transaction/`:
-- `model/transaction.entity.ts`: clase `Transaction`
-  - factory method `create()`
-  - método `withSplit()` para validar split
-- `model/transaction-split.vo.ts`: value object `TransactionSplit`
-- `model/transaction.schema.ts`: schemas zod
-- `repo.ts`: interface `ITransactionRepository`
+### 3.2 Entidades Transaction y Category ✓
+**Implementado en `src/entities/transaction/`:**
+- ✅ `model/transaction.entity.ts`: clase `Transaction` con factory methods
+- ✅ `model/transaction-split.vo.ts`: value object `TransactionSplit`
+- ✅ `model/transaction.schema.ts`: schemas zod de validación
+- ✅ `repo.ts`: interface `ITransactionRepository`
 
-Crear en `src/entities/category/`:
-- `model/category.entity.ts`: clase `Category`
-- `model/category.schema.ts`: schemas zod
-- `repo.ts`: interface `ICategoryRepository`
+**Implementado en `src/entities/category/`:**
+- ✅ `model/category.entity.ts`: clase `Category`
+- ✅ `model/category.schema.ts`: schemas zod (create, update)
+- ✅ `repo.ts`: interface `ICategoryRepository`
 
-Crear en `src/entities/payment-method/`:
-- `model/payment-method.entity.ts`: clase `PaymentMethod`
-- `model/payment-method.schema.ts`: schemas zod
-- `repo.ts`: interface `IPaymentMethodRepository`
+**Implementado en `src/entities/payment-method/`:**
+- ✅ `model/payment-method.entity.ts`: clase `PaymentMethod`
+- ✅ `model/payment-method.schema.ts`: schemas zod (create, update)
+- ✅ `repo.ts`: interface `IPaymentMethodRepository`
 
-### 3.3 Feature Dashboard
+### 3.3 Feature Dashboard ✓
 Crear en `src/features/dashboard/`:
 
 **DTOs:**
@@ -206,26 +206,27 @@ Crear en `src/features/dashboard/`:
   - retorna `ApiOk<DashboardSummaryDTO>`
 
 **Frontend:**
-- `features/dashboard/api/dashboard.api.ts`: fetcher
-- `features/dashboard/hooks/useDashboardSummary.ts`: hook con TanStack Query
-- `features/dashboard/model/query-keys.ts`: `dashboardKeys.summary(month)`
+- ✅ `features/dashboard/api/dashboard.api.ts`: fetcher con tipos
+- ✅ `features/dashboard/hooks/useDashboardSummary.ts`: hook con TanStack Query
+- ✅ `features/dashboard/model/query-keys.ts`: factory de keys
 
 **UI:**
-- `app/(app)/dashboard/page.tsx`
-- `widgets/dashboard/summary-cards.tsx`: cards de ingreso/egreso/balance
-- `widgets/dashboard/expenses-chart.tsx`: pie chart con Recharts
-- Selector de mes (prev/next)
+- ✅ `app/(app)/dashboard/page.tsx`: página principal
+- ✅ `widgets/dashboard/summary-cards.tsx`: cards con ingresos/egresos/balance
+- ✅ `widgets/dashboard/expenses-chart.tsx`: gráfico de gastos por categoría (Recharts)
+- ✅ `src/shared/ui/month-selector.tsx`: navegación mensual reutilizable
+- ✅ `widgets/dashboard/dashboard-skeleton.tsx`: loading states
 
-**Componentes shadcn/ui necesarios:**
-- Card
-- Select (para mes)
+**Componentes shadcn/ui integrados:**
+- ✅ Card, Button
 
 ---
 
-## FASE 4: Categorías y Formas de Pago (ABM)
+## FASE 4: Categorías y Formas de Pago (ABM) ✓
+**Estado:** Completado  
 **Objetivo:** CRUD completo de categorías y payment methods
 
-### 4.1 Feature Categories
+### 4.1 Feature Categories ✓
 Crear en `src/features/categories/`:
 
 **Repositorio:**
@@ -264,11 +265,24 @@ Crear en `src/features/categories/`:
 - Table
 - Badge
 
-### 4.2 Feature Payment Methods
-Estructura idéntica a categories:
-- `src/features/payment-methods/`
-- `app/api/payment-methods/`
-- `app/(app)/payment-methods/page.tsx`
+### 4.2 Feature Payment Methods ✓
+**Estructura implementada:**
+- ✅ `src/features/payment-methods/repo.impl.ts`: CRUD completo con validaciones
+- ✅ `src/features/payment-methods/usecases/`: list, upsert, delete
+- ✅ `app/api/payment-methods/`: routes GET/POST y [id] GET/PUT/DELETE
+- ✅ `src/features/payment-methods/api/`: fetchers
+- ✅ `src/features/payment-methods/hooks/`: usePaymentMethods, usePaymentMethodMutations
+- ✅ `src/features/payment-methods/ui/`: form, list, delete dialog, skeleton
+- ✅ `app/(app)/payment-methods/page.tsx`
+- ✅ Navegación integrada en AppHeader
+- ✅ Refactorizado con componentes compartidos: DataTable, ConfirmDialog, useDialogForm
+
+**Componentes genéricos creados:**
+- ✅ `src/shared/ui/data-table.tsx`: tabla reutilizable con columnas/acciones configurables
+- ✅ `src/shared/ui/data-table-skeleton.tsx`: skeleton genérico para tablas
+- ✅ `src/shared/ui/confirm-dialog.tsx`: diálogo de confirmación reutilizable
+- ✅ `src/shared/lib/hooks/useDialogForm.ts`: hook para manejo de errores en forms
+- ✅ `src/shared/lib/hooks/useConfirmDialog.ts`: hook para confirmaciones con errores
 
 ---
 
@@ -620,11 +634,11 @@ Para cada feature nueva:
 ---
 
 ## ORDEN RECOMENDADO DE EJECUCIÓN
-1. **FASE 1** → infraestructura base
-2. **FASE 2** → auth (bloqueante para todo lo demás)
-3. **FASE 3** → dashboard básico (motivación temprana)
-4. **FASE 4** → categorías y payment methods (necesario para transactions)
-5. **FASE 5** → movimientos (core del sistema)
+1. ✅ **FASE 1** → infraestructura base
+2. ✅ **FASE 2** → auth (bloqueante para todo lo demás)
+3. ✅ **FASE 3** → dashboard básico (motivación temprana)
+4. ✅ **FASE 4** → categorías y payment methods (necesario para transactions)
+5. **FASE 5** → movimientos (core del sistema) ← **SIGUIENTE**
 6. **FASE 9** → layout y navegación (para probar todo integrado)
 7. **FASE 6** → inversiones
 8. **FASE 7** → recurrentes (más complejo, dejarlo para cuando el resto esté sólido)
@@ -644,5 +658,5 @@ Para cada feature nueva:
 
 ---
 
-**Última actualización:** 26 de diciembre de 2025  
-**Próximo paso:** FASE 1 - Configuración de infraestructura base
+**Última actualización:** 27 de diciembre de 2025  
+**Próximo paso:** FASE 5 - Movimientos (Transactions ABM con split)
