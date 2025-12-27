@@ -38,27 +38,47 @@ export function MonthSelector({
   onNextMonth,
   onCurrentMonth,
 }: MonthSelectorProps) {
+  // Crear versión abreviada del mes (primeras 3 letras)
+  const parts = monthLabel.split(' ');
+  const monthAbbrev = parts[0].substring(0, 3);
+  const year = parts[1];
+  const shortLabel = `${monthAbbrev} ${year}`;
+
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="outline" size="icon" onClick={onPreviousMonth}>
-        <ChevronLeft className="h-4 w-4" />
+    <div className="flex items-center gap-1 sm:gap-2">
+      <Button 
+        variant="outline" 
+        size="icon"
+        className="h-8 w-8 sm:h-10 sm:w-10"
+        onClick={onPreviousMonth}
+      >
+        <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
       </Button>
 
-      <div className="min-w-[180px] text-center">
-        <p className="text-sm font-medium capitalize">{monthLabel}</p>
+      <div className="text-center px-2">
+        {/* Versión mobile: abreviada */}
+        <p className="text-xs font-medium capitalize md:hidden">{shortLabel}</p>
+        {/* Versión tablet/desktop: completa */}
+        <p className="hidden md:block text-sm font-medium capitalize">{monthLabel}</p>
       </div>
 
       <Button
         variant="outline"
         size="icon"
+        className="h-8 w-8 sm:h-10 sm:w-10"
         onClick={onNextMonth}
         disabled={isCurrentMonth}
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
       </Button>
 
       {!isCurrentMonth && (
-        <Button variant="ghost" size="sm" onClick={onCurrentMonth}>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="h-8 px-2 text-xs sm:text-sm sm:px-3"
+          onClick={onCurrentMonth}
+        >
           Hoy
         </Button>
       )}

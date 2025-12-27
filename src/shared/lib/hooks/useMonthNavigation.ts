@@ -62,12 +62,13 @@ export function useMonthNavigation() {
   };
 
   /**
-   * Formatear el mes para mostrar (ej: "diciembre 2025")
+   * Formatear el mes para mostrar (ej: "noviembre 2025")
    */
   const formatMonth = (month: string = currentMonth): string => {
     const [year, monthNum] = month.split('-');
     const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-    return date.toLocaleDateString('es-AR', { year: 'numeric', month: 'long' });
+    const monthName = date.toLocaleDateString('es-AR', { month: 'long' });
+    return `${monthName} ${year}`;
   };
 
   return {
