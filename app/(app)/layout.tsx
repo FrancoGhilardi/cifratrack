@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AppHeader } from '@/widgets/app-header';
 
 export const metadata: Metadata = {
   title: 'CifraTrack - Dashboard',
@@ -12,6 +13,7 @@ export default function AppLayout({
 }) {
   return (
     <div className="min-h-screen">
+      <AppHeader />
       <main className="container mx-auto py-6 px-4 max-w-7xl">{children}</main>
     </div>
   );

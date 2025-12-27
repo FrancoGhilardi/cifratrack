@@ -20,7 +20,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {/* Total Ingresos */}
-      <Card>
+      <Card className="border-0">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Ingresos</CardTitle>
           <ArrowUpCircle className={`h-4 w-4 ${
@@ -51,7 +51,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
       </Card>
 
       {/* Total Egresos */}
-      <Card>
+      <Card className="border-0">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Egresos</CardTitle>
           <ArrowDownCircle className={`h-4 w-4 ${
@@ -82,7 +82,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
       </Card>
 
       {/* Balance */}
-      <Card>
+      <Card className="border-0">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Balance</CardTitle>
           {!hasData ? (

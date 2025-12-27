@@ -1,4 +1,5 @@
 import { LucideIcon } from 'lucide-react';
+import { ReactNode } from 'react';
 
 interface EmptyStateProps {
   /**
@@ -14,6 +15,10 @@ interface EmptyStateProps {
    */
   description?: string;
   /**
+   * Acción opcional (botón u otro elemento)
+   */
+  action?: ReactNode;
+  /**
    * Clases CSS adicionales para el contenedor
    */
   className?: string;
@@ -22,7 +27,7 @@ interface EmptyStateProps {
 /**
  * Componente reutilizable para mostrar estados vacíos
  */
-export function EmptyState({ icon: Icon, title, description, className = '' }: EmptyStateProps) {
+export function EmptyState({ icon: Icon, title, description, action, className = '' }: EmptyStateProps) {
   return (
     <div className={`flex flex-col items-center justify-center py-12 ${className}`}>
       <div className="rounded-full bg-muted/50 p-3 mb-3">
@@ -30,7 +35,12 @@ export function EmptyState({ icon: Icon, title, description, className = '' }: E
       </div>
       <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
       {description && (
-        <p className="text-xs text-muted-foreground/70">{description}</p>
+        <p className="text-xs text-muted-foreground/70 mb-4">{description}</p>
+      )}
+      {action && (
+        <div className="mt-2">
+          {action}
+        </div>
       )}
     </div>
   );

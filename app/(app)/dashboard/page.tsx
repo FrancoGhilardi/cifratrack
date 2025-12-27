@@ -6,7 +6,7 @@ import { ExpensesChart } from '@/widgets/dashboard/expenses-chart';
 import { SummaryCardsSkeleton, ExpensesChartSkeleton } from '@/widgets/dashboard/dashboard-skeleton';
 import { useMonthNavigation } from '@/shared/lib/hooks/useMonthNavigation';
 import { MonthSelector } from '@/shared/ui/month-selector';
-import { Card, CardContent } from '@/shared/ui/card';
+import { ErrorState } from '@/shared/ui/error-state';
 
 /**
  * Página del Dashboard
@@ -59,15 +59,12 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Mensaje de error discreto */}
+      {/* Mensaje de error */}
       {error && !isLoading && (
-        <Card className="border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20">
-          <CardContent className="py-3">
-            <p className="text-sm text-red-600 dark:text-red-400 text-center">
-              {error.message}
-            </p>
-          </CardContent>
-        </Card>
+        <ErrorState
+          message={error.message}
+          showReloadButton
+        />
       )}
 
       {/* Dashboard Content - Siempre visible */}

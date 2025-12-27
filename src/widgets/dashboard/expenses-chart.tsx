@@ -19,7 +19,7 @@ export function ExpensesChart({ summary }: ExpensesChartProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {/* Egresos por Categoría */}
-      <Card>
+      <Card className="border-0">
         <CardHeader>
           <CardTitle>Egresos por Categoría</CardTitle>
         </CardHeader>
@@ -57,7 +57,7 @@ export function ExpensesChart({ summary }: ExpensesChartProps) {
       </Card>
 
       {/* Ingresos por Categoría */}
-      <Card>
+      <Card className="border-0">
         <CardHeader>
           <CardTitle>Ingresos por Categoría</CardTitle>
         </CardHeader>
