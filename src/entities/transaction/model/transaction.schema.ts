@@ -28,10 +28,12 @@ export const createTransactionSchema = z.object({
   currency: z.string().length(3).default('ARS').optional(),
   paymentMethodId: z.string().uuid('ID de forma de pago inválido').optional().nullable(),
   isFixed: z.boolean().default(false).optional(),
-  status: z.enum(['pending', 'paid']).default('paid').optional(),
+  status: z.enum(['pending', 'paid']),
   occurredOn: z.coerce.date(),
+  occurredMonth: z.string().regex(/^\d{4}-\d{2}$/, 'El mes debe estar en formato YYYY-MM'),
   dueOn: z.coerce.date().optional().nullable(),
   paidOn: z.coerce.date().optional().nullable(),
+  sourceRecurringRuleId: z.string().uuid().optional().nullable(),
   split: z.array(categorySplitSchema).min(1, 'Debe haber al menos una categoría asignada'),
 });
 
@@ -53,6 +55,7 @@ export const updateTransactionSchema = z.object({
   isFixed: z.boolean().optional(),
   status: z.enum(['pending', 'paid']).optional(),
   occurredOn: z.coerce.date().optional(),
+  occurredMonth: z.string().regex(/^\d{4}-\d{2}$/, 'El mes debe estar en formato YYYY-MM').optional(),
   dueOn: z.coerce.date().optional().nullable(),
   paidOn: z.coerce.date().optional().nullable(),
   split: z.array(categorySplitSchema).min(1, 'Debe haber al menos una categoría asignada').optional(),

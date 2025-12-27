@@ -2,37 +2,69 @@ import type { Transaction } from './model/transaction.entity';
 import type { CreateTransactionInput, UpdateTransactionInput } from './model/transaction.schema';
 
 /**
+ * Parámetros para listar transacciones con paginación
+ */
+export interface ListTransactionsParams {
+  userId: string;
+  month?: string;
+  kind?: 'income' | 'expense';
+  status?: 'pending' | 'paid';
+  paymentMethodId?: string;
+  categoryIds?: string[];
+  q?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * Transaction con información enriquecida (nombres de relaciones)
+ */
+export interface TransactionWithNames {
+  transaction: Transaction;
+  paymentMethodName: string | null;
+  categoryNames: Array<{
+    categoryId: string;
+    categoryName: string;
+    allocatedAmount: number;
+  }>;
+}
+
+/**
+ * Resultado paginado de transacciones
+ */
+export interface PaginatedTransactions {
+  data: TransactionWithNames[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+/**
  * Contrato del repositorio de transacciones
  */
 export interface ITransactionRepository {
   /**
-   * Listar transacciones del usuario con filtros
+   * Listar transacciones del usuario con filtros, paginación y ordenamiento
    */
-  list(
-    userId: string,
-    filters?: {
-      kind?: 'income' | 'expense';
-      status?: 'pending' | 'paid';
-      month?: string;
-      paymentMethodId?: string;
-      categoryId?: string;
-    }
-  ): Promise<Transaction[]>;
+  list(params: ListTransactionsParams): Promise<PaginatedTransactions>;
 
   /**
    * Buscar transacción por ID
    */
-  findById(id: string, userId: string): Promise<Transaction | null>;
+  findById(id: string, userId: string): Promise<TransactionWithNames | null>;
 
   /**
    * Crear nueva transacción
    */
-  create(userId: string, data: CreateTransactionInput): Promise<Transaction>;
+  create(userId: string, data: CreateTransactionInput): Promise<TransactionWithNames>;
 
   /**
    * Actualizar transacción
    */
-  update(id: string, userId: string, data: UpdateTransactionInput): Promise<Transaction>;
+  update(id: string, userId: string, data: UpdateTransactionInput): Promise<TransactionWithNames>;
 
   /**
    * Eliminar transacción

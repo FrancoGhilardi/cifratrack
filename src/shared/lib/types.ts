@@ -40,6 +40,19 @@ export type Paginated<T> = {
 };
 
 /**
+ * Respuesta paginada de API
+ */
+export type PaginatedResponse<T> = {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+};
+
+/**
  * Parámetros de paginación
  */
 export type PaginationParams = {

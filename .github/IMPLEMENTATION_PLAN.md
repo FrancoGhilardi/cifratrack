@@ -289,67 +289,90 @@ Crear en `src/features/categories/`:
 ## FASE 5: Movimientos (Transactions ABM con split)
 **Objetivo:** Lista paginada, filtrado, ordenamiento, CRUD con múltiples categorías
 
-### 5.1 Feature Transactions
-Crear en `src/features/transactions/`:
+### 5.1 Feature Transactions (Backend + API Client) ✓
+**Estado:** Completado  
+**Implementado en `src/features/transactions/`:**
 
 **Repositorio:**
-- `repo.impl.ts`:
+- ✅ `repo.impl.ts` (483 líneas):
   - `list(params)` con paginado, filtros, orden
     - filtros: month, kind, status, paymentMethodId, categoryIds, q
     - JOIN con categories, payment_methods
-  - `findById(id, userId)` con splits
-  - `create(data, splits)` en transacción DB
-  - `update(id, userId, data, splits)` validando sumatoria
+    - sortBy: occurredOn, amount, title, status (asc/desc)
+    - retorna: {data, total, page, pageSize, totalPages}
+  - `findById(id, userId)` con splits y relaciones
+  - `create(data, splits)` en transacción DB con validación de sumatoria
+  - `update(id, userId, data, splits)` validando splits opcionales
   - `delete(id, userId)` con cascade a splits
 
 **Casos de uso:**
-- `usecases/list-transactions.usecase.ts`:
-  - validar params (whitelist sortBy, límite pageSize)
-  - llamar repo
+- ✅ `usecases/list-transactions.usecase.ts`:
+  - validar params (whitelist sortBy, límite pageSize max 100)
+  - delegar a repositorio
   - mapear a DTOs
 - `usecases/upsert-transaction.usecase.ts`:
   - validar splits sum = amount
-  - crear/actualizar transaction + splits en transacción
-- `usecases/delete-transaction.usecase.ts`
+- ✅ `usecases/upsert-transaction.usecase.ts`:
+  - create() valida que splits sum = amount
+  - update() valida splits si se proporcionan
+  - validateSplits() método privado con validaciones de negocio
+- ✅ `usecases/delete-transaction.usecase.ts`:
+  - verificar existencia antes de eliminar
 
 **Mappers:**
-- `mappers/transaction.mapper.ts`:
-  - `mapRowToDomain()`
-  - `mapDomainToDTO()`
+- ✅ `mappers/transaction.mapper.ts`:
+  - TransactionDTO interface (18 propiedades)
+  - toDTO() con manejo de Date/string para campos timestamp
+  - toDTOs() para arrays
 
 **API:**
-- `app/api/transactions/route.ts`: GET, POST
-- `app/api/transactions/[id]/route.ts`: GET, PUT, DELETE
+- ✅ `app/api/transactions/route.ts`: 
+  - GET: parsear 10 query params, retornar {data, meta}
+  - POST: validación zod, retornar 201 con DTO
+- ✅ `app/api/transactions/[id]/route.ts`: 
+  - GET: con verificación de ownership
+  - PUT: actualización parcial con validación
+  - DELETE: eliminar con cascade
 
-**Frontend:**
-- `features/transactions/api/transactions.api.ts`
-- `features/transactions/hooks/`:
-  - `useTransactionsTable()`: estado de filtros, paginado, orden desde URL
-  - `useTransactionMutations()`
-- `features/transactions/ui/`:
-  - `transactions-table.tsx`: TanStack Table con columnas
-  - `transaction-form.tsx`: form con split de categorías
-  - `transaction-filters.tsx`: filtros en sidebar/header
-  - `category-split-input.tsx`: componente para asignar importes por categoría
+**Frontend (API Client):**
+- ✅ `api/transactions.api.ts`: fetchers para todos los endpoints
+  - fetchTransactions() con parámetros de filtrado
+  - fetchTransactionById()
+  - createTransaction()
+  - updateTransaction()
+  - deleteTransaction()
+- ✅ `model/query-keys.ts`: factory de keys de TanStack Query
+- ✅ `hooks/index.ts`: exports centralizados
+- ✅ `hooks/useTransactionsTable.ts`: 
+  - gestión de estado desde URL (filtros, paginación, orden)
+  - updateParams(), resetFilters(), goToPage(), setSort()
+- ✅ `hooks/useTransactionMutations.ts`:
+  - create, update, delete con invalidación automática de queries
+- ✅ `hooks/useTransaction.ts`: obtener transacción individual
+
+**Schema updates:**
+- ✅ Agregado occurredMonth (required, YYYY-MM)
+- ✅ Agregado sourceRecurringRuleId (optional, uuid)
+- ✅ Status cambiado de optional a required
+
+**Validación:**
+- ✅ TypeScript: 0 errores (pnpm tsc --noEmit)
+- ✅ ESLint: 0 errores, 0 warnings
+
+### 5.2 Feature Transactions (UI Components) ✓
+**Estado:** Completado
+**Implementado en `src/features/transactions/ui/`:**
+- ✅ `transactions-table.tsx`: TanStack Table con columnas ordenables y renderizado condicional
+- ✅ `transaction-form.tsx`: form con react-hook-form + zod, manejo de montos y splits
+- ✅ `transaction-filters.tsx`: filtros por mes, tipo, estado, etc.
+- ✅ `category-split-input.tsx`: componente complejo para asignar importes por categoría
+- ✅ `transaction-dialog.tsx`: wrapper modal para el formulario
 
 **UI:**
-- `app/(app)/transactions/page.tsx`
+- ✅ `app/(app)/transactions/page.tsx`: integración completa con hooks y componentes compartidos
 
-**Componentes shadcn/ui necesarios:**
-- Table (TanStack Table integration)
-- Popover
-- Calendar (para DatePicker)
-- Command (para multi-select de categorías)
-- Separator
-
-### 5.2 Validación de Split
-En el usecase `UpsertTransactionUseCase`:
-```ts
-const totalAllocated = splits.reduce((sum, s) => sum + s.amount, 0);
-if (totalAllocated !== transaction.amount) {
-  throw new ValidationError('Split amounts must sum to transaction amount');
-}
-```
+**Componentes shadcn/ui integrados:**
+- ✅ Table, Popover, Calendar, Command, Separator, Dialog, Select, Checkbox
 
 ---
 
@@ -638,7 +661,9 @@ Para cada feature nueva:
 2. ✅ **FASE 2** → auth (bloqueante para todo lo demás)
 3. ✅ **FASE 3** → dashboard básico (motivación temprana)
 4. ✅ **FASE 4** → categorías y payment methods (necesario para transactions)
-5. **FASE 5** → movimientos (core del sistema) ← **SIGUIENTE**
+5. ✅ **FASE 5** → movimientos (core del sistema)
+   - ✅ 5.1: Backend + API Client completo
+   - ✅ 5.2: UI Components completo
 6. **FASE 9** → layout y navegación (para probar todo integrado)
 7. **FASE 6** → inversiones
 8. **FASE 7** → recurrentes (más complejo, dejarlo para cuando el resto esté sólido)
@@ -659,4 +684,4 @@ Para cada feature nueva:
 ---
 
 **Última actualización:** 27 de diciembre de 2025  
-**Próximo paso:** FASE 5 - Movimientos (Transactions ABM con split)
+**Próximo paso:** FASE 9 - Layout y navegación

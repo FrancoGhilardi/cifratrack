@@ -29,9 +29,12 @@ export class Transaction {
     public readonly sourceRecurringRuleId: string | null,
     public readonly split: TransactionSplit | null,
     public readonly createdAt: Date,
-    public readonly updatedAt: Date
+    public readonly updatedAt: Date,
+    skipValidation = false // Flag para saltar validación (datos de DB)
   ) {
-    this.validate();
+    if (!skipValidation) {
+      this.validate();
+    }
   }
 
   /**
@@ -143,7 +146,8 @@ export class Transaction {
       data.sourceRecurringRuleId,
       splitVO,
       data.createdAt,
-      data.updatedAt
+      data.updatedAt,
+      true // skipValidation = true para datos de DB
     );
   }
 

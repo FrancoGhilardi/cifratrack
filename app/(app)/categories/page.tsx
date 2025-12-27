@@ -3,7 +3,8 @@
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import { CategoryList } from '@/features/categories/ui/category-list';
 import { CategoryListSkeleton } from '@/features/categories/ui/category-list-skeleton';
-import { ErrorState } from '@/shared/ui/error-state';
+import { PageHeader } from '@/shared/ui/page-header';
+import { PageContainer } from '@/shared/ui/page-container';
 import { getFriendlyErrorMessage } from '@/shared/lib/utils/error-messages';
 
 /**
@@ -22,37 +23,27 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Categorías</h1>
-        <p className="text-muted-foreground mt-2">
-          Gestiona las categorías de tus ingresos y egresos
-        </p>
-      </div>
+      <PageHeader
+        title="Categorías"
+        description="Gestiona las categorías de tus ingresos y egresos"
+      />
 
-      {/* Mensaje de error */}
-      {error && !isLoading && (
-        <ErrorState
-          message={friendlyErrorMessage}
-          showReloadButton
-        />
-      )}
-
-      {/* Loading state */}
-      {isLoading ? (
+      <PageContainer
+        isLoading={isLoading}
+        error={error}
+        errorMessage={friendlyErrorMessage}
+        loadingSkeleton={
+          <div className="space-y-6">
+            <CategoryListSkeleton />
+            <CategoryListSkeleton />
+          </div>
+        }
+      >
         <div className="space-y-6">
-          <CategoryListSkeleton />
-          <CategoryListSkeleton />
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Categorías de Egresos */}
           <CategoryList categories={expenseCategories || []} kind="expense" showCreateButton />
-
-          {/* Categorías de Ingresos */}
           <CategoryList categories={incomeCategories || []} kind="income" />
         </div>
-      )}
+      </PageContainer>
     </div>
   );
 }

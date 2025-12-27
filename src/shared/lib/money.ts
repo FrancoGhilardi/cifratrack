@@ -138,3 +138,23 @@ export class Money {
     return this.format();
   }
 }
+
+/**
+ * Función auxiliar para formatear montos en pesos argentinos
+ * @param amountInCents - Monto en centavos (ej: 100000 = $1.000,00)
+ * @param currency - Código de moneda (default: ARS)
+ * @param locale - Locale para el formato (default: es-AR)
+ */
+export function formatCurrency(
+  amountInCents: number,
+  currency = 'ARS',
+  locale = 'es-AR'
+): string {
+  const formatter = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return formatter.format(amountInCents / 100);
+}
