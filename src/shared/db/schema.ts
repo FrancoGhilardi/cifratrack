@@ -132,7 +132,7 @@ export const transactions = pgTable("transactions", {
 	kind: entryKind().notNull(),
 	title: varchar({ length: 120 }).notNull(),
 	description: text(),
-	amount: numeric({ precision: 14, scale:  2 }).notNull(),
+	amount: integer().notNull(),
 	currency: char({ length: 3 }).default('ARS').notNull(),
 	paymentMethodId: uuid("payment_method_id"),
 	isFixed: boolean("is_fixed").default(false).notNull(),
@@ -140,10 +140,10 @@ export const transactions = pgTable("transactions", {
 	occurredOn: date("occurred_on").notNull(),
 	dueOn: date("due_on"),
 	paidOn: date("paid_on"),
-	occurredMonth: date("occurred_month").notNull(),
+	occurredMonth: char("occurred_month", { length: 7 }).notNull(),
 	sourceRecurringRuleId: uuid("source_recurring_rule_id"),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 }, (table) => [
 	index("idx_tx_user_date").using("btree", table.userId.asc().nullsLast().op("uuid_ops"), table.occurredOn.asc().nullsLast().op("uuid_ops")),
 	index("idx_tx_user_kind").using("btree", table.userId.asc().nullsLast().op("enum_ops"), table.kind.asc().nullsLast().op("uuid_ops")),
@@ -165,7 +165,7 @@ export const transactions = pgTable("transactions", {
 			name: "transactions_user_id_fkey"
 		}).onDelete("cascade"),
 	check("chk_tx_pending_due_on", sql`((status = 'pending'::transaction_status) AND (due_on IS NOT NULL)) OR (status = 'paid'::transaction_status)`),
-	check("transactions_amount_check", sql`amount > (0)::numeric`),
+	check("transactions_amount_check", sql`amount > 0`),
 ]);
 
 export const investments = pgTable("investments", {
@@ -223,7 +223,7 @@ export const recurringRuleCategories = pgTable("recurring_rule_categories", {
 export const transactionCategories = pgTable("transaction_categories", {
 	transactionId: uuid("transaction_id").notNull(),
 	categoryId: uuid("category_id").notNull(),
-	allocatedAmount: numeric("allocated_amount", { precision: 14, scale:  2 }).notNull(),
+	allocatedAmount: integer("allocated_amount").notNull(),
 }, (table) => [
 	index("idx_txcat_category").using("btree", table.categoryId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
@@ -237,5 +237,5 @@ export const transactionCategories = pgTable("transaction_categories", {
 			name: "transaction_categories_transaction_id_fkey"
 		}).onDelete("cascade"),
 	primaryKey({ columns: [table.transactionId, table.categoryId], name: "transaction_categories_pkey"}),
-	check("transaction_categories_allocated_amount_check", sql`allocated_amount > (0)::numeric`),
+	check("transaction_categories_allocated_amount_check", sql`allocated_amount > 0`),
 ]);

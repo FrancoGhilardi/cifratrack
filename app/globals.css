@@ -47,3 +47,12 @@ textarea::placeholder {
   color: hsl(var(--muted-foreground));
   opacity: 1;
 }
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
