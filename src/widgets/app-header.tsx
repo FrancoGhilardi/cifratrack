@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { useActiveRoute } from '@/shared/lib/hooks/useActiveRoute';
 import { ThemeToggle } from '@/shared/ui/theme-toggle';
-import { LayoutDashboard, Tags, CreditCard, LogOut, ArrowLeftRight } from 'lucide-react';
+import { LayoutDashboard, Tags, CreditCard, LogOut, ArrowLeftRight, TrendingUp } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Movimientos', href: '/transactions', icon: ArrowLeftRight },
+  { name: 'Inversiones', href: '/investments', icon: TrendingUp },
   { name: 'Categorías', href: '/categories', icon: Tags },
   { name: 'Formas de pago', href: '/payment-methods', icon: CreditCard },
 ];

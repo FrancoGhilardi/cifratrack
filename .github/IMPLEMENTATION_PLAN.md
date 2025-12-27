@@ -379,61 +379,149 @@ Crear en `src/features/categories/`:
 ## FASE 6: Inversiones (básico con interés simple)
 **Objetivo:** CRUD de inversiones con cálculo de rendimiento
 
-### 6.1 Extender schema DB
-Agregar tabla `investments`:
+### 6.1 Extender schema DB ✓
+**Estado:** Completado  
+Tabla `investments` implementada en migración 0000 con:
 ```ts
-- id, userId
-- name, description
-- principal (integer, centavos)
-- tna (decimal)
-- start_date
-- days (integer)
-- created_at, updated_at
+- id, userId ✓
+- platform (varchar 80) - plataforma de inversión
+- title (varchar 120) - nombre de la inversión
+- principal (numeric 14,2) - monto invertido (decisión: decimal en lugar de centavos para mayor flexibilidad)
+- tna (numeric 6,2) - tasa nominal anual
+- days (integer) - duración en días
+- started_on (date) - fecha de inicio
+- notes (text) - descripción/notas
+- created_at, updated_at ✓
+- Constraints: days > 0 && days <= 36500, principal > 0, tna 0-999.99
+- Índice: idx_investments_user
 ```
 
-### 6.2 Entidad Investment
-Crear en `src/entities/investment/`:
-- `model/investment.entity.ts`: clase `Investment`
-  - validar principal > 0, tna en rango, days > 0
-- `model/investment.schema.ts`
-- `repo.ts`: interface
+### 6.2 Entidad Investment ✓
+**Estado:** Completado  
+**Implementado en `src/entities/investment/`:**
+
+**Modelo de dominio:**
+- ✅ `model/investment.entity.ts`: clase `Investment`
+  - Propiedades: id, userId, platform, title, principal, tna, days, startedOn, notes, timestamps
+  - Validaciones de invariantes: principal > 0, tna 0-999.99, days 1-36500, startedOn no futuro
+  - Factory methods: `create()` con validación, `fromDB()` sin validación
+  - Métodos de negocio: `getEndDate()`, `hasEnded()`, `getDaysRemaining()`
+
+**Schemas de validación:**
+- ✅ `model/investment.schema.ts`: schemas zod
+  - `createInvestmentSchema`: validación completa con refinements de decimales
+  - `updateInvestmentSchema`: validación parcial
+  - `investmentQuerySchema`: filtros y paginación (sortBy, active, q)
 
 **Servicio de dominio:**
-- `services/investment-yield-calculator.ts`:
-  ```ts
-  class InvestmentYieldCalculator {
-    calculate(principal: number, tna: number, days: number) {
-      const yield = principal * (tna / 100) * (days / 365);
-      return { yield, total: principal + yield };
-    }
-  }
-  ```
-
-### 6.3 Feature Investments
-Crear en `src/features/investments/`:
+- ✅ `services/investment-yield-calculator.ts`: clase `InvestmentYieldCalculator`
+  - `calculate(principal, tna, days)`: rendimiento con interés simple
+  - `calculateTEA(principal, finalAmount, days)`: Tasa Efectiva Anual
+  - `calculateFinalAmount(principal, tna, days)`: monto final esperado
+  - `calculateDaysForTargetYield(principal, tna, targetYield)`: días para objetivo
+  - Fórmula: `yield = principal × (tna / 100) × (days / 365)`
+  - Todos los cálculos redondeados a 2 decimales
 
 **Repositorio:**
-- `repo.impl.ts`: CRUD básico con paginado
+- ✅ `repo.ts`: interface `IInvestmentRepository`
+  - `list(userId, params)`: paginado con filtros
+  - `findById(id, userId)`: búsqueda individual
+  - `create(investment)`: inserción
+  - `update(id, userId, data)`: actualización parcial
+  - `delete(id, userId)`: eliminación
+  - `count(userId)`: total de inversiones
+  - `getTotalInvested(userId)`: suma de principales
+
+**Exports centralizados:**
+- ✅ `index.ts`: barrel export de entidad, schemas, servicio y repo
+
+
+### 6.3 Feature Investments ✓
+**Estado:** Completado  
+**Implementado en `src/features/investments/`:**
+
+**Repositorio:**
+- ✅ `repo.impl.ts`: clase `InvestmentRepository` (263 líneas)
+  - `list(userId, params)`: con paginado, filtros (q, active), ordenamiento
+  - `findById(id, userId)`: búsqueda individual
+  - `create(investment)`: inserción
+  - `update(id, userId, data)`: actualización parcial
+  - `delete(id, userId)`: eliminación
+  - `count(userId)`: total de inversiones
+  - `getTotalInvested(userId)`: suma de principales
+  - Filtro especial `active`: calcula si inversión finalizó con SQL
 
 **Casos de uso:**
-- `usecases/list-investments.usecase.ts`
-- `usecases/upsert-investment.usecase.ts`: calcular yield al guardar
-- `usecases/delete-investment.usecase.ts`
+- ✅ `usecases/list-investments.usecase.ts`: delegación al repositorio
+- ✅ `usecases/upsert-investment.usecase.ts`:
+  - `create()`: crea entidad con validación + persiste
+  - `update()`: actualización parcial
+  - `calculateYield()`: método de utilidad para UI
+- ✅ `usecases/delete-investment.usecase.ts`: eliminación
 
 **API:**
-- `app/api/investments/route.ts`
-- `app/api/investments/[id]/route.ts`
+- ✅ `app/api/investments/route.ts`: GET (list) + POST (create)
+  - GET retorna DTOs con rendimiento calculado
+  - Validación con zod schemas
+  - Manejo de errores tipado
+- ✅ `app/api/investments/[id]/route.ts`: GET + PUT + DELETE
+  - Verificación de ownership
+  - DTOs con campos calculados: yield, total, endDate, hasEnded, daysRemaining
 
 **Frontend:**
-- `features/investments/hooks/`:
-  - `useInvestmentsTable()`
-  - `useInvestmentMutations()`
-- `features/investments/ui/`:
-  - `investments-table.tsx`: mostrar principal, TNA, días, rendimiento calculado
-  - `investment-form.tsx`
+- ✅ `model/investment.dto.ts`: tipos para API (InvestmentDTO, inputs, responses)
+- ✅ `model/query-keys.ts`: factory de keys de TanStack Query
+- ✅ `mappers/investment.mapper.ts`: mapper explícito Dominio ↔ DTO
+  - `toDTO()`: convierte Investment a DTO con rendimiento calculado
+  - `toDTOs()`: batch conversion para listas
+  - `fromDB()`: alias para Investment.fromDB (consistencia)
+- ✅ `api/investments.api.ts`: fetchers para todos los endpoints
+- ✅ `hooks/useInvestments.ts`:
+  - `useInvestments(params)`: query para lista paginada
+  - `useInvestment(id)`: query para detalle individual
+  - `useInvestmentMutations()`: mutaciones con invalidación automática
+- ✅ `hooks/index.ts`: barrel exports
 
-**UI:**
-- `app/(app)/investments/page.tsx`
+**Validación:**
+- ✅ TypeScript: 0 errores (pnpm tsc --noEmit)
+- ✅ Correcciones aplicadas:
+  - Next.js 15: params async en route handlers
+  - ZodError: usar `.issues` en lugar de `.errors`
+  - Investment: import normal (no type) para uso en runtime
+- ✅ Mejoras aplicadas según AGENTS.md:
+  - ✅ InvestmentMapper centraliza mapeo dominio ↔ DTO
+  - ✅ Mejor tipado en usecase (Record<string, unknown> en lugar de any)
+
+**Pendiente:**
+- ~~UI components (investment-form, investments-table)~~
+- ~~Página principal (app/(app)/investments/page.tsx)~~
+
+### 6.4 Feature Investments (UI) ✅
+**Estado:** Completado  
+**Implementado:**
+
+**Componentes UI:**
+- ✅ `ui/investment-form.tsx`: formulario con react-hook-form + zod (crear/editar)
+- ✅ `ui/investment-list.tsx`: tabla con TanStack Table (orden, filtros, paginación, acciones)
+- ✅ `ui/delete-investment-dialog.tsx`: confirmación de eliminación con ConfirmDialog
+- ✅ `ui/index.ts`: barrel exports
+
+**Página principal:**
+- ✅ `app/(app)/investments/page.tsx`: página completa
+  - `useInvestmentsTable` con estado en URL, keepPreviousData y loading in situ
+  - Estados: loading inicial con skeleton, refetch con overlay, empty state
+
+**Navegación:**
+- ✅ Agregado "Inversiones" al AppHeader con ícono TrendingUp
+
+**Mejoras aplicadas:**
+- ✅ useCurrency extendido con formatCurrency() para decimales directos
+- ✅ Hook `useInvestmentsTable` para filtros/orden/paginación + debounced search
+- ✅ Hook compartido `useDebouncedValue`
+- ✅ Componentes compartidos: `TableLoadingOverlay`, `TableRowsSkeleton` para reutilizar en tablas
+- ✅ TypeScript: 0 errores
+
+
 
 ---
 

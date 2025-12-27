@@ -402,7 +402,7 @@ export class TransactionRepository implements ITransactionRepository {
       if (data.paymentMethodId !== undefined) updateData.paymentMethodId = data.paymentMethodId;
       if (data.isFixed !== undefined) updateData.isFixed = data.isFixed;
 
-      updateData.updatedAt = new Date();
+      updateData.updatedAt = sql`now()`;
 
       const [transaction] = await tx
         .update(transactions)

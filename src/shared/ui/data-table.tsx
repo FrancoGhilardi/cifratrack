@@ -73,14 +73,6 @@ export function DataTable<T>({
             icon={emptyStateIcon}
             title={emptyStateTitle}
             description={emptyStateDescription}
-            action={
-              onCreate ? (
-                <Button onClick={onCreate} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  {createButtonLabel}
-                </Button>
-              ) : undefined
-            }
           />
         ) : (
           <div className="rounded-lg border">

@@ -41,5 +41,13 @@ export function useCurrency(options: UseCurrencyOptions = {}) {
     return formatter.format(value);
   };
 
-  return { format };
+  /**
+   * Formatear un monto decimal directo a moneda
+   * @param amount - Monto en formato decimal (ej: 1000.00 = $1.000,00)
+   */
+  const formatCurrency = (amount: number): string => {
+    return formatter.format(amount);
+  };
+
+  return { format, formatCurrency };
 }
