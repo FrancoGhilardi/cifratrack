@@ -5,6 +5,7 @@ import type {
   CreateInvestmentInput,
   UpdateInvestmentInput,
 } from '../model/investment.dto';
+import { apiFetch } from '@/shared/lib/api-client';
 
 /**
  * Fetcher para listar inversiones
@@ -21,28 +22,14 @@ export async function fetchInvestments(
   if (params.q) searchParams.set('q', params.q);
   if (params.active) searchParams.set('active', params.active);
 
-  const response = await fetch(`/api/investments?${searchParams.toString()}`);
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al cargar inversiones');
-  }
-
-  return response.json();
+  return apiFetch<PaginatedInvestmentsResponse>(`/api/investments?${searchParams.toString()}`);
 }
 
 /**
  * Fetcher para obtener inversión por ID
  */
 export async function fetchInvestmentById(id: string): Promise<InvestmentDTO> {
-  const response = await fetch(`/api/investments/${id}`);
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al cargar inversión');
-  }
-
-  const data = await response.json();
+  const data = await apiFetch<{ data: InvestmentDTO }>(`/api/investments/${id}`);
   return data.data;
 }
 
@@ -52,7 +39,7 @@ export async function fetchInvestmentById(id: string): Promise<InvestmentDTO> {
 export async function createInvestment(
   data: CreateInvestmentInput
 ): Promise<InvestmentDTO> {
-  const response = await fetch('/api/investments', {
+  const result = await apiFetch<{ data: InvestmentDTO }>('/api/investments', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -60,13 +47,6 @@ export async function createInvestment(
       startedOn: data.startedOn.toISOString().split('T')[0],
     }),
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear inversión');
-  }
-
-  const result = await response.json();
   return result.data;
 }
 
@@ -77,23 +57,14 @@ export async function updateInvestment(
   id: string,
   data: UpdateInvestmentInput
 ): Promise<InvestmentDTO> {
-  const response = await fetch(`/api/investments/${id}`, {
+  const result = await apiFetch<{ data: InvestmentDTO }>(`/api/investments/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       ...data,
-      startedOn: data.startedOn
-        ? data.startedOn.toISOString().split('T')[0]
-        : undefined,
+      startedOn: data.startedOn ? data.startedOn.toISOString().split('T')[0] : undefined,
     }),
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar inversión');
-  }
-
-  const result = await response.json();
   return result.data;
 }
 
@@ -101,12 +72,7 @@ export async function updateInvestment(
  * Fetcher para eliminar inversión
  */
 export async function deleteInvestment(id: string): Promise<void> {
-  const response = await fetch(`/api/investments/${id}`, {
+  await apiFetch<void>(`/api/investments/${id}`, {
     method: 'DELETE',
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al eliminar inversión');
-  }
 }

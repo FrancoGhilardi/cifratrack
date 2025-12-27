@@ -1,5 +1,6 @@
-import type { RegisterInput, LoginInput } from '@/entities/user/model/user.schema';
+import type { RegisterInput } from '@/entities/user/model/user.schema';
 import type { UserDTO } from '@/entities/user/model/user.entity';
+import { apiFetch } from '@/shared/lib/api-client';
 
 /**
  * API client para autenticación
@@ -9,18 +10,12 @@ export class AuthApi {
    * Registrar nuevo usuario
    */
   async register(data: RegisterInput): Promise<UserDTO> {
-    const response = await fetch('/api/auth/register', {
+    const result = await apiFetch<{ data: UserDTO }>('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
+      skipAuthRedirect: true, // ruta pública
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Error al registrar usuario');
-    }
-
-    const result = await response.json();
     return result.data;
   }
 }

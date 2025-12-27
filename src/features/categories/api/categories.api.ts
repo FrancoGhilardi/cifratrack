@@ -1,5 +1,6 @@
 import type { ApiOk } from '@/shared/lib/types';
 import type { CreateCategoryInput, UpdateCategoryInput } from '@/entities/category/model/category.schema';
+import { apiFetch } from '@/shared/lib/api-client';
 
 export interface CategoryDTO {
   id: string;
@@ -30,17 +31,7 @@ export class CategoriesApi {
     const queryString = params.toString();
     const url = `/api/categories${queryString ? `?${queryString}` : ''}`;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Error al obtener categorías');
-    }
-
-    const result: ApiOk<CategoryDTO[]> = await response.json();
+    const result = await apiFetch<ApiOk<CategoryDTO[]>>(url);
     return result.data;
   }
 
@@ -48,17 +39,7 @@ export class CategoriesApi {
    * Obtener categoría por ID
    */
   async getById(id: string): Promise<CategoryDTO> {
-    const response = await fetch(`/api/categories/${id}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Error al obtener categoría');
-    }
-
-    const result: ApiOk<CategoryDTO> = await response.json();
+    const result = await apiFetch<ApiOk<CategoryDTO>>(`/api/categories/${id}`);
     return result.data;
   }
 
@@ -66,18 +47,11 @@ export class CategoriesApi {
    * Crear nueva categoría
    */
   async create(data: CreateCategoryInput): Promise<CategoryDTO> {
-    const response = await fetch('/api/categories', {
+    const result = await apiFetch<ApiOk<CategoryDTO>>('/api/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Error al crear categoría');
-    }
-
-    const result: ApiOk<CategoryDTO> = await response.json();
     return result.data;
   }
 
@@ -85,18 +59,11 @@ export class CategoriesApi {
    * Actualizar categoría
    */
   async update(id: string, data: UpdateCategoryInput): Promise<CategoryDTO> {
-    const response = await fetch(`/api/categories/${id}`, {
+    const result = await apiFetch<ApiOk<CategoryDTO>>(`/api/categories/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Error al actualizar categoría');
-    }
-
-    const result: ApiOk<CategoryDTO> = await response.json();
     return result.data;
   }
 
@@ -104,15 +71,10 @@ export class CategoriesApi {
    * Eliminar categoría
    */
   async delete(id: string): Promise<void> {
-    const response = await fetch(`/api/categories/${id}`, {
+    await apiFetch<void>(`/api/categories/${id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Error al eliminar categoría');
-    }
   }
 }
 

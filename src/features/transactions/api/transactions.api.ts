@@ -1,6 +1,7 @@
 import type { TransactionDTO } from '../mappers/transaction.mapper';
 import type { TransactionListParams } from '../model/query-keys';
 import type { ApiOk, PaginatedResponse } from '@/shared/lib/types';
+import { apiFetch } from '@/shared/lib/api-client';
 
 const API_BASE = '/api/transactions';
 
@@ -26,28 +27,14 @@ export async function fetchTransactions(
   if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
 
   const url = `${API_BASE}?${searchParams.toString()}`;
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Error al cargar transacciones');
-  }
-
-  return response.json();
+  return apiFetch<PaginatedResponse<TransactionDTO>>(url);
 }
 
 /**
  * Fetcher para obtener una transacción por ID
  */
 export async function fetchTransactionById(id: string): Promise<TransactionDTO> {
-  const response = await fetch(`${API_BASE}/${id}`);
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Error al cargar transacción');
-  }
-
-  const data: ApiOk<TransactionDTO> = await response.json();
+  const data = await apiFetch<ApiOk<TransactionDTO>>(`${API_BASE}/${id}`);
   return data.data;
 }
 
@@ -75,18 +62,12 @@ export async function createTransaction(
     }>;
   }
 ): Promise<TransactionDTO> {
-  const response = await fetch(API_BASE, {
+  const result = await apiFetch<ApiOk<TransactionDTO>>(API_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Error al crear transacción');
-  }
-
-  const result: ApiOk<TransactionDTO> = await response.json();
   return result.data;
 }
 
@@ -115,18 +96,12 @@ export async function updateTransaction(
     }>;
   }
 ): Promise<TransactionDTO> {
-  const response = await fetch(`${API_BASE}/${id}`, {
+  const result = await apiFetch<ApiOk<TransactionDTO>>(`${API_BASE}/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Error al actualizar transacción');
-  }
-
-  const result: ApiOk<TransactionDTO> = await response.json();
   return result.data;
 }
 
@@ -134,12 +109,7 @@ export async function updateTransaction(
  * Eliminar una transacción
  */
 export async function deleteTransaction(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/${id}`, {
+  await apiFetch<void>(`${API_BASE}/${id}`, {
     method: 'DELETE',
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Error al eliminar transacción');
-  }
 }

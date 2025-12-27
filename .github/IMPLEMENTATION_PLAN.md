@@ -635,14 +635,18 @@ Crear en `src/features/profile/`:
 
 
 ### 9.1 Widgets compartidos ✓
-**Estado:** Completado (27/12/2025)
-Crear en `src/widgets/`:
+**Estado:** Completado  
+**Implementado en `src/widgets/`:**
+- ✅ `navigation/nav-items.ts`: fuente única de navegación para header/sidebar
+- ✅ `header/header.tsx`: header con usuario, email, logout y toggle de tema
 - ✅ `sidebar/sidebar.tsx`: navegación principal (Dashboard, Movimientos, Categorías, Formas de Pago, Inversiones, Recurrentes, Perfil)
-- `header/header.tsx`: usuario logueado + logout
+- ✅ `app-header.tsx`: wrapper que reutiliza el header para compatibilidad
 
-### 9.2 Layout de app
-- `app/(app)/layout.tsx`: incluir sidebar + header
-- Protección de rutas con middleware o verificación de sesión
+### 9.2 Layout de app ✓
+**Estado:** Completado  
+- ✅ `widgets/layout/app-shell.tsx`: layout con sidebar fijo + header; logout via `signOut`
+- ✅ `app/(app)/layout.tsx`: envuelve páginas en `AppShell` y pasa usuario desde `auth()`
+- ✅ `proxy.ts`: protección de rutas; redirige a login si no hay sesión (excepto /login, /register, /api/auth)
 
 ---
 
@@ -747,8 +751,8 @@ Para cada feature nueva:
 5. ✅ **FASE 5** → movimientos (core del sistema)
    - ✅ 5.1: Backend + API Client completo
    - ✅ 5.2: UI Components completo
-6. **FASE 9** → layout y navegación (para probar todo integrado)
-7. **FASE 6** → inversiones
+6. ✅ **FASE 9** → layout y navegación (sidebar + header + protección)
+7. ✅ **FASE 6** → inversiones
 8. **FASE 7** → recurrentes (más complejo, dejarlo para cuando el resto esté sólido)
 9. **FASE 8** → perfil
 10. **FASE 10** → polish y UX
@@ -763,8 +767,11 @@ Para cada feature nueva:
 - **Validar siempre en backend**: nunca confiar solo en validación frontend
 - **Commits atómicos**: un commit por funcionalidad completa (repo + usecase + api + hook + ui)
 - **Revisar AGENTS.md** antes de cada feature para recordar principios
+- **Proteger rutas**: mantener `proxy.ts` actualizado si se agregan nuevas rutas públicas o cambios de auth
+- **Navegación única**: actualizar `navigation/nav-items.ts` para que header y sidebar se sincronicen
+- **Logout centralizado**: usar `Header` (AppShell) para signOut y no duplicar lógica en sidebar
 
 ---
 
 **Última actualización:** 27 de diciembre de 2025  
-**Próximo paso:** FASE 9 - Layout y navegación
+**Próximo paso:** FASE 7 - Recurrentes

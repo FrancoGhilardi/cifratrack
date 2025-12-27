@@ -2,6 +2,7 @@ import type {
   CreatePaymentMethodInput,
   UpdatePaymentMethodInput,
 } from "@/entities/payment-method/model/payment-method.schema";
+import { apiFetch } from "@/shared/lib/api-client";
 
 export interface PaymentMethodDTO {
   id: string;
@@ -30,13 +31,7 @@ export const paymentMethodsApi = {
       searchParams.toString() ? `?${searchParams.toString()}` : ""
     }`;
 
-    const res = await fetch(url);
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error?.message || "Error al listar formas de pago");
-    }
-
-    const data = await res.json();
+    const data = await apiFetch<{ data: PaymentMethodDTO[] }>(url);
     return data.data;
   },
 
@@ -44,15 +39,7 @@ export const paymentMethodsApi = {
    * Obtener una forma de pago por ID
    */
   async getById(id: string): Promise<PaymentMethodDTO> {
-    const res = await fetch(`/api/payment-methods/${id}`);
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(
-        error.error?.message || "Error al obtener forma de pago"
-      );
-    }
-
-    const data = await res.json();
+    const data = await apiFetch<{ data: PaymentMethodDTO }>(`/api/payment-methods/${id}`);
     return data.data;
   },
 
@@ -60,18 +47,12 @@ export const paymentMethodsApi = {
    * Crear una nueva forma de pago
    */
   async create(input: CreatePaymentMethodInput): Promise<PaymentMethodDTO> {
-    const res = await fetch("/api/payment-methods", {
+    const data = await apiFetch<{ data: PaymentMethodDTO }>("/api/payment-methods", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
     });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error?.message || "Error al crear forma de pago");
-    }
-
-    const data = await res.json();
     return data.data;
   },
 
@@ -82,20 +63,12 @@ export const paymentMethodsApi = {
     id: string,
     input: UpdatePaymentMethodInput
   ): Promise<PaymentMethodDTO> {
-    const res = await fetch(`/api/payment-methods/${id}`, {
+    const data = await apiFetch<{ data: PaymentMethodDTO }>(`/api/payment-methods/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
     });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(
-        error.error?.message || "Error al actualizar forma de pago"
-      );
-    }
-
-    const data = await res.json();
     return data.data;
   },
 
@@ -103,13 +76,8 @@ export const paymentMethodsApi = {
    * Eliminar una forma de pago
    */
   async delete(id: string): Promise<void> {
-    const res = await fetch(`/api/payment-methods/${id}`, {
+    await apiFetch<void>(`/api/payment-methods/${id}`, {
       method: "DELETE",
     });
-
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error?.message || "Error al eliminar forma de pago");
-    }
   },
 };
