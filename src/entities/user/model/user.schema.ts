@@ -7,10 +7,13 @@ import { emailSchema, passwordSchema, nonEmptyStringSchema } from '@/shared/lib/
 export const registerSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  name: nonEmptyStringSchema
+  confirmPassword: z.string().min(1, 'Confirmar contraseña es requerido'),
+  username: nonEmptyStringSchema
     .max(100, 'El nombre no puede superar los 100 caracteres')
-    .optional()
-    .nullable(),
+    .optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirmPassword'],
 });
 
 /**

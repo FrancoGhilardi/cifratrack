@@ -4,7 +4,7 @@ import { categories, paymentMethods } from '@/shared/db/schema';
 import type { IUserRepository } from '@/entities/user/repo';
 import type { RegisterInput } from '@/entities/user/model/user.schema';
 import type { User } from '@/entities/user/model/user.entity';
-import { ConflictError, ValidationError } from '@/shared/lib/errors';
+import { ConflictError } from '@/shared/lib/errors';
 import { DEFAULT_CATEGORIES } from '../seeds/default-categories';
 import { DEFAULT_PAYMENT_METHODS } from '../seeds/default-payment-methods';
 
@@ -33,23 +33,20 @@ export class RegisterUserUseCase {
     // Hashear password
     const hashedPassword = await this.hashPassword(input.password);
 
-    // Crear usuario y defaults en transacción
-    return await db.transaction(async (tx) => {
-      // Crear usuario
-      const user = await this.userRepository.create({
-        email: input.email,
-        hashedPassword,
-        name: input.name || null,
-      });
-
-      // Insertar categorías por defecto
-      await this.insertDefaultCategories(user.id);
-
-      // Insertar formas de pago por defecto
-      await this.insertDefaultPaymentMethods(user.id);
-
-      return user;
+    // Crear usuario
+    const user = await this.userRepository.create({
+      email: input.email,
+      hashedPassword,
+      name: input.username || null,
     });
+
+    // Insertar categorías por defecto
+    await this.insertDefaultCategories(user.id);
+
+    // Insertar formas de pago por defecto
+    await this.insertDefaultPaymentMethods(user.id);
+
+    return user;
   }
 
   /**
