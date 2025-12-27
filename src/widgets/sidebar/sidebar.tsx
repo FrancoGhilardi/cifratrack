@@ -5,14 +5,21 @@ import { useActiveRoute } from "@/shared/lib/hooks/useActiveRoute";
 import { cn } from "@/shared/lib/utils";
 import { appNavigation } from "@/widgets/navigation/nav-items";
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps) {
   const { isActive } = useActiveRoute();
 
   return (
     <aside className="flex h-screen min-h-screen w-64 flex-col border-r border-border">
       <div className="flex h-16 items-center border-b border-border px-6">
-        <span className="text-xl font-bold">CifraTrack</span>
+        <Link href="/dashboard" onClick={onNavigate} className="text-xl font-bold">
+          CifraTrack
+        </Link>
       </div>
+
       <nav className="flex-1 space-y-1 px-2 py-4">
         {appNavigation.map((item) => {
           const Icon = item.icon;
@@ -21,6 +28,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 active

@@ -3,16 +3,23 @@
 import { LogOut, User } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
+import { cn } from "@/shared/lib/utils";
 
 interface HeaderProps {
   userName?: string;
   userEmail?: string;
   onLogout?: () => void;
+  className?: string;
 }
 
-export function Header({ userName, userEmail, onLogout }: HeaderProps) {
+export function Header({ userName, userEmail, onLogout, className }: HeaderProps) {
   return (
-    <header className="h-16 w-full flex items-center justify-between border-b border-border px-6">
+    <header
+      className={cn(
+        "h-16 w-full flex items-center justify-between border-b border-border px-6",
+        className
+      )}
+    >
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
           <User className="h-4 w-4" />

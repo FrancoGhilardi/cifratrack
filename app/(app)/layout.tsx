@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
-import { Sidebar } from '@/widgets/sidebar/sidebar';
-import { Header } from '@/widgets/header/header';
 import { auth } from '@/shared/lib/auth';
+import { AppShell } from '@/widgets/layout';
 
 export const metadata: Metadata = {
   title: 'CifraTrack - Dashboard',
@@ -18,12 +17,8 @@ export default async function AppLayout({
   const userEmail = session?.user?.email ?? undefined;
 
   return (
-    <div className="min-h-screen flex flex-row">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-h-screen">
-        <Header userName={userName ?? undefined} userEmail={userEmail} />
-        <main className="flex-1 py-6 px-4 max-w-7xl w-full mx-auto">{children}</main>
-      </div>
-    </div>
+    <AppShell userName={userName ?? undefined} userEmail={userEmail}>
+      {children}
+    </AppShell>
   );
 }
