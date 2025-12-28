@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { signOut } from "next-auth/react";
 import { Sidebar } from "@/widgets/sidebar/sidebar";
 import { Header } from "@/widgets/header/header";
+import { Toaster } from "sonner";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -28,6 +29,12 @@ export function AppShell({ children, userName, userEmail }: AppShellProps) {
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        toastOptions={{ className: "rounded-lg border shadow-lg" }}
+      />
     </div>
   );
 }

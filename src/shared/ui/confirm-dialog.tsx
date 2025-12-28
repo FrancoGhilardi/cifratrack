@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
+import { Spinner } from './spinner';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -62,7 +63,9 @@ export function ConfirmDialog({
             variant="destructive"
             onClick={onConfirm}
             disabled={isLoading}
+            isLoading={isLoading}
           >
+            {isLoading && <Spinner size="xs" />}
             {isLoading ? loadingText : confirmText}
           </Button>
         </DialogFooter>

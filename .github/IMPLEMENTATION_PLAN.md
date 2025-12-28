@@ -608,21 +608,27 @@ Tabla `investments` implementada en migración 0000 con:
 **Objetivo:** Detalles que hacen la diferencia
 
 ### 10.1 Loading states
+**Estado:** Completado  
 - Skeletons en tablas y cards
-- Spinners en botones de submit
+- Spinners en botones de submit y `Button isLoading` unificado
 
 ### 10.2 Toast notifications
-- Instalar `sonner` o usar shadcn/ui toast
-- Notificar éxito/error en mutaciones
+**Estado:** Completado  
+- `sonner` instalado, `Toaster` en `AppShell`, helper `toast`
+- Mutaciones clave con toasts: recurrentes, transacciones, inversiones, categorías, formas de pago, perfil
 
 ### 10.3 Confirmaciones de eliminación
-- Dialogs de confirmación antes de DELETE
+**Estado:** Completado  
+- ConfirmDialog aplicado en deletes de transacciones, inversiones, categorías, formas de pago y reglas recurrentes
 
 ### 10.4 Validación de formularios en tiempo real
-- Mensajes de error debajo de inputs
+**Estado:** Completado  
+- Formularios clave con validación en vivo (`mode: onChange`) y errores bajo inputs:
+  - Transacciones, inversiones, categorías, formas de pago, recurrentes, perfil y cambio de contraseña
 
 ### 10.5 Empty states
-- Mensajes cuando no hay datos en tablas
+**Estado:** Completado  
+- Empty states con mensajes/icono en tablas y listados (transacciones, inversiones, categorías, formas de pago, recurrentes)
 
 ### 10.6 Responsive design
 - Mobile-first

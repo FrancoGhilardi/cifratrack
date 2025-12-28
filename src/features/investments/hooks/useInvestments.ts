@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { investmentKeys } from '../model/query-keys';
 import type { InvestmentQueryParams } from '../model/investment.dto';
 import * as api from '../api/investments.api';
+import { toast } from '@/shared/lib/toast';
 
 /**
  * Hook para listar inversiones con paginación y filtros
@@ -35,7 +36,9 @@ export function useInvestmentMutations() {
     onSuccess: () => {
       // Invalidar lista de inversiones
       queryClient.invalidateQueries({ queryKey: investmentKeys.lists() });
+      toast.success('Inversión creada');
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al crear inversión'),
   });
 
   const updateMutation = useMutation({
@@ -45,7 +48,9 @@ export function useInvestmentMutations() {
       // Invalidar lista y detalle específico
       queryClient.invalidateQueries({ queryKey: investmentKeys.lists() });
       queryClient.invalidateQueries({ queryKey: investmentKeys.detail(variables.id) });
+      toast.success('Inversión actualizada');
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al actualizar inversión'),
   });
 
   const deleteMutation = useMutation({
@@ -53,7 +58,9 @@ export function useInvestmentMutations() {
     onSuccess: () => {
       // Invalidar lista
       queryClient.invalidateQueries({ queryKey: investmentKeys.lists() });
+      toast.success('Inversión eliminada');
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al eliminar inversión'),
   });
 
   return {

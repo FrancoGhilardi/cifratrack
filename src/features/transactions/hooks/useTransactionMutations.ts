@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createTransaction, updateTransaction, deleteTransaction } from '../api/transactions.api';
 import { transactionKeys } from '../model/query-keys';
+import { dashboardKeys } from '@/features/dashboard/model/query-keys';
+import { toast } from '@/shared/lib/toast';
 
 /**
  * Hook para mutaciones de transacciones (crear, actualizar, eliminar)
@@ -16,8 +18,10 @@ export function useTransactionMutations() {
       // Invalidar todas las listas de transacciones
       queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
       // Invalidar el resumen del dashboard
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+      toast.success('Transacción creada');
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al crear transacción'),
   });
 
   const updateMutation = useMutation({
@@ -29,8 +33,10 @@ export function useTransactionMutations() {
       // Invalidar todas las listas
       queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
       // Invalidar el dashboard
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+      toast.success('Transacción actualizada');
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al actualizar transacción'),
   });
 
   const deleteMutation = useMutation({
@@ -39,8 +45,10 @@ export function useTransactionMutations() {
       // Invalidar todas las listas
       queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
       // Invalidar el dashboard
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+      toast.success('Transacción eliminada');
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al eliminar transacción'),
   });
 
   return {

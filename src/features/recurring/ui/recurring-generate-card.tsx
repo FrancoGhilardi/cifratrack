@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
+import { Spinner } from '@/shared/ui/spinner';
 
 interface RecurringGenerateCardProps {
   month: string;
@@ -37,6 +38,7 @@ export function RecurringGenerateCard({
             className="w-36"
           />
           <Button onClick={onGenerate} disabled={isLoading}>
+            {isLoading && <Spinner size="xs" />}
             {isLoading ? 'Generando...' : 'Generar'}
           </Button>
         </div>

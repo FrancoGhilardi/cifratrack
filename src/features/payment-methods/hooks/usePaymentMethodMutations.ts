@@ -5,6 +5,7 @@ import type {
   CreatePaymentMethodInput,
   UpdatePaymentMethodInput,
 } from "@/entities/payment-method/model/payment-method.schema";
+import { toast } from "@/shared/lib/toast";
 
 /**
  * Hook para las mutaciones de payment methods
@@ -20,7 +21,9 @@ export function usePaymentMethodMutations() {
       queryClient.invalidateQueries({
         queryKey: paymentMethodsKeys.lists(),
       });
+      toast.success("Forma de pago creada");
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Error al crear forma de pago"),
   });
 
   const updatePaymentMethod = useMutation({
@@ -34,7 +37,9 @@ export function usePaymentMethodMutations() {
       queryClient.invalidateQueries({
         queryKey: paymentMethodsKeys.detail(variables.id),
       });
+      toast.success("Forma de pago actualizada");
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Error al actualizar forma de pago"),
   });
 
   const deletePaymentMethod = useMutation({
@@ -44,7 +49,9 @@ export function usePaymentMethodMutations() {
       queryClient.invalidateQueries({
         queryKey: paymentMethodsKeys.lists(),
       });
+      toast.success("Forma de pago eliminada");
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Error al eliminar forma de pago"),
   });
 
   return {

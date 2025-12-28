@@ -4,7 +4,7 @@ import { TransactionDTO } from '@/features/transactions/mappers/transaction.mapp
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeftRight } from 'lucide-react';
 import { formatCurrency } from '@/shared/lib/money';
 import { formatDateToLocal } from '@/shared/lib/utils/date-format';
 import {
@@ -15,6 +15,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
+import { EmptyState } from '@/shared/ui/empty-state';
 
 interface TransactionsTableProps {
   transactions: TransactionDTO[];
@@ -206,12 +207,11 @@ export function TransactionsTable({
 
   if (transactions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-muted-foreground mb-2">No hay transacciones</p>
-        <p className="text-sm text-muted-foreground">
-          Crea tu primer movimiento para comenzar
-        </p>
-      </div>
+      <EmptyState
+        icon={ArrowLeftRight}
+        title="Sin transacciones"
+        description="No hay movimientos en este período. Crea uno nuevo o ajusta los filtros."
+      />
     );
   }
 

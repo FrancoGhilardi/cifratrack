@@ -51,6 +51,7 @@ export function CategoryForm({
     watch,
   } = useForm({
     resolver: zodResolver(schema),
+    mode: 'onChange',
     defaultValues: category
       ? { name: category.name, isActive: category.isActive }
       : { kind: 'expense' as const, name: '' },

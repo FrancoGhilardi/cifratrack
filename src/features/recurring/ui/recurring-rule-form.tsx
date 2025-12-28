@@ -63,6 +63,7 @@ export function RecurringRuleForm({ open, onOpenChange, onSubmit, rule }: Recurr
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: 'onChange',
     defaultValues: getDefaultValues(),
   });
 
@@ -307,7 +308,7 @@ export function RecurringRuleForm({ open, onOpenChange, onSubmit, rule }: Recurr
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={form.formState.isSubmitting}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting} isLoading={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? 'Guardando...' : rule ? 'Guardar cambios' : 'Crear'}
               </Button>
             </DialogFooter>

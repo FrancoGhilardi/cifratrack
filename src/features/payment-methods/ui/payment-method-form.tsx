@@ -37,6 +37,7 @@ export function PaymentMethodForm({
 }: PaymentMethodFormProps) {
   const form = useForm({
     resolver: zodResolver(createPaymentMethodSchema),
+    mode: "onChange",
     defaultValues: paymentMethod
       ? { name: paymentMethod.name, isActive: paymentMethod.isActive }
       : { name: "", isActive: true },
@@ -139,7 +140,11 @@ export function PaymentMethodForm({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting}
+              isLoading={form.formState.isSubmitting}
+            >
               {form.formState.isSubmitting
                 ? "Guardando..."
                 : paymentMethod

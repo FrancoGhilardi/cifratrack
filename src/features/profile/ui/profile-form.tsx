@@ -27,6 +27,7 @@ export function ProfileForm({ profile, onSubmit }: ProfileFormProps) {
 
   const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
+    mode: 'onChange',
     defaultValues: getDefaultValues(),
   });
 
@@ -75,7 +76,7 @@ export function ProfileForm({ profile, onSubmit }: ProfileFormProps) {
         </div>
       )}
 
-      <Button type="submit" disabled={form.formState.isSubmitting}>
+      <Button type="submit" disabled={form.formState.isSubmitting} isLoading={form.formState.isSubmitting}>
         {form.formState.isSubmitting ? 'Guardando...' : 'Guardar cambios'}
       </Button>
     </form>

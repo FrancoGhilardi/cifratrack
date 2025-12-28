@@ -60,6 +60,7 @@ export function InvestmentForm({
 
   const form = useForm<CreateInvestmentInput>({
     resolver: zodResolver(createInvestmentSchema) as Resolver<CreateInvestmentInput>,
+    mode: "onChange",
     defaultValues: getDefaultValues(),
   });
 
@@ -234,10 +235,15 @@ export function InvestmentForm({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={form.formState.isSubmitting}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting}
+              isLoading={form.formState.isSubmitting}
+            >
               {form.formState.isSubmitting
                 ? "Guardando..."
                 : investment

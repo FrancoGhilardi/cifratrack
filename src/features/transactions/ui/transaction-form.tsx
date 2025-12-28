@@ -65,6 +65,7 @@ export function TransactionForm({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: 'onChange',
     defaultValues: {
       kind: transaction?.kind ?? 'expense',
       title: transaction?.title ?? '',

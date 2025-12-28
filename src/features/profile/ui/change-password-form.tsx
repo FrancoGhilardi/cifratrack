@@ -25,6 +25,7 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
 
   const form = useForm<ChangePasswordInput>({
     resolver: zodResolver(changePasswordSchema),
+    mode: 'onChange',
     defaultValues: getDefaultValues(),
   });
 
@@ -76,7 +77,7 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
         </div>
       )}
 
-      <Button type="submit" disabled={form.formState.isSubmitting}>
+      <Button type="submit" disabled={form.formState.isSubmitting} isLoading={form.formState.isSubmitting}>
         {form.formState.isSubmitting ? 'Guardando...' : 'Cambiar contraseña'}
       </Button>
     </form>
