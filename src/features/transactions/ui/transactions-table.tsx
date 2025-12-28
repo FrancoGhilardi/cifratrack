@@ -88,8 +88,15 @@ export function TransactionsTable({
           );
         },
         cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="font-medium">{row.original.title}</span>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{row.original.title}</span>
+              {row.original.sourceRecurringRuleId && (
+                <Badge variant="outline" className="text-xs">
+                  Recurrente
+                </Badge>
+              )}
+            </div>
             {row.original.description && (
               <span className="text-sm text-muted-foreground">{row.original.description}</span>
             )}

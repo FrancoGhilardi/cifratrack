@@ -529,104 +529,58 @@ Tabla `investments` implementada en migración 0000 con:
 **Objetivo:** Reglas versionadas + generación idempotente de transacciones
 
 ### 7.1 Extender schema DB
-Agregar tabla `recurring_rules`:
-```ts
-- id, userId
-- title, description
-- amount, kind
-- day_of_month (1-31)
-- status (paid/pending) default
-- payment_method_id
-- active_from_month (YYYY-MM)
-- active_to_month (YYYY-MM nullable)
-- created_at, updated_at
-```
-
-Agregar tabla `recurring_rule_categories`:
-```ts
-- id
-- recurring_rule_id
-- category_id
-- allocated_amount
-```
+**Estado:** Completado  
+- ✅ Tabla `recurring_rules` en `src/shared/db/schema.ts` con: id, userId, title, description, amount (int), kind, day_of_month, status (pending/paid), payment_method_id, active_from_month/active_to_month (YYYY-MM), created_at, updated_at, índices y checks
+- ✅ Tabla `recurring_rule_categories` con id, recurring_rule_id, category_id, allocated_amount, created_at
 
 ### 7.2 Entidad RecurringRule
-Crear en `src/entities/recurring-rule/`:
-- `model/recurring-rule.entity.ts`: clase `RecurringRule`
-- `model/recurring-rule.schema.ts`
-- `repo.ts`: interface
+**Estado:** Completado  
+- ✅ `model/recurring-rule.entity.ts`: clase `RecurringRule` con validaciones de dominio y mapeos DTO/DB
+- ✅ `model/recurring-rule.schema.ts`: schemas zod (create/update) con validaciones
+- ✅ `repo.ts`: interface `IRecurringRuleRepository`
 
 ### 7.3 Feature Recurring
-Crear en `src/features/recurring/`:
+**Estado:** Completado  
 
 **Repositorio:**
-- `repo.impl.ts`: CRUD de reglas
+- ✅ `repo.impl.ts`: CRUD de reglas + categorías, búsqueda de transacciones existentes e inserción desde regla (con due/paid on)
 
 **Casos de uso:**
-- `usecases/list-recurring-rules.usecase.ts`
-- `usecases/upsert-recurring-rule.usecase.ts`:
-  - si es edición de regla activa:
-    - cerrar regla actual (set `active_to_month` = mes anterior)
-    - crear nueva regla desde mes actual
-- `usecases/delete-recurring-rule.usecase.ts`: cerrar en mes actual
-- `usecases/generate-monthly-recurring-transactions.usecase.ts`:
-  - recibir `userId`, `month`
-  - buscar reglas activas en ese mes
-  - para cada regla:
-    - verificar si ya existe transaction con `source_recurring_rule_id` + `occurred_month`
-    - si no existe, crear transaction + splits
-  - idempotente
+- ✅ `usecases/list-recurring-rules.usecase.ts`
+- ✅ `usecases/upsert-recurring-rule.usecase.ts` (versionado con cierre automático y validación de categorías)
+- ✅ `usecases/delete-recurring-rule.usecase.ts` (cierre o borrado)
+- ✅ `usecases/generate-monthly-recurring-transactions.usecase.ts` (idempotente, valida splits)
 
 **API:**
-- `app/api/recurring/route.ts`: GET, POST
-- `app/api/recurring/[id]/route.ts`: PUT, DELETE
-- `app/api/recurring/generate/route.ts`: POST con `?month=YYYY-MM`
+- ✅ `app/api/recurring/route.ts`: GET, POST
+- ✅ `app/api/recurring/[id]/route.ts`: PUT, DELETE
+- ✅ `app/api/recurring/generate/route.ts`: POST con `?month=YYYY-MM`
 
 **Frontend:**
-- `features/recurring/hooks/`:
-  - `useRecurringRules()`
-  - `useRecurringRuleMutations()`
-- `features/recurring/ui/`:
-  - `recurring-rules-list.tsx`
-  - `recurring-rule-form.tsx`
-
-**UI:**
-- `app/(app)/recurring/page.tsx`
+- ✅ Hooks: `useRecurringRules`, `useRecurringRuleMutations`, mapas de nombres reutilizables
+- ✅ UI: `recurring-rules-list`, `recurring-rule-form`, `recurring-generate-card`, `recurring-rules-skeleton`
+- ✅ Página: `app/(app)/recurring/page.tsx`
 
 ### 7.4 Integración con Dashboard
-- Al cargar dashboard summary, llamar automáticamente a generate (o hacerlo en middleware)
-- Mostrar badge en transactions generadas desde recurrentes
+**Estado:** Completado  
+- ✅ `GET /api/dashboard/summary` dispara generación mensual idempotente antes de calcular el resumen
+- ✅ Tabla de transacciones muestra badge "Recurrente" cuando `sourceRecurringRuleId` está presente
 
 ---
 
-## FASE 8: Perfil de usuario
+## FASE 8: Perfil de usuario ✓
 **Objetivo:** Pantalla de perfil con posibilidad de cambiar nombre/email/password
 
-### 8.1 Extender entidad User
-Agregar en `src/entities/user/`:
-- métodos de validación para cambio de password
+### 8.1 Extender entidad User ✓
+- ✅ Validación de fuerza de contraseña y verificación de cambio (sin reutilizar hash)
 
-### 8.2 Feature Profile
-Crear en `src/features/profile/`:
-
-**Casos de uso:**
-- `usecases/update-profile.usecase.ts`: cambiar nombre/email
-- `usecases/change-password.usecase.ts`: verificar password actual, hashear nuevo
-
-**API:**
-- `app/api/profile/route.ts`: GET (datos actuales), PUT
-- `app/api/profile/password/route.ts`: PUT
-
-**Frontend:**
-- `features/profile/hooks/`:
-  - `useProfile()`
-  - `useProfileMutations()`
-- `features/profile/ui/`:
-  - `profile-form.tsx`
-  - `change-password-form.tsx`
-
-**UI:**
-- `app/(app)/profile/page.tsx`
+### 8.2 Feature Profile ✓
+- ✅ Usecases: `update-profile.usecase.ts`, `change-password.usecase.ts` (valida password actual, email único, hashea nueva)
+- ✅ API: `app/api/profile/route.ts` (GET/PUT), `app/api/profile/password/route.ts` (PUT) con auth
+- ✅ Frontend:
+  - Hooks: `useProfile`, `useProfileMutations`
+  - UI: `profile-form.tsx` (email deshabilitado), `change-password-form.tsx`
+  - Página: `app/(app)/profile/page.tsx` con skeletons y secciones reutilizables
 
 ---
 
@@ -753,8 +707,8 @@ Para cada feature nueva:
    - ✅ 5.2: UI Components completo
 6. ✅ **FASE 9** → layout y navegación (sidebar + header + protección)
 7. ✅ **FASE 6** → inversiones
-8. **FASE 7** → recurrentes (más complejo, dejarlo para cuando el resto esté sólido)
-9. **FASE 8** → perfil
+8. ✅ **FASE 8** → perfil
+9. **FASE 7** → recurrentes (más complejo, dejarlo para cuando el resto esté sólido)
 10. **FASE 10** → polish y UX
 11. **FASE 11** → testing
 12. **FASE 12** → deploy
@@ -770,6 +724,7 @@ Para cada feature nueva:
 - **Proteger rutas**: mantener `proxy.ts` actualizado si se agregan nuevas rutas públicas o cambios de auth
 - **Navegación única**: actualizar `navigation/nav-items.ts` para que header y sidebar se sincronicen
 - **Logout centralizado**: usar `Header` (AppShell) para signOut y no duplicar lógica en sidebar
+- **Validación de perfil**: si cambian reglas de email/password, sincronizar schemas zod, usecases y UI para evitar estados inconsistentes
 
 ---
 

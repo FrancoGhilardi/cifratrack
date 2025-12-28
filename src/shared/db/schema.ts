@@ -98,20 +98,19 @@ export const paymentMethods = pgTable("payment_methods", {
 export const recurringRules = pgTable("recurring_rules", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	userId: uuid("user_id").notNull(),
-	kind: entryKind().notNull(),
 	title: varchar({ length: 120 }).notNull(),
-	amount: numeric({ precision: 14, scale:  2 }).notNull(),
-	currency: char({ length: 3 }).default('ARS').notNull(),
-	paymentMethodId: uuid("payment_method_id"),
-	cadence: recurringCadence().default('monthly').notNull(),
+	description: text(),
+	amount: integer().notNull(),
+	kind: entryKind().notNull(),
 	dayOfMonth: smallint("day_of_month").notNull(),
-	activeFromMonth: date("active_from_month").notNull(),
-	activeToMonth: date("active_to_month"),
-	isActive: boolean("is_active").default(true).notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	status: transactionStatus().default('pending').notNull(),
+	paymentMethodId: uuid("payment_method_id"),
+	activeFromMonth: char("active_from_month", { length: 7 }).notNull(), // YYYY-MM
+	activeToMonth: char("active_to_month", { length: 7 }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 }, (table) => [
-	index("idx_rr_user_active").using("btree", table.userId.asc().nullsLast().op("bool_ops"), table.isActive.asc().nullsLast().op("bool_ops")),
-	index("idx_rr_user_month").using("btree", table.userId.asc().nullsLast().op("uuid_ops"), table.activeFromMonth.asc().nullsLast().op("uuid_ops")),
+	index("idx_rr_user_month").using("btree", table.userId.asc().nullsLast().op("uuid_ops"), table.activeFromMonth.asc().nullsLast().op("text_ops")),
 	foreignKey({
 			columns: [table.paymentMethodId],
 			foreignColumns: [paymentMethods.id],
@@ -122,7 +121,7 @@ export const recurringRules = pgTable("recurring_rules", {
 			foreignColumns: [users.id],
 			name: "recurring_rules_user_id_fkey"
 		}).onDelete("cascade"),
-	check("recurring_rules_amount_check", sql`amount > (0)::numeric`),
+	check("recurring_rules_amount_check", sql`amount > 0`),
 	check("recurring_rules_day_of_month_check", sql`(day_of_month >= 1) AND (day_of_month <= 31)`),
 ]);
 
@@ -202,9 +201,11 @@ export const verificationTokens = pgTable("verification_tokens", {
 ]);
 
 export const recurringRuleCategories = pgTable("recurring_rule_categories", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
 	recurringRuleId: uuid("recurring_rule_id").notNull(),
 	categoryId: uuid("category_id").notNull(),
-	allocatedAmount: numeric("allocated_amount", { precision: 14, scale:  2 }).notNull(),
+	allocatedAmount: integer("allocated_amount").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.categoryId],
@@ -216,8 +217,7 @@ export const recurringRuleCategories = pgTable("recurring_rule_categories", {
 			foreignColumns: [recurringRules.id],
 			name: "recurring_rule_categories_recurring_rule_id_fkey"
 		}).onDelete("cascade"),
-	primaryKey({ columns: [table.recurringRuleId, table.categoryId], name: "recurring_rule_categories_pkey"}),
-	check("recurring_rule_categories_allocated_amount_check", sql`allocated_amount > (0)::numeric`),
+	check("recurring_rule_categories_allocated_amount_check", sql`allocated_amount > 0`),
 ]);
 
 export const transactionCategories = pgTable("transaction_categories", {

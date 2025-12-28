@@ -61,7 +61,14 @@ export function DataTable<T>({
           <CardDescription>{description}</CardDescription>
         </div>
         {showCreateButton && onCreate && (
-          <Button onClick={onCreate} size="sm">
+          <Button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              onCreate();
+            }}
+            size="sm"
+          >
             <Plus className="h-4 w-4 mr-2" />
             {createButtonLabel}
           </Button>

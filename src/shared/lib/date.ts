@@ -27,6 +27,12 @@ export class Month {
     const [, yearStr, monthStr] = match;
     return new Month(parseInt(yearStr, 10), parseInt(monthStr, 10));
   }
+  /**
+   * Alias para parsear string YYYY-MM
+   */
+  static parse(str: string): Month {
+    return Month.fromString(str);
+  }
 
   /**
    * Crear Month desde Date
