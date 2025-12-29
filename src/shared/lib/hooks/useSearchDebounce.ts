@@ -13,12 +13,18 @@ export function useSearchDebounce({
   delay = 300,
   minLength = 2,
   enabled = true,
+  caseInsensitive = true,
   onDebounced,
 }: {
   value: string;
   delay?: number;
   minLength?: number;
   enabled?: boolean;
+  /**
+   * Normaliza el valor a minúsculas para búsquedas case-insensitive
+   * @default true
+   */
+  caseInsensitive?: boolean;
   onDebounced: (debounced: string | undefined) => void;
 }) {
   const [internal, setInternal] = useState(value);
@@ -31,18 +37,20 @@ export function useSearchDebounce({
   useEffect(() => {
     if (!enabled) return;
     const normalized = internal.trim();
-    if (normalized.length > 0 && normalized.length < minLength) {
+    const searchTerm = caseInsensitive ? normalized.toLocaleLowerCase() : normalized;
+
+    if (searchTerm.length > 0 && searchTerm.length < minLength) {
       onDebounced(undefined);
       return;
     }
     const callId = ++lastCall.current;
     const handler = setTimeout(() => {
       if (callId === lastCall.current) {
-        onDebounced(normalized.length >= minLength ? normalized : undefined);
+        onDebounced(searchTerm.length >= minLength ? searchTerm : undefined);
       }
     }, delay);
     return () => clearTimeout(handler);
-  }, [internal, delay, minLength, enabled, onDebounced]);
+  }, [internal, delay, minLength, enabled, caseInsensitive, onDebounced]);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInternal(e.target.value);

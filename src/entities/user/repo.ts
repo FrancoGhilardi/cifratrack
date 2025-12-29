@@ -1,5 +1,5 @@
 import type { User } from './model/user.entity';
-import type { RegisterInput, UpdateProfileInput } from './model/user.schema';
+import type { UpdateProfileInput } from './model/user.schema';
 
 /**
  * Interface del repositorio de usuarios

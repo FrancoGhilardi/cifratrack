@@ -17,7 +17,6 @@ import {
 import { AlertCircle } from 'lucide-react';
 import { createCategorySchema, updateCategorySchema, type CreateCategoryInput, type UpdateCategoryInput } from '@/entities/category/model/category.schema';
 import type { CategoryDTO } from '../api/categories.api';
-import { formatErrorMessage } from '@/shared/lib/utils/error-messages';
 
 interface CategoryFormProps {
   isOpen: boolean;
@@ -48,13 +47,12 @@ export function CategoryForm({
     handleSubmit,
     formState: { errors },
     reset,
-    watch,
   } = useForm({
     resolver: zodResolver(schema),
     mode: 'onChange',
     defaultValues: category
       ? { name: category.name, isActive: category.isActive }
-      : { kind: 'expense' as const, name: '' },
+      : { kind: kind ?? 'expense', name: '' },
   });
 
   // Solo resetear cuando se abre el modal por primera vez o cambia la categoría a editar
@@ -62,10 +60,10 @@ export function CategoryForm({
     if (isOpen) {
       const values = category
         ? { name: category.name, isActive: category.isActive }
-        : { kind: 'expense' as const, name: '' };
+        : { kind: kind ?? 'expense', name: '' };
       reset(values);
     }
-  }, [isOpen, category, reset]);
+  }, [isOpen, category, kind, reset]);
 
   const handleFormSubmit = async (data: CreateCategoryInput | UpdateCategoryInput) => {
     try {
