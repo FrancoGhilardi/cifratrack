@@ -37,7 +37,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: user.email,
             name: user.name,
           };
-        } catch (error) {
+        } catch {
           // Auth.js espera null si las credenciales son inválidas
           return null;
         }

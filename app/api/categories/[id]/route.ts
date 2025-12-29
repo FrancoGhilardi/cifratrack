@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/shared/lib/auth';
 import { CategoryRepository } from '@/features/categories/repo.impl';
 import { UpsertCategoryUseCase } from '@/features/categories/usecases/upsert-category.usecase';

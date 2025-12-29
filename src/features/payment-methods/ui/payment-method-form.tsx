@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -22,6 +23,8 @@ import type { PaymentMethodDTO } from "../api/payment-methods.api";
 import { formatErrorMessage } from "@/shared/lib/utils/error-messages";
 import { useDialogForm } from "@/shared/lib/hooks";
 
+type PaymentMethodFormValues = z.input<typeof createPaymentMethodSchema>;
+
 interface PaymentMethodFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,21 +38,24 @@ export function PaymentMethodForm({
   onSubmit,
   paymentMethod,
 }: PaymentMethodFormProps) {
-  const form = useForm({
+  const getDefaultValues = useCallback(
+    (): PaymentMethodFormValues =>
+      paymentMethod
+        ? { name: paymentMethod.name, isActive: paymentMethod.isActive }
+        : { name: "", isActive: true },
+    [paymentMethod]
+  );
+
+  const form = useForm<PaymentMethodFormValues, undefined, CreatePaymentMethodInput>({
     resolver: zodResolver(createPaymentMethodSchema),
     mode: "onChange",
-    defaultValues: paymentMethod
-      ? { name: paymentMethod.name, isActive: paymentMethod.isActive }
-      : { name: "", isActive: true },
+    defaultValues: getDefaultValues(),
   });
 
   const { apiError, setApiError, clearError } = useDialogForm(
     form,
     open,
-    () =>
-      paymentMethod
-        ? { name: paymentMethod.name, isActive: paymentMethod.isActive }
-        : { name: "", isActive: true }
+    getDefaultValues
   );
 
   // Limpiar error cuando se abre el modal
@@ -91,12 +97,7 @@ export function PaymentMethodForm({
         </DialogHeader>
 
         <form
-          onSubmit={form.handleSubmit(
-            handleFormSubmit as (data: {
-              name: string;
-              isActive: boolean;
-            }) => Promise<void>
-          )}
+          onSubmit={form.handleSubmit(handleFormSubmit)}
           className="space-y-4"
         >
           <div className="space-y-2">

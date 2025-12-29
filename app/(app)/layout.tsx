@@ -3,7 +3,7 @@ import { auth } from '@/shared/lib/auth';
 import { AppShell } from '@/widgets/layout';
 
 export const metadata: Metadata = {
-  title: 'CifraTrack - Dashboard',
+  title: 'CifraTrack - Panel Principal',
   description: 'Control personal de finanzas',
 };
 

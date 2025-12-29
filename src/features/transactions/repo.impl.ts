@@ -373,7 +373,7 @@ export class TransactionRepository implements ITransactionRepository {
           dateStr = new Date(data.occurredOn).toISOString().split('T')[0];
         } else {
           // Fallback: convertir cualquier otro tipo a Date primero
-          dateStr = new Date(data.occurredOn as any).toISOString().split('T')[0];
+          dateStr = new Date(data.occurredOn as unknown as string | number | Date).toISOString().split('T')[0];
         }
         updateData.occurredOn = dateStr;
         // Actualizar occurredMonth en formato YYYY-MM

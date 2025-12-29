@@ -1,4 +1,4 @@
-import { and, eq, ne, isNull, gte, lte } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/shared/db/client';
 import { recurringRules, recurringRuleCategories, transactions, transactionCategories } from '@/shared/db/schema';
 import { RecurringRule } from '@/entities/recurring-rule/model/recurring-rule.entity';

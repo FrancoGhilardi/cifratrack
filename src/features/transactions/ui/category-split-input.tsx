@@ -8,13 +8,7 @@ import { Label } from '@/shared/ui/label';
 import { Badge } from '@/shared/ui/badge';
 import { X, Plus } from 'lucide-react';
 import { formatCurrency } from '@/shared/lib/money';
-import {
-  pesosTocents,
-  centsToPesos,
-  centsToString,
-  parseInputToCents,
-  calculateRemainingAmount,
-} from '@/shared/lib/utils/money-conversion';
+import { centsToString, parseInputToCents, calculateRemainingAmount } from '@/shared/lib/utils/money-conversion';
 
 export interface CategorySplit {
   categoryId: string;

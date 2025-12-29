@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { PageHeader } from '@/shared/ui/page-header';
 import { PageContainer } from '@/shared/ui/page-container';
 import { getFriendlyErrorMessage } from '@/shared/lib/utils/error-messages';
 import { useRecurringRules } from '@/features/recurring/hooks/useRecurringRules';
@@ -26,12 +25,7 @@ export default function RecurringPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Recurrentes"
-        description="Configura ingresos o egresos que se repiten cada mes y genera las transacciones automáticamente."
-      />
-
+    <div>
       <RecurringGenerateCard
         month={targetMonth}
         onMonthChange={setTargetMonth}

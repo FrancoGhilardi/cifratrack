@@ -12,6 +12,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "CifraTrack - Control Personal de Finanzas",
   description: "Gestiona tus ingresos, egresos e inversiones de manera simple y efectiva",
+  icons: {
+    icon: [{ url: "/icon.png", type: "image/png" }],
+    shortcut: ["/icon.png"],
+    apple: ["/icon.png"],
+  },
 };
 
 export default function RootLayout({

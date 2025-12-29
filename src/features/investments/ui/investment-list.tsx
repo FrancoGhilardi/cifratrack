@@ -113,8 +113,10 @@ export function InvestmentList({
     };
   }, [meta, investments.length]);
 
-  const sorting: SortingState =
-    sortBy && sortDir ? [{ id: sortBy, desc: sortDir === 'desc' }] : [];
+  const sorting: SortingState = useMemo(
+    () => (sortBy && sortDir ? [{ id: sortBy, desc: sortDir === 'desc' }] : []),
+    [sortBy, sortDir]
+  );
 
   const handleCreate = useCallback(() => {
     setSelectedInvestment(null);
@@ -322,6 +324,7 @@ export function InvestmentList({
     [handleDelete, handleEdit, handleSort, formatCurrency, renderSortIcon]
   );
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: investments,
     columns,

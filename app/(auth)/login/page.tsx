@@ -8,7 +8,6 @@ import { loginSchema, type LoginInput } from '@/entities/user/model/user.schema'
 import { useLogin } from '@/features/auth/hooks/useLogin';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { ThemeToggle } from '@/shared/ui/theme-toggle';

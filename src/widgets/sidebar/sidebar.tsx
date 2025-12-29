@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import iconPng from "../../../public/icon.png";
 import { useActiveRoute } from "@/shared/lib/hooks/useActiveRoute";
 import { cn } from "@/shared/lib/utils";
 import { appNavigation } from "@/widgets/navigation/nav-items";
@@ -15,7 +17,19 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   return (
     <aside className="flex h-screen min-h-screen w-64 flex-col border-r border-border">
       <div className="flex h-16 items-center border-b border-border px-6">
-        <Link href="/dashboard" onClick={onNavigate} className="text-xl font-bold">
+        <Link
+          href="/dashboard"
+          onClick={onNavigate}
+          className="flex items-center gap-2 text-xl font-bold"
+        >
+          <Image
+            src={iconPng}
+            alt="CifraTrack"
+            width={28}
+            height={28}
+            className="h-7 w-7 rounded-md"
+            priority
+          />
           CifraTrack
         </Link>
       </div>

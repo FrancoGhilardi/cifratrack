@@ -112,6 +112,8 @@ export function TransactionFilters({
     },
   });
   useEffect(() => {
+    // Mantener el input sincronizado con q externo
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearchValue(q ?? '');
   }, [q]);
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

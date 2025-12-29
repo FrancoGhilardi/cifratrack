@@ -46,10 +46,6 @@ export default function InvestmentsPage() {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Inversiones"
-        description="Gestiona tus inversiones y rendimientos"
-      />
       <InvestmentList
         investments={investments}
         meta={meta}

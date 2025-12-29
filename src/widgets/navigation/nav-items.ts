@@ -21,7 +21,7 @@ export type NavItem = {
  * Fuente única de links de navegación para header/sidebar.
  */
 export const appNavigation: NavItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Panel Principal', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Movimientos', href: '/transactions', icon: ArrowLeftRight },
   { name: 'Categorías', href: '/categories', icon: Tags },
   { name: 'Formas de Pago', href: '/payment-methods', icon: CreditCard },
