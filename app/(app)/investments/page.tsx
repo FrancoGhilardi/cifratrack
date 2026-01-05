@@ -1,10 +1,15 @@
-'use client';
+"use client";
 
-import { PageContainer } from '@/shared/ui/page-container';
-import { PageHeader } from '@/shared/ui/page-header';
-import { useInvestmentsTable } from '@/features/investments/hooks';
-import { InvestmentList, InvestmentListSkeleton } from '@/features/investments/ui';
-import { ErrorState } from '@/shared/ui/error-state';
+import { PageContainer } from "@/shared/ui/page-container";
+import { PageHeader } from "@/shared/ui/page-header";
+import { useInvestmentsTable } from "@/features/investments/hooks";
+import {
+  InvestmentList,
+  InvestmentListSkeleton,
+  InvestmentSummaryCards,
+  InvestmentSummaryCardsSkeleton,
+} from "@/features/investments/ui";
+import { ErrorState } from "@/shared/ui/error-state";
 
 export default function InvestmentsPage() {
   const {
@@ -39,27 +44,40 @@ export default function InvestmentsPage() {
           title="Inversiones"
           description="Gestiona tus inversiones y rendimientos"
         />
-        <InvestmentListSkeleton />
+        <div className="space-y-6">
+          <InvestmentSummaryCardsSkeleton />
+          <InvestmentListSkeleton />
+        </div>
       </PageContainer>
     );
   }
 
   return (
     <PageContainer>
-      <InvestmentList
-        investments={investments}
-        meta={meta}
-        isLoading={isFetching}
-        sortBy={params.sortBy ?? 'startedOn'}
-        sortDir={params.sortDir ?? 'desc'}
-        filters={{ q: params.q, active: params.active }}
-        onFiltersChange={setFilters}
-        onResetFilters={resetFilters}
-        onSortChange={setSort}
-        onPageChange={goToPage}
-        onPageSizeChange={setPageSize}
-        showCreateButton={true}
+      <PageHeader
+        title="Inversiones"
+        description="Gestiona tus inversiones y rendimientos"
       />
+
+      <div className="space-y-6">
+        {/* Cards de resumen de inversiones activas */}
+        <InvestmentSummaryCards investments={investments} />
+
+        <InvestmentList
+          investments={investments}
+          meta={meta}
+          isLoading={isFetching}
+          sortBy={params.sortBy ?? "startedOn"}
+          sortDir={params.sortDir ?? "desc"}
+          filters={{ q: params.q, active: params.active }}
+          onFiltersChange={setFilters}
+          onResetFilters={resetFilters}
+          onSortChange={setSort}
+          onPageChange={goToPage}
+          onPageSizeChange={setPageSize}
+          showCreateButton={true}
+        />
+      </div>
     </PageContainer>
   );
 }
