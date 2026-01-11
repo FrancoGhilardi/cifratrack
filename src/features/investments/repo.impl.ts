@@ -155,9 +155,13 @@ export class InvestmentRepository implements IInvestmentRepository {
           ? gt(investments.id, cursorId!)
           : lt(investments.id, cursorId!);
 
-      conditions.push(
-        or(primaryCmp, and(eq(orderByColumn, cursorValue), tieCmp))
+      const keysetCondition = or(
+        primaryCmp,
+        and(eq(orderByColumn, cursorValue), tieCmp)
       );
+      if (keysetCondition) {
+        conditions.push(keysetCondition);
+      }
     }
 
     const baseWhereClause = and(...baseConditions);
@@ -171,18 +175,14 @@ export class InvestmentRepository implements IInvestmentRepository {
 
     // Obtener datos paginados
     const offset = (page - 1) * pageSize;
-    let listQuery = db
+    const listQuery = db
       .select()
       .from(investments)
       .where(whereClause)
       .orderBy(orderFn(orderByColumn), orderFn(investments.id))
       .limit(pageSize);
 
-    if (!useKeyset) {
-      listQuery = listQuery.offset(offset);
-    }
-
-    const rows = await listQuery;
+    const rows = await (useKeyset ? listQuery : listQuery.offset(offset));
 
     // Mapear a entidades de dominio
     const data = rows.map((row) =>

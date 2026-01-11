@@ -153,9 +153,13 @@ export class TransactionRepository implements ITransactionRepository {
           ? gt(transactions.id, cursorId!)
           : lt(transactions.id, cursorId!);
 
-      conditions.push(
-        or(primaryCmp, and(eq(orderColumn, cursorValue), tieCmp))
+      const keysetCondition = or(
+        primaryCmp,
+        and(eq(orderColumn, cursorValue), tieCmp)
       );
+      if (keysetCondition) {
+        conditions.push(keysetCondition);
+      }
     }
 
     // Contar total
@@ -169,18 +173,16 @@ export class TransactionRepository implements ITransactionRepository {
     const offset = (page - 1) * pageSize;
 
     // Obtener transacciones
-    let transactionQuery = db
+    const transactionQuery = db
       .select()
       .from(transactions)
       .where(and(...conditions))
       .orderBy(orderFn(orderColumn), orderFn(transactions.id))
       .limit(pageSize);
 
-    if (!useKeyset) {
-      transactionQuery = transactionQuery.offset(offset);
-    }
-
-    const transactionRows = await transactionQuery;
+    const transactionRows = await (useKeyset
+      ? transactionQuery
+      : transactionQuery.offset(offset));
 
     // Obtener categorías asociadas
     const transactionIds = transactionRows.map((t) => t.id);

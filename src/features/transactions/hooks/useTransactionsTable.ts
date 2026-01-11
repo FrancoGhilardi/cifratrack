@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { fetchTransactions } from "../api/transactions.api";
 import {
   transactionKeys,
@@ -22,8 +22,6 @@ type CursorState = {
  */
 export function useTransactionsTable() {
   const searchParams = useSearchParams();
-  const cursorByPageRef = useRef<Record<number, CursorState>>({});
-  const cursorSignatureRef = useRef<string>("");
 
   // Extraer parámetros de la URL
   const {
@@ -69,6 +67,10 @@ export function useTransactionsTable() {
     [baseParams, extraParams]
   );
 
+  const [cursorBySignature, setCursorBySignature] = useState<
+    Record<string, Record<number, CursorState>>
+  >({});
+
   const cursorSignature = useMemo(
     () =>
       JSON.stringify({
@@ -95,16 +97,10 @@ export function useTransactionsTable() {
     ]
   );
 
-  useEffect(() => {
-    if (cursorSignatureRef.current !== cursorSignature) {
-      cursorSignatureRef.current = cursorSignature;
-      cursorByPageRef.current = {};
-    }
-  }, [cursorSignature]);
-
+  const cursorMap = cursorBySignature[cursorSignature] ?? {};
   const currentPage = params.page ?? 1;
   const cursorForPage =
-    currentPage > 1 ? cursorByPageRef.current[currentPage] : undefined;
+    currentPage > 1 ? cursorMap[currentPage] : undefined;
 
   const paramsWithCursor: TransactionListParams = useMemo(
     () => ({
@@ -121,16 +117,50 @@ export function useTransactionsTable() {
     queryFn: () => fetchTransactions(paramsWithCursor),
   });
 
-  useEffect(() => {
-    if (!query.data?.nextCursor || !query.data.nextCursorId) {
+  const storeNextCursor = useCallback(() => {
+    if (!query.data || query.data.page !== currentPage) {
       return;
     }
 
-    cursorByPageRef.current[currentPage + 1] = {
-      cursor: query.data.nextCursor,
-      cursorId: query.data.nextCursorId,
-    };
-  }, [query.data, currentPage]);
+    const { nextCursor, nextCursorId } = query.data;
+    if (!nextCursor || !nextCursorId) {
+      return;
+    }
+
+    setCursorBySignature((prev) => {
+      const nextPage = currentPage + 1;
+      const signatureMap = prev[cursorSignature] ?? {};
+      const existing = signatureMap[nextPage];
+      if (
+        existing &&
+        existing.cursor === nextCursor &&
+        existing.cursorId === nextCursorId
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [cursorSignature]: {
+          ...signatureMap,
+          [nextPage]: {
+            cursor: nextCursor,
+            cursorId: nextCursorId,
+          },
+        },
+      };
+    });
+  }, [cursorSignature, currentPage, query.data]);
+
+  const goToPageWithCursor = useCallback(
+    (page: number) => {
+      if (page === currentPage + 1) {
+        storeNextCursor();
+      }
+      goToPage(page);
+    },
+    [currentPage, goToPage, storeNextCursor]
+  );
 
   const meta = query.data
     ? {
@@ -157,7 +187,7 @@ export function useTransactionsTable() {
     // Acciones
     updateParams,
     resetFilters,
-    goToPage,
+    goToPage: goToPageWithCursor,
     setSort,
 
     // Refetch manual
