@@ -1,16 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/shared/lib/auth';
-import { TransactionRepository } from '@/features/transactions/repo.impl';
-import { UpsertTransactionUseCase } from '@/features/transactions/usecases/upsert-transaction.usecase';
-import { DeleteTransactionUseCase } from '@/features/transactions/usecases/delete-transaction.usecase';
-import { TransactionMapper } from '@/features/transactions/mappers/transaction.mapper';
-import { updateTransactionSchema } from '@/entities/transaction/model/transaction.schema';
-import { AppError, NotFoundError } from '@/shared/lib/errors';
-import { getFriendlyErrorMessage } from '@/shared/lib/utils/error-messages';
+import { NextRequest } from "next/server";
+import { auth } from "@/shared/lib/auth";
+import { TransactionRepository } from "@/features/transactions/repo.impl";
+import { UpsertTransactionUseCase } from "@/features/transactions/usecases/upsert-transaction.usecase";
+import { DeleteTransactionUseCase } from "@/features/transactions/usecases/delete-transaction.usecase";
+import { GetTransactionByIdUseCase } from "@/features/transactions/usecases/get-transaction-by-id.usecase";
+import { TransactionMapper } from "@/features/transactions/mappers/transaction.mapper";
+import { updateTransactionSchema } from "@/entities/transaction/model/transaction.schema";
+import {
+  AuthenticationError,
+  NotFoundError,
+  ValidationError,
+} from "@/shared/lib/errors";
+import { err, ok } from "@/shared/lib/response";
 
 const repository = new TransactionRepository();
 const upsertUseCase = new UpsertTransactionUseCase(repository);
 const deleteUseCase = new DeleteTransactionUseCase(repository);
+const getByIdUseCase = new GetTransactionByIdUseCase(repository);
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -24,37 +30,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     const { id } = await context.params;
 
-    const transaction = await repository.findById(id, session.user.id);
-
-    if (!transaction) {
-      return NextResponse.json(
-        { error: 'Transacción no encontrada' },
-        { status: 404 }
-      );
-    }
-
+    const transaction = await getByIdUseCase.execute(id, session.user.id);
     const dto = TransactionMapper.domainToDTO(transaction);
 
-    return NextResponse.json({ data: dto });
+    return ok(dto);
   } catch (error) {
-    console.error('[GET /api/transactions/[id]] Error:', error);
+    console.error("[GET /api/transactions/[id]] Error:", error);
 
-    if (error instanceof AppError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
+    if (error instanceof NotFoundError) {
+      return err(error, 404);
     }
 
-    return NextResponse.json(
-      { error: 'Error al obtener transacción' },
-      { status: 500 }
-    );
+    return err(error);
   }
 }
 
@@ -63,11 +55,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
  * Actualizar transacción
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
-  console.log('[PUT /api/transactions/[id]] Request received');
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     const { id } = await context.params;
@@ -76,44 +67,28 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     // Validar con zod
     const validation = updateTransactionSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Datos inválidos', details: validation.error.issues },
-        { status: 400 }
+      return err(
+        new ValidationError("Datos inválidos", validation.error.issues)
       );
     }
 
-    const result = await upsertUseCase.update(id, session.user.id, validation.data);
-    console.log('Update result received in route');
-    
-    if (result && result.transaction) {
-      console.log('Transaction object keys:', Object.keys(result.transaction));
-      console.log('occurredOn type:', typeof result.transaction.occurredOn);
-      console.log('occurredOn constructor:', result.transaction.occurredOn?.constructor?.name);
-    }
+    const result = await upsertUseCase.update(
+      id,
+      session.user.id,
+      validation.data
+    );
 
     const dto = TransactionMapper.domainToDTO(result);
 
-    return NextResponse.json({ data: dto });
+    return ok(dto);
   } catch (error) {
-    console.error('[PUT /api/transactions/[id]] Error:', error);
-
-    const message = getFriendlyErrorMessage(error instanceof Error ? error : null);
+    console.error("[PUT /api/transactions/[id]] Error:", error);
 
     if (error instanceof NotFoundError) {
-      return NextResponse.json({ error: message }, { status: 404 });
+      return err(error, 404);
     }
 
-    if (error instanceof AppError) {
-      return NextResponse.json(
-        { error: message },
-        { status: error.statusCode }
-      );
-    }
-
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return err(error);
   }
 }
 
@@ -125,33 +100,21 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     const { id } = await context.params;
 
     await deleteUseCase.execute(id, session.user.id);
 
-    return NextResponse.json({ success: true });
+    return ok({ success: true });
   } catch (error) {
-    console.error('[DELETE /api/transactions/[id]] Error:', error);
-
-    const message = getFriendlyErrorMessage(error instanceof Error ? error : null);
+    console.error("[DELETE /api/transactions/[id]] Error:", error);
 
     if (error instanceof NotFoundError) {
-      return NextResponse.json({ error: message }, { status: 404 });
+      return err(error, 404);
     }
 
-    if (error instanceof AppError) {
-      return NextResponse.json(
-        { error: message },
-        { status: error.statusCode }
-      );
-    }
-
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return err(error);
   }
 }

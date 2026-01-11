@@ -1,169 +1,169 @@
--- Current sql file was generated after introspecting the database
--- If you want to run this migration please uncomment this code before executing migrations
-/*
-CREATE TYPE "public"."entry_kind" AS ENUM('income', 'expense');--> statement-breakpoint
-CREATE TYPE "public"."recurring_cadence" AS ENUM('monthly');--> statement-breakpoint
-CREATE TYPE "public"."transaction_status" AS ENUM('pending', 'paid');--> statement-breakpoint
-CREATE TABLE "users" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"username" varchar(30) NOT NULL,
-	"email" varchar(255),
-	"email_verified" timestamp with time zone,
-	"name" varchar(120),
-	"image" text,
-	"currency" char(3) DEFAULT 'ARS' NOT NULL,
-	"timezone" varchar(64) DEFAULT 'America/Argentina/Mendoza' NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"last_login_at" timestamp with time zone,
-	CONSTRAINT "users_username_key" UNIQUE("username"),
-	CONSTRAINT "users_email_key" UNIQUE("email")
-);
---> statement-breakpoint
-CREATE TABLE "accounts" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
-	"type" text NOT NULL,
-	"provider" text NOT NULL,
-	"provider_account_id" text NOT NULL,
-	"access_token" text,
-	"refresh_token" text,
-	"expires_at" bigint,
-	"token_type" text,
-	"scope" text,
-	"id_token" text,
-	"session_state" text,
-	CONSTRAINT "accounts_provider_provider_account_id_key" UNIQUE("provider","provider_account_id")
-);
---> statement-breakpoint
-CREATE TABLE "sessions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"session_token" text NOT NULL,
-	"user_id" uuid NOT NULL,
-	"expires" timestamp with time zone NOT NULL,
-	CONSTRAINT "sessions_session_token_key" UNIQUE("session_token")
-);
---> statement-breakpoint
-CREATE TABLE "categories" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
-	"kind" "entry_kind" NOT NULL,
-	"name" varchar(60) NOT NULL,
-	"is_active" boolean DEFAULT true NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "categories_user_id_kind_name_key" UNIQUE("user_id","kind","name")
-);
---> statement-breakpoint
-CREATE TABLE "payment_methods" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
-	"name" varchar(60) NOT NULL,
-	"is_active" boolean DEFAULT true NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "payment_methods_user_id_name_key" UNIQUE("user_id","name")
-);
---> statement-breakpoint
-CREATE TABLE "recurring_rules" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
-	"kind" "entry_kind" NOT NULL,
-	"title" varchar(120) NOT NULL,
-	"amount" numeric(14, 2) NOT NULL,
-	"currency" char(3) DEFAULT 'ARS' NOT NULL,
-	"payment_method_id" uuid,
-	"cadence" "recurring_cadence" DEFAULT 'monthly' NOT NULL,
-	"day_of_month" smallint NOT NULL,
-	"active_from_month" date NOT NULL,
-	"active_to_month" date,
-	"is_active" boolean DEFAULT true NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "recurring_rules_amount_check" CHECK (amount > (0)::numeric),
-	CONSTRAINT "recurring_rules_day_of_month_check" CHECK ((day_of_month >= 1) AND (day_of_month <= 31))
-);
---> statement-breakpoint
-CREATE TABLE "transactions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
-	"kind" "entry_kind" NOT NULL,
-	"title" varchar(120) NOT NULL,
-	"description" text,
-	"amount" numeric(14, 2) NOT NULL,
-	"currency" char(3) DEFAULT 'ARS' NOT NULL,
-	"payment_method_id" uuid,
-	"is_fixed" boolean DEFAULT false NOT NULL,
-	"status" "transaction_status" DEFAULT 'paid' NOT NULL,
-	"occurred_on" date NOT NULL,
-	"due_on" date,
-	"paid_on" date,
-	"occurred_month" date NOT NULL,
-	"source_recurring_rule_id" uuid,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "chk_tx_pending_due_on" CHECK (((status = 'pending'::transaction_status) AND (due_on IS NOT NULL)) OR (status = 'paid'::transaction_status)),
-	CONSTRAINT "transactions_amount_check" CHECK (amount > (0)::numeric)
-);
---> statement-breakpoint
-CREATE TABLE "investments" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
-	"platform" varchar(80) NOT NULL,
-	"title" varchar(120) NOT NULL,
-	"principal" numeric(14, 2) NOT NULL,
-	"tna" numeric(6, 2) NOT NULL,
-	"days" integer NOT NULL,
-	"started_on" date DEFAULT CURRENT_DATE NOT NULL,
-	"notes" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "investments_days_check" CHECK ((days > 0) AND (days <= 36500)),
-	CONSTRAINT "investments_principal_check" CHECK (principal > (0)::numeric),
-	CONSTRAINT "investments_tna_check" CHECK ((tna >= (0)::numeric) AND (tna <= 999.99))
-);
---> statement-breakpoint
-CREATE TABLE "verification_tokens" (
-	"identifier" text NOT NULL,
-	"token" text NOT NULL,
-	"expires" timestamp with time zone NOT NULL,
-	CONSTRAINT "verification_tokens_pkey" PRIMARY KEY("identifier","token"),
-	CONSTRAINT "verification_tokens_token_key" UNIQUE("token")
-);
---> statement-breakpoint
-CREATE TABLE "recurring_rule_categories" (
-	"recurring_rule_id" uuid NOT NULL,
-	"category_id" uuid NOT NULL,
-	"allocated_amount" numeric(14, 2) NOT NULL,
-	CONSTRAINT "recurring_rule_categories_pkey" PRIMARY KEY("recurring_rule_id","category_id"),
-	CONSTRAINT "recurring_rule_categories_allocated_amount_check" CHECK (allocated_amount > (0)::numeric)
-);
---> statement-breakpoint
-CREATE TABLE "transaction_categories" (
-	"transaction_id" uuid NOT NULL,
-	"category_id" uuid NOT NULL,
-	"allocated_amount" numeric(14, 2) NOT NULL,
-	CONSTRAINT "transaction_categories_pkey" PRIMARY KEY("transaction_id","category_id"),
-	CONSTRAINT "transaction_categories_allocated_amount_check" CHECK (allocated_amount > (0)::numeric)
-);
---> statement-breakpoint
-ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "categories" ADD CONSTRAINT "categories_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "payment_methods" ADD CONSTRAINT "payment_methods_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "recurring_rules" ADD CONSTRAINT "recurring_rules_payment_method_id_fkey" FOREIGN KEY ("payment_method_id") REFERENCES "public"."payment_methods"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "recurring_rules" ADD CONSTRAINT "recurring_rules_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "transactions" ADD CONSTRAINT "fk_tx_recurring_rule" FOREIGN KEY ("source_recurring_rule_id") REFERENCES "public"."recurring_rules"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "transactions" ADD CONSTRAINT "transactions_payment_method_id_fkey" FOREIGN KEY ("payment_method_id") REFERENCES "public"."payment_methods"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "transactions" ADD CONSTRAINT "transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "investments" ADD CONSTRAINT "investments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "recurring_rule_categories" ADD CONSTRAINT "recurring_rule_categories_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."categories"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "recurring_rule_categories" ADD CONSTRAINT "recurring_rule_categories_recurring_rule_id_fkey" FOREIGN KEY ("recurring_rule_id") REFERENCES "public"."recurring_rules"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "transaction_categories" ADD CONSTRAINT "transaction_categories_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."categories"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "transaction_categories" ADD CONSTRAINT "transaction_categories_transaction_id_fkey" FOREIGN KEY ("transaction_id") REFERENCES "public"."transactions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "idx_rr_user_active" ON "recurring_rules" USING btree ("user_id" bool_ops,"is_active" bool_ops);--> statement-breakpoint
-CREATE INDEX "idx_rr_user_month" ON "recurring_rules" USING btree ("user_id" uuid_ops,"active_from_month" uuid_ops);--> statement-breakpoint
-CREATE INDEX "idx_tx_user_date" ON "transactions" USING btree ("user_id" uuid_ops,"occurred_on" uuid_ops);--> statement-breakpoint
-CREATE INDEX "idx_tx_user_kind" ON "transactions" USING btree ("user_id" enum_ops,"kind" uuid_ops);--> statement-breakpoint
-CREATE INDEX "idx_tx_user_month" ON "transactions" USING btree ("user_id" uuid_ops,"occurred_month" date_ops);--> statement-breakpoint
-CREATE INDEX "idx_tx_user_status" ON "transactions" USING btree ("user_id" uuid_ops,"status" enum_ops);--> statement-breakpoint
-CREATE INDEX "idx_investments_user" ON "investments" USING btree ("user_id" uuid_ops);--> statement-breakpoint
-CREATE INDEX "idx_txcat_category" ON "transaction_categories" USING btree ("category_id" uuid_ops);
-*/
+-- -- Current sql file was generated after introspecting the database
+-- -- If you want to run this migration please uncomment this code before executing migrations
+-- /*
+-- CREATE TYPE "public"."entry_kind" AS ENUM('income', 'expense');--> statement-breakpoint
+-- CREATE TYPE "public"."recurring_cadence" AS ENUM('monthly');--> statement-breakpoint
+-- CREATE TYPE "public"."transaction_status" AS ENUM('pending', 'paid');--> statement-breakpoint
+-- CREATE TABLE "users" (
+-- 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+-- 	"username" varchar(30) NOT NULL,
+-- 	"email" varchar(255),
+-- 	"email_verified" timestamp with time zone,
+-- 	"name" varchar(120),
+-- 	"image" text,
+-- 	"currency" char(3) DEFAULT 'ARS' NOT NULL,
+-- 	"timezone" varchar(64) DEFAULT 'America/Argentina/Mendoza' NOT NULL,
+-- 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+-- 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+-- 	"last_login_at" timestamp with time zone,
+-- 	CONSTRAINT "users_username_key" UNIQUE("username"),
+-- 	CONSTRAINT "users_email_key" UNIQUE("email")
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "accounts" (
+-- 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+-- 	"user_id" uuid NOT NULL,
+-- 	"type" text NOT NULL,
+-- 	"provider" text NOT NULL,
+-- 	"provider_account_id" text NOT NULL,
+-- 	"access_token" text,
+-- 	"refresh_token" text,
+-- 	"expires_at" bigint,
+-- 	"token_type" text,
+-- 	"scope" text,
+-- 	"id_token" text,
+-- 	"session_state" text,
+-- 	CONSTRAINT "accounts_provider_provider_account_id_key" UNIQUE("provider","provider_account_id")
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "sessions" (
+-- 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+-- 	"session_token" text NOT NULL,
+-- 	"user_id" uuid NOT NULL,
+-- 	"expires" timestamp with time zone NOT NULL,
+-- 	CONSTRAINT "sessions_session_token_key" UNIQUE("session_token")
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "categories" (
+-- 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+-- 	"user_id" uuid NOT NULL,
+-- 	"kind" "entry_kind" NOT NULL,
+-- 	"name" varchar(60) NOT NULL,
+-- 	"is_active" boolean DEFAULT true NOT NULL,
+-- 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+-- 	CONSTRAINT "categories_user_id_kind_name_key" UNIQUE("user_id","kind","name")
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "payment_methods" (
+-- 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+-- 	"user_id" uuid NOT NULL,
+-- 	"name" varchar(60) NOT NULL,
+-- 	"is_active" boolean DEFAULT true NOT NULL,
+-- 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+-- 	CONSTRAINT "payment_methods_user_id_name_key" UNIQUE("user_id","name")
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "recurring_rules" (
+-- 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+-- 	"user_id" uuid NOT NULL,
+-- 	"kind" "entry_kind" NOT NULL,
+-- 	"title" varchar(120) NOT NULL,
+-- 	"amount" numeric(14, 2) NOT NULL,
+-- 	"currency" char(3) DEFAULT 'ARS' NOT NULL,
+-- 	"payment_method_id" uuid,
+-- 	"cadence" "recurring_cadence" DEFAULT 'monthly' NOT NULL,
+-- 	"day_of_month" smallint NOT NULL,
+-- 	"active_from_month" date NOT NULL,
+-- 	"active_to_month" date,
+-- 	"is_active" boolean DEFAULT true NOT NULL,
+-- 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+-- 	CONSTRAINT "recurring_rules_amount_check" CHECK (amount > (0)::numeric),
+-- 	CONSTRAINT "recurring_rules_day_of_month_check" CHECK ((day_of_month >= 1) AND (day_of_month <= 31))
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "transactions" (
+-- 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+-- 	"user_id" uuid NOT NULL,
+-- 	"kind" "entry_kind" NOT NULL,
+-- 	"title" varchar(120) NOT NULL,
+-- 	"description" text,
+-- 	"amount" numeric(14, 2) NOT NULL,
+-- 	"currency" char(3) DEFAULT 'ARS' NOT NULL,
+-- 	"payment_method_id" uuid,
+-- 	"is_fixed" boolean DEFAULT false NOT NULL,
+-- 	"status" "transaction_status" DEFAULT 'paid' NOT NULL,
+-- 	"occurred_on" date NOT NULL,
+-- 	"due_on" date,
+-- 	"paid_on" date,
+-- 	"occurred_month" date NOT NULL,
+-- 	"source_recurring_rule_id" uuid,
+-- 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+-- 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+-- 	CONSTRAINT "chk_tx_pending_due_on" CHECK (((status = 'pending'::transaction_status) AND (due_on IS NOT NULL)) OR (status = 'paid'::transaction_status)),
+-- 	CONSTRAINT "transactions_amount_check" CHECK (amount > (0)::numeric)
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "investments" (
+-- 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+-- 	"user_id" uuid NOT NULL,
+-- 	"platform" varchar(80) NOT NULL,
+-- 	"title" varchar(120) NOT NULL,
+-- 	"principal" numeric(14, 2) NOT NULL,
+-- 	"tna" numeric(6, 2) NOT NULL,
+-- 	"days" integer NOT NULL,
+-- 	"started_on" date DEFAULT CURRENT_DATE NOT NULL,
+-- 	"notes" text,
+-- 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+-- 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+-- 	CONSTRAINT "investments_days_check" CHECK ((days > 0) AND (days <= 36500)),
+-- 	CONSTRAINT "investments_principal_check" CHECK (principal > (0)::numeric),
+-- 	CONSTRAINT "investments_tna_check" CHECK ((tna >= (0)::numeric) AND (tna <= 999.99))
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "verification_tokens" (
+-- 	"identifier" text NOT NULL,
+-- 	"token" text NOT NULL,
+-- 	"expires" timestamp with time zone NOT NULL,
+-- 	CONSTRAINT "verification_tokens_pkey" PRIMARY KEY("identifier","token"),
+-- 	CONSTRAINT "verification_tokens_token_key" UNIQUE("token")
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "recurring_rule_categories" (
+-- 	"recurring_rule_id" uuid NOT NULL,
+-- 	"category_id" uuid NOT NULL,
+-- 	"allocated_amount" numeric(14, 2) NOT NULL,
+-- 	CONSTRAINT "recurring_rule_categories_pkey" PRIMARY KEY("recurring_rule_id","category_id"),
+-- 	CONSTRAINT "recurring_rule_categories_allocated_amount_check" CHECK (allocated_amount > (0)::numeric)
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "transaction_categories" (
+-- 	"transaction_id" uuid NOT NULL,
+-- 	"category_id" uuid NOT NULL,
+-- 	"allocated_amount" numeric(14, 2) NOT NULL,
+-- 	CONSTRAINT "transaction_categories_pkey" PRIMARY KEY("transaction_id","category_id"),
+-- 	CONSTRAINT "transaction_categories_allocated_amount_check" CHECK (allocated_amount > (0)::numeric)
+-- );
+-- --> statement-breakpoint
+-- ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "categories" ADD CONSTRAINT "categories_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "payment_methods" ADD CONSTRAINT "payment_methods_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "recurring_rules" ADD CONSTRAINT "recurring_rules_payment_method_id_fkey" FOREIGN KEY ("payment_method_id") REFERENCES "public"."payment_methods"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "recurring_rules" ADD CONSTRAINT "recurring_rules_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "transactions" ADD CONSTRAINT "fk_tx_recurring_rule" FOREIGN KEY ("source_recurring_rule_id") REFERENCES "public"."recurring_rules"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "transactions" ADD CONSTRAINT "transactions_payment_method_id_fkey" FOREIGN KEY ("payment_method_id") REFERENCES "public"."payment_methods"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "transactions" ADD CONSTRAINT "transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "investments" ADD CONSTRAINT "investments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "recurring_rule_categories" ADD CONSTRAINT "recurring_rule_categories_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."categories"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "recurring_rule_categories" ADD CONSTRAINT "recurring_rule_categories_recurring_rule_id_fkey" FOREIGN KEY ("recurring_rule_id") REFERENCES "public"."recurring_rules"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "transaction_categories" ADD CONSTRAINT "transaction_categories_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."categories"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "transaction_categories" ADD CONSTRAINT "transaction_categories_transaction_id_fkey" FOREIGN KEY ("transaction_id") REFERENCES "public"."transactions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+-- CREATE INDEX "idx_rr_user_active" ON "recurring_rules" USING btree ("user_id" bool_ops,"is_active" bool_ops);--> statement-breakpoint
+-- CREATE INDEX "idx_rr_user_month" ON "recurring_rules" USING btree ("user_id" uuid_ops,"active_from_month" uuid_ops);--> statement-breakpoint
+-- CREATE INDEX "idx_tx_user_date" ON "transactions" USING btree ("user_id" uuid_ops,"occurred_on" uuid_ops);--> statement-breakpoint
+-- CREATE INDEX "idx_tx_user_kind" ON "transactions" USING btree ("user_id" enum_ops,"kind" uuid_ops);--> statement-breakpoint
+-- CREATE INDEX "idx_tx_user_month" ON "transactions" USING btree ("user_id" uuid_ops,"occurred_month" date_ops);--> statement-breakpoint
+-- CREATE INDEX "idx_tx_user_status" ON "transactions" USING btree ("user_id" uuid_ops,"status" enum_ops);--> statement-breakpoint
+-- CREATE INDEX "idx_investments_user" ON "investments" USING btree ("user_id" uuid_ops);--> statement-breakpoint
+-- CREATE INDEX "idx_txcat_category" ON "transaction_categories" USING btree ("category_id" uuid_ops);
+-- */

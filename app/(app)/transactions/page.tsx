@@ -98,7 +98,7 @@ export default function TransactionsPage() {
           <Skeleton className="h-32 w-full" />
         </div>
       ) : (
-        <TransactionSummaryCards transactions={summaryQuery.transactions} />
+        <TransactionSummaryCards summary={summaryQuery.summary} />
       )}
 
       {/* Filtros */}

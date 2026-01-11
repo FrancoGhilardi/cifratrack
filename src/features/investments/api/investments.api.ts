@@ -4,8 +4,10 @@ import type {
   InvestmentQueryParams,
   CreateInvestmentInput,
   UpdateInvestmentInput,
-} from '../model/investment.dto';
-import { apiFetch } from '@/shared/lib/api-client';
+} from "../model/investment.dto";
+import type { ApiOk } from "@/shared/lib/types";
+import { apiFetch } from "@/shared/lib/api-client";
+import { buildQueryParams } from "@/shared/lib/utils/query-params";
 
 /**
  * Fetcher para listar inversiones
@@ -13,23 +15,28 @@ import { apiFetch } from '@/shared/lib/api-client';
 export async function fetchInvestments(
   params: InvestmentQueryParams
 ): Promise<PaginatedInvestmentsResponse> {
-  const searchParams = new URLSearchParams();
+  const searchParams = buildQueryParams({
+    page: params.page,
+    pageSize: params.pageSize,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
+    q: params.q,
+    active: params.active,
+    cursor: params.cursor,
+    cursorId: params.cursorId,
+  });
 
-  if (params.page) searchParams.set('page', params.page.toString());
-  if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
-  if (params.sortBy) searchParams.set('sortBy', params.sortBy);
-  if (params.sortDir) searchParams.set('sortDir', params.sortDir);
-  if (params.q) searchParams.set('q', params.q);
-  if (params.active) searchParams.set('active', params.active);
-
-  return apiFetch<PaginatedInvestmentsResponse>(`/api/investments?${searchParams.toString()}`);
+  const result = await apiFetch<ApiOk<PaginatedInvestmentsResponse>>(
+    `/api/investments?${searchParams.toString()}`
+  );
+  return result.data;
 }
 
 /**
  * Fetcher para obtener inversión por ID
  */
 export async function fetchInvestmentById(id: string): Promise<InvestmentDTO> {
-  const data = await apiFetch<{ data: InvestmentDTO }>(`/api/investments/${id}`);
+  const data = await apiFetch<ApiOk<InvestmentDTO>>(`/api/investments/${id}`);
   return data.data;
 }
 
@@ -39,12 +46,12 @@ export async function fetchInvestmentById(id: string): Promise<InvestmentDTO> {
 export async function createInvestment(
   data: CreateInvestmentInput
 ): Promise<InvestmentDTO> {
-  const result = await apiFetch<{ data: InvestmentDTO }>('/api/investments', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const result = await apiFetch<ApiOk<InvestmentDTO>>("/api/investments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...data,
-      startedOn: data.startedOn.toISOString().split('T')[0],
+      startedOn: data.startedOn.toISOString().split("T")[0],
     }),
   });
   return result.data;
@@ -57,14 +64,19 @@ export async function updateInvestment(
   id: string,
   data: UpdateInvestmentInput
 ): Promise<InvestmentDTO> {
-  const result = await apiFetch<{ data: InvestmentDTO }>(`/api/investments/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...data,
-      startedOn: data.startedOn ? data.startedOn.toISOString().split('T')[0] : undefined,
-    }),
-  });
+  const result = await apiFetch<ApiOk<InvestmentDTO>>(
+    `/api/investments/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...data,
+        startedOn: data.startedOn
+          ? data.startedOn.toISOString().split("T")[0]
+          : undefined,
+      }),
+    }
+  );
   return result.data;
 }
 
@@ -73,6 +85,6 @@ export async function updateInvestment(
  */
 export async function deleteInvestment(id: string): Promise<void> {
   await apiFetch<void>(`/api/investments/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
 }

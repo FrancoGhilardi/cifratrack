@@ -68,7 +68,7 @@ export default function InvestmentsPage() {
           meta={meta}
           isLoading={isFetching}
           sortBy={params.sortBy ?? "startedOn"}
-          sortDir={params.sortDir ?? "desc"}
+          sortOrder={params.sortOrder ?? "desc"}
           filters={{ q: params.q, active: params.active }}
           onFiltersChange={setFilters}
           onResetFilters={resetFilters}

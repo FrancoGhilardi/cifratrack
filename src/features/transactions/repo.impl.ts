@@ -1,11 +1,37 @@
-import { db } from '@/shared/db/client';
-import { transactions, transactionCategories, categories, paymentMethods } from '@/shared/db/schema';
-import { eq, and, desc, asc, sql, inArray, like, or, type SQL } from 'drizzle-orm';
-import type { CreateTransactionInput, UpdateTransactionInput } from '@/entities/transaction/model/transaction.schema';
-import type { ITransactionRepository, ListTransactionsParams, PaginatedTransactions, TransactionWithNames } from '@/entities/transaction/repo';
-import type { Transaction } from '@/entities/transaction/model/transaction.entity';
-import { NotFoundError, ValidationError } from '@/shared/lib/errors';
-import { TransactionMapper } from './mappers/transaction.mapper';
+import { db } from "@/shared/db/client";
+import {
+  transactions,
+  transactionCategories,
+  categories,
+  paymentMethods,
+} from "@/shared/db/schema";
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  sql,
+  inArray,
+  like,
+  or,
+  gt,
+  lt,
+  type SQL,
+} from "drizzle-orm";
+import type {
+  CreateTransactionInput,
+  UpdateTransactionInput,
+} from "@/entities/transaction/model/transaction.schema";
+import type {
+  ITransactionRepository,
+  ListTransactionsParams,
+  PaginatedTransactions,
+  TransactionWithNames,
+} from "@/entities/transaction/repo";
+import type { TransactionSummaryDTO } from "@/entities/transaction/model/transaction-summary.dto";
+import type { Transaction } from "@/entities/transaction/model/transaction.entity";
+import { NotFoundError } from "@/shared/lib/errors";
+import { TransactionMapper } from "./mappers/transaction.mapper";
 
 export interface TransactionWithRelations {
   transaction: typeof transactions.$inferSelect;
@@ -14,7 +40,7 @@ export interface TransactionWithRelations {
     categoryName: string;
     allocatedAmount: number;
   }>;
-  paymentMethod: typeof paymentMethods.$inferSelect | null;
+  paymentMethod: Pick<typeof paymentMethods.$inferSelect, "id" | "name"> | null;
 }
 
 /**
@@ -34,44 +60,42 @@ export class TransactionRepository implements ITransactionRepository {
       paymentMethodId,
       categoryIds,
       q,
-      sortBy = 'occurred_on',
-      sortOrder = 'desc',
+      sortBy = "occurred_on",
+      sortOrder = "desc",
       page = 1,
       pageSize = 20,
+      cursor,
+      cursorId,
     } = params;
 
     // Validar parámetros
-    const validSortBy = ['occurred_on', 'amount', 'title', 'created_at'];
-    if (!validSortBy.includes(sortBy)) {
-      throw new ValidationError(`sortBy debe ser uno de: ${validSortBy.join(', ')}`);
-    }
-
-    if (pageSize > 100) {
-      throw new ValidationError('pageSize no puede ser mayor a 100');
-    }
-
     // Construir condiciones WHERE
-    const conditions = [eq(transactions.userId, userId)];
+    const baseConditions = [eq(transactions.userId, userId)];
+    const conditions = [...baseConditions];
+    const addBaseCondition = (condition: SQL) => {
+      baseConditions.push(condition);
+      conditions.push(condition);
+    };
 
     if (month) {
       // month viene en formato YYYY-MM, occurredMonth en DB es char(7) con el mismo formato
-      conditions.push(eq(transactions.occurredMonth, month));
+      addBaseCondition(eq(transactions.occurredMonth, month));
     }
 
     if (kind) {
-      conditions.push(eq(transactions.kind, kind));
+      addBaseCondition(eq(transactions.kind, kind));
     }
 
     if (status) {
-      conditions.push(eq(transactions.status, status));
+      addBaseCondition(eq(transactions.status, status));
     }
 
     if (paymentMethodId) {
-      conditions.push(eq(transactions.paymentMethodId, paymentMethodId));
+      addBaseCondition(eq(transactions.paymentMethodId, paymentMethodId));
     }
 
     if (q) {
-      conditions.push(
+      addBaseCondition(
         or(
           like(transactions.title, `%${q}%`),
           like(transactions.description, `%${q}%`)
@@ -86,96 +110,157 @@ export class TransactionRepository implements ITransactionRepository {
         .from(transactionCategories)
         .where(inArray(transactionCategories.categoryId, categoryIds));
 
-      conditions.push(
-        inArray(
-          transactions.id,
-          sql`(${transactionIdsSubquery})`
-        )
+      addBaseCondition(
+        inArray(transactions.id, sql`(${transactionIdsSubquery})`)
       );
     }
 
     // Ordenamiento
-    const orderColumn = sortBy === 'occurred_on' 
-      ? transactions.occurredOn
-      : sortBy === 'amount'
-      ? transactions.amount
-      : sortBy === 'title'
-      ? transactions.title
-      : transactions.createdAt;
+    const orderColumn =
+      sortBy === "occurred_on"
+        ? transactions.occurredOn
+        : sortBy === "amount"
+        ? transactions.amount
+        : sortBy === "title"
+        ? transactions.title
+        : transactions.createdAt;
 
-    const orderFn = sortOrder === 'asc' ? asc : desc;
+    const orderFn = sortOrder === "asc" ? asc : desc;
+
+    const parseCursorValue = (value: string) => {
+      switch (sortBy) {
+        case "amount":
+          return Number(value);
+        case "created_at":
+          return new Date(value);
+        case "occurred_on":
+          return value;
+        default:
+          return value;
+      }
+    };
+
+    const useKeyset = Boolean(cursor && cursorId);
+    const cursorValue = cursor ? parseCursorValue(cursor) : undefined;
+
+    if (useKeyset && cursorValue !== undefined) {
+      const primaryCmp =
+        sortOrder === "asc"
+          ? gt(orderColumn, cursorValue)
+          : lt(orderColumn, cursorValue);
+      const tieCmp =
+        sortOrder === "asc"
+          ? gt(transactions.id, cursorId!)
+          : lt(transactions.id, cursorId!);
+
+      conditions.push(
+        or(primaryCmp, and(eq(orderColumn, cursorValue), tieCmp))
+      );
+    }
 
     // Contar total
     const [countResult] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(transactions)
-      .where(and(...conditions));
+      .where(and(...baseConditions));
 
     const total = countResult?.count ?? 0;
     const totalPages = Math.ceil(total / pageSize);
     const offset = (page - 1) * pageSize;
 
     // Obtener transacciones
-    const transactionRows = await db
+    let transactionQuery = db
       .select()
       .from(transactions)
       .where(and(...conditions))
-      .orderBy(orderFn(orderColumn))
-      .limit(pageSize)
-      .offset(offset);
+      .orderBy(orderFn(orderColumn), orderFn(transactions.id))
+      .limit(pageSize);
+
+    if (!useKeyset) {
+      transactionQuery = transactionQuery.offset(offset);
+    }
+
+    const transactionRows = await transactionQuery;
 
     // Obtener categorías asociadas
     const transactionIds = transactionRows.map((t) => t.id);
-    const categoriesData = transactionIds.length > 0
-      ? await db
-          .select({
-            transactionId: transactionCategories.transactionId,
-            categoryId: transactionCategories.categoryId,
-            categoryName: categories.name,
-            allocatedAmount: transactionCategories.allocatedAmount,
-          })
-          .from(transactionCategories)
-          .innerJoin(categories, eq(transactionCategories.categoryId, categories.id))
-          .where(inArray(transactionCategories.transactionId, transactionIds))
-      : [];
+    const categoriesData =
+      transactionIds.length > 0
+        ? await db
+            .select({
+              transactionId: transactionCategories.transactionId,
+              categoryId: transactionCategories.categoryId,
+              categoryName: categories.name,
+              allocatedAmount: transactionCategories.allocatedAmount,
+            })
+            .from(transactionCategories)
+            .innerJoin(
+              categories,
+              eq(transactionCategories.categoryId, categories.id)
+            )
+            .where(inArray(transactionCategories.transactionId, transactionIds))
+        : [];
 
     // Obtener payment methods
     const paymentMethodIds = transactionRows
       .filter((t) => t.paymentMethodId)
       .map((t) => t.paymentMethodId!);
 
-    const paymentMethodsData = paymentMethodIds.length > 0
-      ? await db
-          .select()
-          .from(paymentMethods)
-          .where(inArray(paymentMethods.id, paymentMethodIds))
-      : [];
+    const paymentMethodsData =
+      paymentMethodIds.length > 0
+        ? await db
+            .select({ id: paymentMethods.id, name: paymentMethods.name })
+            .from(paymentMethods)
+            .where(inArray(paymentMethods.id, paymentMethodIds))
+        : [];
 
     // Mapear resultados a entidades de dominio
-    const transactionsWithRelations: TransactionWithRelations[] = transactionRows.map((transaction) => {
-      const transactionCategories = categoriesData.filter(
-        (c) => c.transactionId === transaction.id
-      );
+    const transactionsWithRelations: TransactionWithRelations[] =
+      transactionRows.map((transaction) => {
+        const transactionCategories = categoriesData.filter(
+          (c) => c.transactionId === transaction.id
+        );
 
-      const paymentMethod = transaction.paymentMethodId
-        ? paymentMethodsData.find((pm) => pm.id === transaction.paymentMethodId) ?? null
-        : null;
+        const paymentMethod = transaction.paymentMethodId
+          ? paymentMethodsData.find(
+              (pm) => pm.id === transaction.paymentMethodId
+            ) ?? null
+          : null;
 
-      return {
-        transaction,
-        categories: transactionCategories.map((c) => ({
-          categoryId: c.categoryId,
-          categoryName: c.categoryName,
-          allocatedAmount: c.allocatedAmount,
-        })),
-        paymentMethod,
-      };
-    });
+        return {
+          transaction,
+          categories: transactionCategories.map((c) => ({
+            categoryId: c.categoryId,
+            categoryName: c.categoryName,
+            allocatedAmount: c.allocatedAmount,
+          })),
+          paymentMethod,
+        };
+      });
 
     // Convertir a entidades de dominio
     const domainTransactions = transactionsWithRelations.map((item) =>
       TransactionMapper.rowToDomain(item)
     );
+
+    const getCursorValue = (item: TransactionWithNames) => {
+      switch (sortBy) {
+        case "amount":
+          return String(item.transaction.amount);
+        case "title":
+          return item.transaction.title;
+        case "created_at":
+          return item.transaction.createdAt.toISOString();
+        case "occurred_on":
+        default:
+          return item.transaction.occurredOn.toISOString().split("T")[0];
+      }
+    };
+
+    const hasNextPage = domainTransactions.length === pageSize;
+    const lastItem = hasNextPage
+      ? domainTransactions[domainTransactions.length - 1]
+      : undefined;
 
     return {
       data: domainTransactions,
@@ -183,13 +268,18 @@ export class TransactionRepository implements ITransactionRepository {
       page,
       pageSize,
       totalPages,
+      nextCursor: lastItem ? getCursorValue(lastItem) : undefined,
+      nextCursorId: lastItem ? lastItem.transaction.id : undefined,
     };
   }
 
   /**
    * Buscar transacción por ID con sus relaciones
    */
-  async findById(id: string, userId: string): Promise<TransactionWithNames | null> {
+  async findById(
+    id: string,
+    userId: string
+  ): Promise<TransactionWithNames | null> {
     const [transaction] = await db
       .select()
       .from(transactions)
@@ -208,14 +298,17 @@ export class TransactionRepository implements ITransactionRepository {
         allocatedAmount: transactionCategories.allocatedAmount,
       })
       .from(transactionCategories)
-      .innerJoin(categories, eq(transactionCategories.categoryId, categories.id))
+      .innerJoin(
+        categories,
+        eq(transactionCategories.categoryId, categories.id)
+      )
       .where(eq(transactionCategories.transactionId, id));
 
     // Obtener payment method
     let paymentMethod = null;
     if (transaction.paymentMethodId) {
       const [pm] = await db
-        .select()
+        .select({ id: paymentMethods.id, name: paymentMethods.name })
         .from(paymentMethods)
         .where(eq(paymentMethods.id, transaction.paymentMethodId))
         .limit(1);
@@ -243,16 +336,6 @@ export class TransactionRepository implements ITransactionRepository {
     userId: string,
     data: CreateTransactionInput
   ): Promise<TransactionWithNames> {
-    // Validar que la suma de splits coincida con el monto
-    if (data.split && data.split.length > 0) {
-      const totalSplit = data.split.reduce((sum: number, s) => sum + s.allocatedAmount, 0);
-      if (totalSplit !== data.amount) {
-        throw new ValidationError(
-          `La suma de los splits (${totalSplit}) debe coincidir con el monto total (${data.amount})`
-        );
-      }
-    }
-
     return await db.transaction(async (tx) => {
       // Crear transacción usando SQL raw para omitir occurredMonth (calculado por trigger)
       const [transaction] = await tx
@@ -263,14 +346,17 @@ export class TransactionRepository implements ITransactionRepository {
           title: data.title,
           description: data.description ?? null,
           amount: data.amount,
-          currency: data.currency ?? 'ARS',
+          currency: data.currency ?? "ARS",
           paymentMethodId: data.paymentMethodId ?? null,
           isFixed: data.isFixed ?? false,
           status: data.status,
-          occurredOn: data.occurredOn.toISOString().split('T')[0],
-          dueOn: data.dueOn ? data.dueOn.toISOString().split('T')[0] : null,
-          paidOn: data.paidOn ? data.paidOn.toISOString().split('T')[0] : null,
-          occurredMonth: data.occurredOn.toISOString().split('T')[0].substring(0, 7),
+          occurredOn: data.occurredOn.toISOString().split("T")[0],
+          dueOn: data.dueOn ? data.dueOn.toISOString().split("T")[0] : null,
+          paidOn: data.paidOn ? data.paidOn.toISOString().split("T")[0] : null,
+          occurredMonth: data.occurredOn
+            .toISOString()
+            .split("T")[0]
+            .substring(0, 7),
           sourceRecurringRuleId: data.sourceRecurringRuleId ?? null,
         })
         .returning();
@@ -299,7 +385,9 @@ export class TransactionRepository implements ITransactionRepository {
           .where(inArray(categories.id, categoryIds));
 
         data.split.forEach((split) => {
-          const category = categoriesRows.find((c) => c.id === split.categoryId);
+          const category = categoriesRows.find(
+            (c) => c.id === split.categoryId
+          );
           if (category) {
             categoriesData.push({
               categoryId: split.categoryId,
@@ -314,7 +402,7 @@ export class TransactionRepository implements ITransactionRepository {
       let paymentMethod = null;
       if (transaction.paymentMethodId) {
         const [pm] = await tx
-          .select()
+          .select({ id: paymentMethods.id, name: paymentMethods.name })
           .from(paymentMethods)
           .where(eq(paymentMethods.id, transaction.paymentMethodId))
           .limit(1);
@@ -343,37 +431,33 @@ export class TransactionRepository implements ITransactionRepository {
     // Validar que existe
     const existing = await this.findById(id, userId);
     if (!existing) {
-      throw new NotFoundError('Transacción no encontrada');
-    }
-
-    // Validar splits si se envían
-    if (data.split && data.split.length > 0 && data.amount) {
-      const totalSplit = data.split.reduce((sum: number, s) => sum + s.allocatedAmount, 0);
-      if (totalSplit !== data.amount) {
-        throw new ValidationError(
-          `La suma de los splits (${totalSplit}) debe coincidir con el monto total (${data.amount})`
-        );
-      }
+      throw new NotFoundError("Transacción no encontrada");
     }
 
     return await db.transaction(async (tx) => {
       // Actualizar transacción
-      const updateData: Record<string, string | number | boolean | null | SQL> = {};
+      const updateData: Record<string, string | number | boolean | null | SQL> =
+        {};
 
       if (data.title !== undefined) updateData.title = data.title;
-      if (data.description !== undefined) updateData.description = data.description;
+      if (data.description !== undefined)
+        updateData.description = data.description;
       if (data.amount !== undefined) updateData.amount = data.amount;
       if (data.status !== undefined) updateData.status = data.status;
       if (data.occurredOn !== undefined) {
         // Verificar tipo y convertir si es necesario
         let dateStr: string;
         if (data.occurredOn instanceof Date) {
-          dateStr = data.occurredOn.toISOString().split('T')[0];
-        } else if (typeof data.occurredOn === 'string') {
-          dateStr = new Date(data.occurredOn).toISOString().split('T')[0];
+          dateStr = data.occurredOn.toISOString().split("T")[0];
+        } else if (typeof data.occurredOn === "string") {
+          dateStr = new Date(data.occurredOn).toISOString().split("T")[0];
         } else {
           // Fallback: convertir cualquier otro tipo a Date primero
-          dateStr = new Date(data.occurredOn as unknown as string | number | Date).toISOString().split('T')[0];
+          dateStr = new Date(
+            data.occurredOn as unknown as string | number | Date
+          )
+            .toISOString()
+            .split("T")[0];
         }
         updateData.occurredOn = dateStr;
         // Actualizar occurredMonth en formato YYYY-MM
@@ -384,9 +468,9 @@ export class TransactionRepository implements ITransactionRepository {
         if (data.dueOn === null) {
           updateData.dueOn = null;
         } else if (data.dueOn instanceof Date) {
-          updateData.dueOn = data.dueOn.toISOString().split('T')[0];
-        } else if (typeof data.dueOn === 'string') {
-          updateData.dueOn = new Date(data.dueOn).toISOString().split('T')[0];
+          updateData.dueOn = data.dueOn.toISOString().split("T")[0];
+        } else if (typeof data.dueOn === "string") {
+          updateData.dueOn = new Date(data.dueOn).toISOString().split("T")[0];
         }
       }
       if (data.paidOn !== undefined) {
@@ -394,12 +478,13 @@ export class TransactionRepository implements ITransactionRepository {
         if (data.paidOn === null) {
           updateData.paidOn = null;
         } else if (data.paidOn instanceof Date) {
-          updateData.paidOn = data.paidOn.toISOString().split('T')[0];
-        } else if (typeof data.paidOn === 'string') {
-          updateData.paidOn = new Date(data.paidOn).toISOString().split('T')[0];
+          updateData.paidOn = data.paidOn.toISOString().split("T")[0];
+        } else if (typeof data.paidOn === "string") {
+          updateData.paidOn = new Date(data.paidOn).toISOString().split("T")[0];
         }
       }
-      if (data.paymentMethodId !== undefined) updateData.paymentMethodId = data.paymentMethodId;
+      if (data.paymentMethodId !== undefined)
+        updateData.paymentMethodId = data.paymentMethodId;
       if (data.isFixed !== undefined) updateData.isFixed = data.isFixed;
 
       updateData.updatedAt = sql`now()`;
@@ -409,9 +494,6 @@ export class TransactionRepository implements ITransactionRepository {
         .set(updateData)
         .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
         .returning();
-
-      console.log('Transaction updated raw:', transaction);
-
 
       // Actualizar splits si se envían
       const categoriesData: Array<{
@@ -444,7 +526,9 @@ export class TransactionRepository implements ITransactionRepository {
             .where(inArray(categories.id, categoryIds));
 
           data.split.forEach((split) => {
-            const category = categoriesRows.find((c) => c.id === split.categoryId);
+            const category = categoriesRows.find(
+              (c) => c.id === split.categoryId
+            );
             if (category) {
               categoriesData.push({
                 categoryId: split.categoryId,
@@ -463,7 +547,10 @@ export class TransactionRepository implements ITransactionRepository {
             allocatedAmount: transactionCategories.allocatedAmount,
           })
           .from(transactionCategories)
-          .innerJoin(categories, eq(transactionCategories.categoryId, categories.id))
+          .innerJoin(
+            categories,
+            eq(transactionCategories.categoryId, categories.id)
+          )
           .where(eq(transactionCategories.transactionId, id));
 
         categoriesData.push(...existingCategories);
@@ -473,7 +560,7 @@ export class TransactionRepository implements ITransactionRepository {
       let paymentMethod = null;
       if (transaction.paymentMethodId) {
         const [pm] = await tx
-          .select()
+          .select({ id: paymentMethods.id, name: paymentMethods.name })
           .from(paymentMethods)
           .where(eq(paymentMethods.id, transaction.paymentMethodId))
           .limit(1);
@@ -497,7 +584,7 @@ export class TransactionRepository implements ITransactionRepository {
   async delete(id: string, userId: string): Promise<void> {
     const existing = await this.findById(id, userId);
     if (!existing) {
-      throw new NotFoundError('Transacción no encontrada');
+      throw new NotFoundError("Transacción no encontrada");
     }
 
     await db.transaction(async (tx) => {
@@ -527,6 +614,54 @@ export class TransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * Obtener resumen de egresos pagados/pendientes de un mes
+   */
+  async getExpenseStatusSummary(
+    userId: string,
+    month: string
+  ): Promise<TransactionSummaryDTO> {
+    const rows = await db
+      .select({
+        status: transactions.status,
+        total: sql<number>`CAST(SUM(${transactions.amount}) AS INTEGER)`,
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.occurredMonth, month),
+          eq(transactions.kind, "expense")
+        )
+      )
+      .groupBy(transactions.status);
+
+    let totalPaid = 0;
+    let paidCount = 0;
+    let totalPending = 0;
+    let pendingCount = 0;
+
+    for (const row of rows) {
+      if (row.status === "paid") {
+        totalPaid = row.total || 0;
+        paidCount = row.count || 0;
+      }
+      if (row.status === "pending") {
+        totalPending = row.total || 0;
+        pendingCount = row.count || 0;
+      }
+    }
+
+    return {
+      month,
+      totalPaid,
+      paidCount,
+      totalPending,
+      pendingCount,
+    };
+  }
+
+  /**
    * Obtener resumen mensual
    */
   async getMonthlySummary(
@@ -538,25 +673,41 @@ export class TransactionRepository implements ITransactionRepository {
     balance: number;
     transactionsCount: number;
   }> {
-    const result = await this.list({
-      userId,
-      month,
-      pageSize: 1000,
-    });
+    const rows = await db
+      .select({
+        kind: transactions.kind,
+        total: sql<number>`CAST(SUM(${transactions.amount}) AS INTEGER)`,
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.occurredMonth, month)
+        )
+      )
+      .groupBy(transactions.kind);
 
-    const totalIncome = result.data
-      .filter((t) => t.transaction.kind === 'income')
-      .reduce((sum, t) => sum + t.transaction.amount, 0);
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    let transactionsCount = 0;
 
-    const totalExpenses = result.data
-      .filter((t) => t.transaction.kind === 'expense')
-      .reduce((sum, t) => sum + t.transaction.amount, 0);
+    for (const row of rows) {
+      const count = row.count || 0;
+      const total = row.total || 0;
+      transactionsCount += count;
+      if (row.kind === "income") {
+        totalIncome = total;
+      } else {
+        totalExpenses = total;
+      }
+    }
 
     return {
       totalIncome,
       totalExpenses,
       balance: totalIncome - totalExpenses,
-      transactionsCount: result.total,
+      transactionsCount,
     };
   }
 }

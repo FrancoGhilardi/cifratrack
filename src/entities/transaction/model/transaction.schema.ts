@@ -1,40 +1,53 @@
-import { z } from 'zod';
-import { nonEmptyStringSchema } from '@/shared/lib/validation';
+import { z } from "zod";
+import { nonEmptyStringSchema, monthSchema } from "@/shared/lib/validation";
+import { createSortSchema, paginationSchema } from "@/shared/lib/pagination";
 
 /**
  * Schema para el split de categorías
  */
 export const categorySplitSchema = z.object({
-  categoryId: z.string().uuid('ID de categoría inválido'),
+  categoryId: z.string().uuid("ID de categoría inválido"),
   allocatedAmount: z
     .number()
-    .int('El monto debe ser un número entero')
-    .positive('El monto debe ser mayor a cero'),
+    .int("El monto debe ser un número entero")
+    .positive("El monto debe ser mayor a cero"),
 });
 
 /**
  * Schema para crear transacción
  */
 export const createTransactionSchema = z.object({
-  kind: z.enum(['income', 'expense']),
+  kind: z.enum(["income", "expense"]),
   title: nonEmptyStringSchema
-    .max(120, 'El título no puede superar los 120 caracteres')
-    .min(2, 'El título debe tener al menos 2 caracteres'),
-  description: z.string().max(500, 'La descripción no puede superar los 500 caracteres').optional().nullable(),
+    .max(120, "El título no puede superar los 120 caracteres")
+    .min(2, "El título debe tener al menos 2 caracteres"),
+  description: z
+    .string()
+    .max(500, "La descripción no puede superar los 500 caracteres")
+    .optional()
+    .nullable(),
   amount: z
     .number()
-    .int('El monto debe ser un número entero (centavos)')
-    .positive('El monto debe ser mayor a cero'),
-  currency: z.string().length(3).default('ARS').optional(),
-  paymentMethodId: z.string().uuid('ID de forma de pago inválido').optional().nullable(),
+    .int("El monto debe ser un número entero (centavos)")
+    .positive("El monto debe ser mayor a cero"),
+  currency: z.string().length(3).default("ARS").optional(),
+  paymentMethodId: z
+    .string()
+    .uuid("ID de forma de pago inválido")
+    .optional()
+    .nullable(),
   isFixed: z.boolean().default(false).optional(),
-  status: z.enum(['pending', 'paid']),
+  status: z.enum(["pending", "paid"]),
   occurredOn: z.coerce.date(),
-  occurredMonth: z.string().regex(/^\d{4}-\d{2}$/, 'El mes debe estar en formato YYYY-MM'),
+  occurredMonth: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "El mes debe estar en formato YYYY-MM"),
   dueOn: z.coerce.date().optional().nullable(),
   paidOn: z.coerce.date().optional().nullable(),
   sourceRecurringRuleId: z.string().uuid().optional().nullable(),
-  split: z.array(categorySplitSchema).min(1, 'Debe haber al menos una categoría asignada'),
+  split: z
+    .array(categorySplitSchema)
+    .min(1, "Debe haber al menos una categoría asignada"),
 });
 
 /**
@@ -42,35 +55,106 @@ export const createTransactionSchema = z.object({
  */
 export const updateTransactionSchema = z.object({
   title: nonEmptyStringSchema
-    .max(120, 'El título no puede superar los 120 caracteres')
-    .min(2, 'El título debe tener al menos 2 caracteres')
+    .max(120, "El título no puede superar los 120 caracteres")
+    .min(2, "El título debe tener al menos 2 caracteres")
     .optional(),
-  description: z.string().max(500, 'La descripción no puede superar los 500 caracteres').optional().nullable(),
+  description: z
+    .string()
+    .max(500, "La descripción no puede superar los 500 caracteres")
+    .optional()
+    .nullable(),
   amount: z
     .number()
-    .int('El monto debe ser un número entero (centavos)')
-    .positive('El monto debe ser mayor a cero')
+    .int("El monto debe ser un número entero (centavos)")
+    .positive("El monto debe ser mayor a cero")
     .optional(),
-  paymentMethodId: z.string().uuid('ID de forma de pago inválido').optional().nullable(),
+  paymentMethodId: z
+    .string()
+    .uuid("ID de forma de pago inválido")
+    .optional()
+    .nullable(),
   isFixed: z.boolean().optional(),
-  status: z.enum(['pending', 'paid']).optional(),
+  status: z.enum(["pending", "paid"]).optional(),
   occurredOn: z.coerce.date().optional(),
-  occurredMonth: z.string().regex(/^\d{4}-\d{2}$/, 'El mes debe estar en formato YYYY-MM').optional(),
+  occurredMonth: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "El mes debe estar en formato YYYY-MM")
+    .optional(),
   dueOn: z.coerce.date().optional().nullable(),
   paidOn: z.coerce.date().optional().nullable(),
-  split: z.array(categorySplitSchema).min(1, 'Debe haber al menos una categoría asignada').optional(),
+  split: z
+    .array(categorySplitSchema)
+    .min(1, "Debe haber al menos una categoría asignada")
+    .optional(),
 });
 
 /**
  * Schema para filtrar transacciones
  */
 export const listTransactionsSchema = z.object({
-  kind: z.enum(['income', 'expense']).optional(),
-  status: z.enum(['pending', 'paid']).optional(),
-  month: z.string().regex(/^\d{4}-\d{2}$/, 'El mes debe estar en formato YYYY-MM').optional(),
+  kind: z.enum(["income", "expense"]).optional(),
+  status: z.enum(["pending", "paid"]).optional(),
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "El mes debe estar en formato YYYY-MM")
+    .optional(),
   paymentMethodId: z.string().uuid().optional(),
   categoryId: z.string().uuid().optional(),
 });
+
+const csvToArray = (value: unknown) => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const items = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return items.length > 0 ? items : undefined;
+};
+
+const transactionSortSchema = createSortSchema([
+  "occurred_on",
+  "amount",
+  "title",
+  "created_at",
+]).extend({
+  sortBy: z
+    .enum(["occurred_on", "amount", "title", "created_at"])
+    .default("occurred_on"),
+});
+
+/**
+ * Schema para query params de listado
+ */
+export const listTransactionsQuerySchema = paginationSchema
+  .merge(transactionSortSchema)
+  .merge(
+    z.object({
+      month: monthSchema.optional(),
+      kind: z.enum(["income", "expense"]).optional(),
+      status: z.enum(["pending", "paid"]).optional(),
+      paymentMethodId: z.string().uuid().optional(),
+      categoryIds: z.preprocess(
+        csvToArray,
+        z.array(z.string().uuid()).optional()
+      ),
+      q: z.string().max(100).optional(),
+      cursor: z.string().min(1).optional(),
+      cursorId: z.string().uuid().optional(),
+    })
+  )
+  .superRefine((data, ctx) => {
+    if ((data.cursor && !data.cursorId) || (!data.cursor && data.cursorId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "cursor y cursorId deben enviarse juntos",
+        path: ["cursor"],
+      });
+    }
+  });
 
 /**
  * Types inferidos
@@ -78,4 +162,7 @@ export const listTransactionsSchema = z.object({
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
 export type ListTransactionsInput = z.infer<typeof listTransactionsSchema>;
+export type ListTransactionsQueryParams = z.infer<
+  typeof listTransactionsQuerySchema
+>;
 export type CategorySplit = z.infer<typeof categorySplitSchema>;

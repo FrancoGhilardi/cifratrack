@@ -29,7 +29,7 @@ export const paginationSchema = z.object({
 export function createSortSchema(allowedFields: readonly string[]) {
   return z.object({
     sortBy: z.enum(allowedFields as [string, ...string[]]).optional(),
-    sortDir: z.enum(['asc', 'desc']).default('desc'),
+    sortOrder: z.enum(['asc', 'desc']).default('desc'),
   });
 }
 
@@ -81,7 +81,7 @@ export class PaginationParams {
 export class SortParams {
   constructor(
     public readonly sortBy: string,
-    public readonly sortDir: 'asc' | 'desc',
+    public readonly sortOrder: 'asc' | 'desc',
     private readonly allowedFields: readonly string[]
   ) {
     if (!allowedFields.includes(sortBy)) {
@@ -102,16 +102,17 @@ export class SortParams {
     const params = query instanceof URLSearchParams ? Object.fromEntries(query) : query;
 
     const sortBy = params.sortBy || defaultField;
-    const sortDir = (params.sortDir as 'asc' | 'desc') || 'desc';
+    const sortOrder =
+      (params.sortOrder as 'asc' | 'desc') || (params.sortDir as 'asc' | 'desc') || 'desc';
 
-    return new SortParams(sortBy, sortDir, allowedFields);
+    return new SortParams(sortBy, sortOrder, allowedFields);
   }
 
   /**
    * Obtener string SQL para ORDER BY (ej: "created_at DESC")
    */
   toSQL(): string {
-    return `${this.sortBy} ${this.sortDir.toUpperCase()}`;
+    return `${this.sortBy} ${this.sortOrder.toUpperCase()}`;
   }
 }
 

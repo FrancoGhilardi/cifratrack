@@ -37,6 +37,8 @@ export type Paginated<T> = {
   pageSize: number;
   total: number;
   totalPages: number;
+  nextCursor?: string;
+  nextCursorId?: string;
 };
 
 /**
@@ -65,13 +67,16 @@ export type PaginationParams = {
  */
 export type SortParams = {
   sortBy: string;
-  sortDir: 'asc' | 'desc';
+  sortOrder: "asc" | "desc";
 };
 
 /**
  * Parámetros de filtrado base
  */
-export type FilterParams = Record<string, string | number | boolean | undefined>;
+export type FilterParams = Record<
+  string,
+  string | number | boolean | undefined
+>;
 
 /**
  * Parámetros completos de listado (paginación + orden + filtros)

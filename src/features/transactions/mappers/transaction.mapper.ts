@@ -52,7 +52,6 @@ export class TransactionMapper {
    * Convierte de row de DB (con relaciones) a entidad de dominio enriquecida
    */
   static rowToDomain(data: TransactionWithRelations): TransactionWithNames {
-    console.log('rowToDomain input:', JSON.stringify(data.transaction, null, 2));
     try {
       // Crear la entidad Transaction del dominio usando fromPersistence
       const transaction = Transaction.fromPersistence({
@@ -95,15 +94,6 @@ export class TransactionMapper {
         })),
       };
       
-      console.log('rowToDomain created transaction:', {
-        occurredOn: transaction.occurredOn,
-        occurredOnType: typeof transaction.occurredOn,
-        occurredOnIsDate: transaction.occurredOn instanceof Date,
-        dueOn: transaction.dueOn,
-        dueOnType: typeof transaction.dueOn,
-        dueOnIsDate: transaction.dueOn instanceof Date
-      });
-      
       return result;
     } catch (error) {
       console.error('Error in rowToDomain:', error);
@@ -115,7 +105,6 @@ export class TransactionMapper {
    * Convierte de entidad de dominio enriquecida a DTO
    */
   static domainToDTO(data: TransactionWithNames): TransactionDTO {
-    console.log('domainToDTO called');
     const transaction = data.transaction;
     
     try {

@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/shared/lib/auth';
 import { CategoryRepository } from '@/features/categories/repo.impl';
 import { ListCategoriesUseCase } from '@/features/categories/usecases/list-categories.usecase';
@@ -20,7 +19,7 @@ export async function GET(request: Request) {
     // Verificar autenticación
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(err(new AuthenticationError('No autenticado')), { status: 401 });
+      return err(new AuthenticationError('No autenticado'), 401);
     }
 
     // Obtener filtros del query param

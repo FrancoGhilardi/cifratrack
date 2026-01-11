@@ -89,6 +89,8 @@ export async function GET(request: NextRequest) {
 }
 ```
 
+- Para listados usar `okPaginated()` y devolver `nextCursor`/`nextCursorId` cuando aplique
+
 ### Frontend Hooks
 
 Adaptadores entre React y servicios:
@@ -108,6 +110,10 @@ export function useTransactionsTable() {
   return { data: query.data, updateParams, ... };
 }
 ```
+
+- Usar `buildQueryParams` (`shared/lib/utils/query-params.ts`) para armar query strings sin valores vacios
+- `sortBy` se mapea a snake_case con `columnToSnakeCase` antes de llamar al backend
+- Listados con keyset: pasar `cursor` + `cursorId` cuando existan (los hooks de tabla guardan cursores por pagina)
 
 ## Modelo de datos crítico
 
@@ -137,12 +143,18 @@ Implementado en `InvestmentYieldCalculator` (clase de servicio).
 
 ```ts
 type ApiOk<T> = { ok: true; data: T };
-type ApiErr = { ok: false; error: { code: string; message: string } };
+type ApiErr = {
+  ok: false;
+  error: { code: string; message: string; details?: unknown };
+};
 type Paginated<T> = {
   items: T[];
   page: number;
   pageSize: number;
   total: number;
+  totalPages: number;
+  nextCursor?: string;
+  nextCursorId?: string;
 };
 ```
 
@@ -151,6 +163,14 @@ Endpoints de tabla **siempre** incluyen:
 - Paginación: `page`, `pageSize` (máx 100)
 - Orden: `sortBy` (whitelist), `sortOrder`
 - Filtros: `month` (YYYY-MM), `kind`, `status`, `categoryIds` (CSV), `q`
+- Keyset: `cursor` + `cursorId` (siempre juntos) para paginar sin offset
+
+## Paginacion keyset (tablas)
+
+- Backend: si vienen `cursor` + `cursorId`, se usa keyset y se ignora el offset
+- `cursor` es el valor del campo de orden (para fechas: `YYYY-MM-DD` o ISO timestamp)
+- Usar `nextCursor` y `nextCursorId` para pedir la pagina siguiente
+- Los hooks de tabla guardan cursores por pagina y los reinician si cambian filtros, sort o pageSize
 
 ## Flujo para agregar features
 
@@ -170,6 +190,7 @@ pnpm dev                 # Desarrollo
 pnpm build              # Build producción
 pnpm db:push            # Sincronizar schema con DB (desarrollo)
 pnpm db:studio          # Drizzle Studio para explorar DB
+npx dotenv -e .env.local -- drizzle-kit migrate  # Aplicar migraciones versionadas
 ```
 
 ## Path aliases
@@ -263,7 +284,8 @@ Al registrar usuario, insertar defaults:
 ### API y Database
 
 - **snake_case** para columnas DB: `occurred_on`, `payment_method_id`, `is_active`, `created_at`
-- **snake_case** para query params de API: `sort_by`, `sort_order` (pero internamente mapeado desde camelCase del frontend)
+- **camelCase** para query params de API: `page`, `pageSize`, `sortBy`, `sortOrder`, `cursor`, `cursorId`, `categoryIds`, `paymentMethodId`
+- **sortBy** usa nombres snake_case de columna (mapear con `columnToSnakeCase`)
 - **kebab-case** para rutas API: `/api/transactions`, `/api/payment-methods`, `/api/recurring/generate`
 
 ## Migraciones de base de datos
@@ -274,6 +296,8 @@ Al registrar usuario, insertar defaults:
 2. **Push en desarrollo**: `pnpm db:push` (sincroniza sin crear migración)
 3. **Generar migración**: `pnpm drizzle-kit generate` (cuando estés listo para versionar)
 4. **Aplicar en producción**: Las migraciones se aplican automáticamente en el pipeline
+
+Nota: el baseline `0000_*` es de introspeccion y queda comentado para evitar ejecuciones accidentales. Para una DB nueva, generar un baseline limpio.
 
 ### Convenciones para migraciones
 
@@ -314,8 +338,12 @@ CREATE TRIGGER set_transaction_occurred_month
 - **Formato de fechas**: Usar `char(7)` para meses en formato `YYYY-MM`
 - **Montos en centavos**: Siempre `integer`, conversión con `round(amount * 100)::integer`
 
+- **Keyset**: indices compuestos deben incluir la columna de orden y `id` como tie-breaker
+- **Busqueda texto**: usar `pg_trgm` + GIN para `title`, `description`, `notes`, `platform`
+
 ### Ejemplos del proyecto
 
+- Ver [migrations/0004_phase4_indexes.sql](src/shared/db/migrations/0004_phase4_indexes.sql) para indices y `pg_trgm`
 - Ver [migrations/0002_fix_occurred_month.sql](src/shared/db/migrations/0002_fix_occurred_month.sql) para triggers
 - Ver [migrations/0003_align_recurring_rules.sql](src/shared/db/migrations/0003_align_recurring_rules.sql) para ALTER complejos con conversión de tipos
 

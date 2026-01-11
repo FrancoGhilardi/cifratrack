@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/shared/lib/auth';
 import { InvestmentRepository } from '@/features/investments/repo.impl';
 import { ListInvestmentsUseCase } from '@/features/investments/usecases/list-investments.usecase';
 import { UpsertInvestmentUseCase } from '@/features/investments/usecases/upsert-investment.usecase';
 import { InvestmentMapper } from '@/features/investments/mappers/investment.mapper';
 import { createInvestmentSchema, investmentQuerySchema } from '@/entities/investment/model/investment.schema';
-import { AppError } from '@/shared/lib/errors';
+import { AuthenticationError, ValidationError } from '@/shared/lib/errors';
 import { ZodError } from 'zod';
+import { err, ok, okPaginated } from '@/shared/lib/response';
 
 const repository = new InvestmentRepository();
 const listUseCase = new ListInvestmentsUseCase(repository);
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+      return err(new AuthenticationError('No autenticado'), 401);
     }
 
     const { searchParams } = new URL(request.url);
@@ -30,9 +31,11 @@ export async function GET(request: NextRequest) {
       page: searchParams.get('page') ?? undefined,
       pageSize: searchParams.get('pageSize') ?? undefined,
       sortBy: searchParams.get('sortBy') ?? undefined,
-      sortDir: searchParams.get('sortDir') ?? undefined,
+      sortOrder: searchParams.get('sortOrder') ?? searchParams.get('sortDir') ?? undefined,
       q: searchParams.get('q') ?? undefined,
       active: searchParams.get('active') ?? undefined,
+      cursor: searchParams.get('cursor') ?? undefined,
+      cursorId: searchParams.get('cursorId') ?? undefined,
     });
 
     const result = await listUseCase.execute(session.user.id, params);
@@ -40,36 +43,18 @@ export async function GET(request: NextRequest) {
     // Mapear a DTOs con rendimiento calculado
     const data = InvestmentMapper.toDTOs(result.data);
 
-    return NextResponse.json({
-      data,
-      meta: {
-        total: result.total,
-        page: result.page,
-        pageSize: result.pageSize,
-        totalPages: result.totalPages,
-      },
+    return okPaginated(data, result.page, result.pageSize, result.total, {
+      nextCursor: result.nextCursor,
+      nextCursorId: result.nextCursorId,
     });
   } catch (error) {
     console.error('[GET /api/investments] Error:', error);
 
     if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: 'Parámetros inválidos', details: error.issues },
-        { status: 400 }
-      );
+      return err(new ValidationError('Parámetros inválidos', error.issues));
     }
 
-    if (error instanceof AppError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Error al listar inversiones' },
-      { status: 500 }
-    );
+    return err(error);
   }
 }
 
@@ -81,7 +66,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+      return err(new AuthenticationError('No autenticado'), 401);
     }
 
     const body = await request.json();
@@ -92,30 +77,14 @@ export async function POST(request: NextRequest) {
     // Crear inversión
     const investment = await upsertUseCase.create(session.user.id, data);
 
-    return NextResponse.json(
-      { data: InvestmentMapper.toDTO(investment) },
-      { status: 201 }
-    );
+    return ok(InvestmentMapper.toDTO(investment), 201);
   } catch (error) {
     console.error('[POST /api/investments] Error:', error);
 
     if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: 'Datos inválidos', details: error.issues },
-        { status: 400 }
-      );
+      return err(new ValidationError('Datos inválidos', error.issues));
     }
 
-    if (error instanceof AppError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Error al crear inversión' },
-      { status: 500 }
-    );
+    return err(error);
   }
 }

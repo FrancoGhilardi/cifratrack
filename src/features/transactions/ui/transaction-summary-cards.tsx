@@ -2,20 +2,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { CheckCircle2, Clock } from "lucide-react";
 import { useCurrency } from "@/shared/lib/hooks/useCurrency";
 import { useTransactionsSummary } from "../hooks/useTransactionsSummary";
-import type { TransactionDTO } from "../mappers/transaction.mapper";
+import type { TransactionSummaryDTO } from "@/entities/transaction/model/transaction-summary.dto";
 
 interface TransactionSummaryCardsProps {
-  transactions: TransactionDTO[];
+  summary?: TransactionSummaryDTO;
 }
 
 /**
  * Widget: Tarjetas de resumen de transacciones del mes
  */
 export function TransactionSummaryCards({
-  transactions,
+  summary: summaryData,
 }: TransactionSummaryCardsProps) {
-  const { formatCurrency } = useCurrency();
-  const summary = useTransactionsSummary(transactions);
+  const { format } = useCurrency();
+  const summary = useTransactionsSummary(summaryData);
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -35,7 +35,7 @@ export function TransactionSummaryCards({
           {summary.hasPaidTransactions ? (
             <>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(summary.totalPaid)}
+                {format(summary.totalPaid)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {summary.paidCount}{" "}
@@ -47,7 +47,7 @@ export function TransactionSummaryCards({
           ) : (
             <div className="py-4">
               <div className="text-2xl font-bold text-muted-foreground/50">
-                {formatCurrency(0)}
+                {format(0)}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 Sin movimientos pagados
@@ -73,7 +73,7 @@ export function TransactionSummaryCards({
           {summary.hasPendingTransactions ? (
             <>
               <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                {formatCurrency(summary.totalPending)}
+                {format(summary.totalPending)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {summary.pendingCount}{" "}
@@ -85,7 +85,7 @@ export function TransactionSummaryCards({
           ) : (
             <div className="py-4">
               <div className="text-2xl font-bold text-muted-foreground/50">
-                {formatCurrency(0)}
+                {format(0)}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 Sin movimientos pendientes

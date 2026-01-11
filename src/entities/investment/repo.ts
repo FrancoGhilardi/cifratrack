@@ -1,5 +1,5 @@
-import type { Investment } from './model/investment.entity';
-import type { InvestmentQueryParams } from './model/investment.schema';
+import type { Investment } from "./model/investment.entity";
+import type { InvestmentQueryParams } from "./model/investment.schema";
 
 /**
  * Resultado paginado de inversiones
@@ -10,18 +10,23 @@ export interface PaginatedInvestments {
   page: number;
   pageSize: number;
   totalPages: number;
+  nextCursor?: string;
+  nextCursorId?: string;
 }
 
 /**
  * Interfaz del repositorio de inversiones (contrato)
- * 
+ *
  * Define las operaciones de persistencia para la entidad Investment
  */
 export interface IInvestmentRepository {
   /**
    * Lista inversiones con paginación y filtros
    */
-  list(userId: string, params: InvestmentQueryParams): Promise<PaginatedInvestments>;
+  list(
+    userId: string,
+    params: InvestmentQueryParams
+  ): Promise<PaginatedInvestments>;
 
   /**
    * Busca una inversión por ID y userId
@@ -36,7 +41,11 @@ export interface IInvestmentRepository {
   /**
    * Actualiza una inversión existente
    */
-  update(id: string, userId: string, data: Partial<Investment>): Promise<Investment>;
+  update(
+    id: string,
+    userId: string,
+    data: Partial<Investment>
+  ): Promise<Investment>;
 
   /**
    * Elimina una inversión

@@ -1,6 +1,7 @@
 import type { ApiOk } from '@/shared/lib/types';
 import type { CreateCategoryInput, UpdateCategoryInput } from '@/entities/category/model/category.schema';
 import { apiFetch } from '@/shared/lib/api-client';
+import { buildQueryParams } from '@/shared/lib/utils/query-params';
 
 export interface CategoryDTO {
   id: string;
@@ -24,10 +25,10 @@ export class CategoriesApi {
     kind?: 'income' | 'expense';
     isActive?: boolean;
   }): Promise<CategoryDTO[]> {
-    const params = new URLSearchParams();
-    if (filters?.kind) params.set('kind', filters.kind);
-    if (filters?.isActive !== undefined) params.set('isActive', String(filters.isActive));
-
+    const params = buildQueryParams({
+      kind: filters?.kind,
+      isActive: filters?.isActive,
+    });
     const queryString = params.toString();
     const url = `/api/categories${queryString ? `?${queryString}` : ''}`;
 
