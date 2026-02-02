@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch } from "react-hook-form";
+import { type Resolver, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEffect, useRef } from "react";
 import { Button } from "@/shared/ui/button";
@@ -87,7 +87,7 @@ export function TransactionForm({
   const isEdit = !!transaction;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as Resolver<FormValues>,
     mode: "onChange",
     defaultValues: {
       kind: transaction?.kind ?? "expense",

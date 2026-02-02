@@ -13,12 +13,13 @@ export class Investment {
     public readonly title: string,
     public readonly principal: number, // en formato decimal (no centavos)
     public readonly tna: number, // tasa nominal anual (porcentaje)
-    public readonly days: number, // duración de la inversión
+    public readonly days: number | null, // duración de la inversión (null para indefinido)
+    public readonly isCompound: boolean, // indica si es interés compuesto
     public readonly startedOn: Date,
     public readonly notes: string | null,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
-    skipValidation = false // Flag para saltar validación (datos de DB)
+    skipValidation = false, // Flag para saltar validación (datos de DB)
   ) {
     if (!skipValidation) {
       this.validate();
@@ -36,7 +37,7 @@ export class Investment {
 
     if (this.principal > 999999999999.99) {
       throw new ValidationError(
-        "El monto principal excede el límite permitido"
+        "El monto principal excede el límite permitido",
       );
     }
 
@@ -50,13 +51,19 @@ export class Investment {
     }
 
     // Validar días
-    if (this.days <= 0) {
+    if (!this.isCompound && (!this.days || this.days <= 0)) {
+      throw new ValidationError(
+        "La duración debe ser mayor a cero días para inversiones simples",
+      );
+    }
+
+    if (this.days !== null && this.days <= 0) {
       throw new ValidationError("La duración debe ser mayor a cero días");
     }
 
-    if (this.days > 36500) {
+    if (this.days !== null && this.days > 36500) {
       throw new ValidationError(
-        "La duración excede el límite permitido (~100 años)"
+        "La duración excede el límite permitido (~100 años)",
       );
     }
 
@@ -67,7 +74,7 @@ export class Investment {
 
     if (this.platform.length > 80) {
       throw new ValidationError(
-        "El nombre de la plataforma es demasiado largo (máx 80 caracteres)"
+        "El nombre de la plataforma es demasiado largo (máx 80 caracteres)",
       );
     }
 
@@ -77,13 +84,13 @@ export class Investment {
 
     if (this.title.length > 120) {
       throw new ValidationError(
-        "El título es demasiado largo (máx 120 caracteres)"
+        "El título es demasiado largo (máx 120 caracteres)",
       );
     }
 
     if (this.notes && this.notes.length > 5000) {
       throw new ValidationError(
-        "Las notas son demasiado largas (máx 5000 caracteres)"
+        "Las notas son demasiado largas (máx 5000 caracteres)",
       );
     }
 
@@ -108,7 +115,8 @@ export class Investment {
     title: string;
     principal: number;
     tna: number;
-    days: number;
+    days: number | null;
+    isCompound?: boolean;
     startedOn: Date;
     notes?: string | null;
   }): Investment {
@@ -122,11 +130,12 @@ export class Investment {
       data.principal,
       data.tna,
       data.days,
+      data.isCompound ?? false,
       data.startedOn,
       data.notes ?? null,
       now,
       now,
-      false // validar
+      false, // validar
     );
   }
 
@@ -140,7 +149,8 @@ export class Investment {
     title: string;
     principal: number;
     tna: number;
-    days: number;
+    days: number | null;
+    isCompound: boolean;
     startedOn: Date;
     notes: string | null;
     createdAt: Date;
@@ -154,18 +164,22 @@ export class Investment {
       data.principal,
       data.tna,
       data.days,
+      data.isCompound,
       data.startedOn,
       data.notes,
       data.createdAt,
       data.updatedAt,
-      true // skip validation
+      true, // skip validation
     );
   }
 
   /**
    * Calcula la fecha de finalización de la inversión
    */
-  getEndDate(): Date {
+  getEndDate(): Date | null {
+    if (this.days === null) {
+      return null;
+    }
     const endDate = new Date(this.startedOn);
     endDate.setDate(endDate.getDate() + this.days);
     return endDate;
@@ -177,9 +191,13 @@ export class Investment {
    * (es decir, el día de fin todavía está activa)
    */
   hasEnded(): boolean {
+    if (this.days === null) {
+      return false;
+    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const endDate = this.getEndDate();
+    if (!endDate) return false;
     endDate.setHours(0, 0, 0, 0);
     return endDate < today;
   }
@@ -187,7 +205,10 @@ export class Investment {
   /**
    * Días restantes hasta la finalización
    */
-  getDaysRemaining(): number {
+  getDaysRemaining(): number | null {
+    if (this.days === null) {
+      return null;
+    }
     if (this.hasEnded()) {
       return 0;
     }
@@ -195,6 +216,7 @@ export class Investment {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const endDate = this.getEndDate();
+    if (!endDate) return null;
     endDate.setHours(0, 0, 0, 0);
 
     const diffMs = endDate.getTime() - today.getTime();

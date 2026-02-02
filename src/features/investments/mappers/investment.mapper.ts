@@ -1,10 +1,10 @@
-import { Investment } from '@/entities/investment/model/investment.entity';
-import type { InvestmentDTO } from '../model/investment.dto';
-import { InvestmentYieldCalculator } from '@/entities/investment/services/investment-yield-calculator';
+import { Investment } from "@/entities/investment/model/investment.entity";
+import type { InvestmentDTO } from "../model/investment.dto";
+import { InvestmentYieldCalculator } from "@/entities/investment/services/investment-yield-calculator";
 
 /**
  * Mapper para conversión entre Investment (dominio) y InvestmentDTO
- * 
+ *
  * Centraliza la lógica de mapeo según AGENTS.md: "Mappers explícitos"
  */
 export class InvestmentMapper {
@@ -14,10 +14,23 @@ export class InvestmentMapper {
    * Convierte una entidad de dominio Investment a DTO con rendimiento calculado
    */
   static toDTO(investment: Investment): InvestmentDTO {
+    let calculationDays = investment.days;
+
+    if (calculationDays === null) {
+      // Si no tiene duración definida, calcular rendimiento hasta la fecha actual
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const start = new Date(investment.startedOn);
+      start.setHours(0, 0, 0, 0);
+      const diffTime = Math.abs(now.getTime() - start.getTime());
+      calculationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
     const yieldResult = this.yieldCalculator.calculate(
       investment.principal,
       investment.tna,
-      investment.days
+      calculationDays,
+      investment.isCompound,
     );
 
     return {
@@ -28,8 +41,9 @@ export class InvestmentMapper {
       principal: investment.principal,
       tna: investment.tna,
       days: investment.days,
-      startedOn: investment.startedOn.toISOString().split('T')[0],
-      endDate: investment.getEndDate().toISOString().split('T')[0],
+      isCompound: investment.isCompound,
+      startedOn: investment.startedOn.toISOString().split("T")[0],
+      endDate: investment.getEndDate()?.toISOString().split("T")[0] ?? null,
       hasEnded: investment.hasEnded(),
       daysRemaining: investment.getDaysRemaining(),
       notes: investment.notes,
@@ -59,6 +73,7 @@ export class InvestmentMapper {
     principal: number;
     tna: number;
     days: number;
+    isCompound: boolean;
     startedOn: Date;
     notes: string | null;
     createdAt: Date;

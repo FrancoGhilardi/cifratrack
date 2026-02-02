@@ -1,3 +1,8 @@
+import type {
+  CreateInvestmentInput,
+  UpdateInvestmentInput,
+} from "@/entities/investment/model/investment.schema";
+
 /**
  * DTO para inversión con rendimiento calculado
  */
@@ -8,11 +13,12 @@ export interface InvestmentDTO {
   title: string;
   principal: number;
   tna: number;
-  days: number;
+  days: number | null;
+  isCompound: boolean;
   startedOn: string; // ISO date string YYYY-MM-DD
-  endDate: string; // ISO date string YYYY-MM-DD
+  endDate: string | null; // ISO date string YYYY-MM-DD
   hasEnded: boolean;
-  daysRemaining: number;
+  daysRemaining: number | null;
   notes: string | null;
   yield: number; // Rendimiento calculado
   total: number; // Principal + rendimiento
@@ -26,10 +32,10 @@ export interface InvestmentDTO {
 export interface InvestmentQueryParams {
   page?: number;
   pageSize?: number;
-  sortBy?: 'startedOn' | 'principal' | 'tna' | 'days' | 'platform' | 'title';
-  sortDir?: 'asc' | 'desc';
+  sortBy?: "startedOn" | "principal" | "tna" | "days" | "platform" | "title";
+  sortDir?: "asc" | "desc";
   q?: string;
-  active?: 'true' | 'false';
+  active?: "true" | "false";
 }
 
 /**
@@ -45,28 +51,4 @@ export interface PaginatedInvestmentsResponse {
   };
 }
 
-/**
- * Input para crear inversión
- */
-export interface CreateInvestmentInput {
-  platform: string;
-  title: string;
-  principal: number;
-  tna: number;
-  days: number;
-  startedOn: Date;
-  notes?: string | null;
-}
-
-/**
- * Input para actualizar inversión
- */
-export interface UpdateInvestmentInput {
-  platform?: string;
-  title?: string;
-  principal?: number;
-  tna?: number;
-  days?: number;
-  startedOn?: Date;
-  notes?: string | null;
-}
+export type { CreateInvestmentInput, UpdateInvestmentInput };

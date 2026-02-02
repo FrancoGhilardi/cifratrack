@@ -1,13 +1,19 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+} from "react";
 import {
   getCoreRowModel,
   useReactTable,
   flexRender,
   type ColumnDef,
   type SortingState,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 import {
   Pencil,
   Trash2,
@@ -17,30 +23,46 @@ import {
   ArrowUp,
   ArrowDown,
   Search,
-} from 'lucide-react';
-import { Badge } from '@/shared/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
-import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
+} from "lucide-react";
+import { Badge } from "@/shared/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/ui/table";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { EmptyState } from '@/shared/ui/empty-state';
-import { Pagination } from '@/shared/ui/pagination';
-import { TableLoadingOverlay } from '@/shared/ui/table-loading-overlay';
-import type { InvestmentDTO, InvestmentQueryParams } from '../model/investment.dto';
-import { InvestmentForm } from './investment-form';
-import { DeleteInvestmentDialog } from './delete-investment-dialog';
-import { InvestmentListSkeleton } from './investment-list-skeleton';
-import { useInvestmentMutations } from '../hooks/useInvestments';
-import type { CreateInvestmentInput } from '@/entities/investment/model/investment.schema';
-import { useCurrency } from '@/shared/lib/hooks';
-import { useSearchDebounce } from '@/shared/lib/hooks/useSearchDebounce';
+} from "@/shared/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/ui/card";
+import { EmptyState } from "@/shared/ui/empty-state";
+import { Pagination } from "@/shared/ui/pagination";
+import { TableLoadingOverlay } from "@/shared/ui/table-loading-overlay";
+import type {
+  InvestmentDTO,
+  InvestmentQueryParams,
+} from "../model/investment.dto";
+import { InvestmentForm } from "./investment-form";
+import { DeleteInvestmentDialog } from "./delete-investment-dialog";
+import { InvestmentListSkeleton } from "./investment-list-skeleton";
+import { useInvestmentMutations } from "../hooks/useInvestments";
+import type { CreateInvestmentInput } from "@/entities/investment/model/investment.schema";
+import { useCurrency } from "@/shared/lib/hooks";
+import { useSearchDebounce } from "@/shared/lib/hooks/useSearchDebounce";
 
 interface InvestmentListProps {
   investments: InvestmentDTO[];
@@ -50,15 +72,17 @@ interface InvestmentListProps {
     pageSize: number;
     totalPages: number;
   };
-  sortBy: NonNullable<InvestmentQueryParams['sortBy']>;
-  sortDir: NonNullable<InvestmentQueryParams['sortDir']>;
-  filters: Partial<Pick<InvestmentQueryParams, 'q' | 'active'>>;
-  onFiltersChange: (filters: Partial<Pick<InvestmentQueryParams, 'q' | 'active'>>) => void;
+  sortBy: NonNullable<InvestmentQueryParams["sortBy"]>;
+  sortDir: NonNullable<InvestmentQueryParams["sortDir"]>;
+  filters: Partial<Pick<InvestmentQueryParams, "q" | "active">>;
+  onFiltersChange: (
+    filters: Partial<Pick<InvestmentQueryParams, "q" | "active">>,
+  ) => void;
   onResetFilters: () => void;
   isLoading?: boolean;
   onSortChange: (
-    sortBy: NonNullable<InvestmentQueryParams['sortBy']>,
-    sortDir: NonNullable<InvestmentQueryParams['sortDir']>
+    sortBy: NonNullable<InvestmentQueryParams["sortBy"]>,
+    sortDir: NonNullable<InvestmentQueryParams["sortDir"]>,
   ) => void;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
@@ -81,9 +105,10 @@ export function InvestmentList({
 }: InvestmentListProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedInvestment, setSelectedInvestment] = useState<InvestmentDTO | null>(null);
+  const [selectedInvestment, setSelectedInvestment] =
+    useState<InvestmentDTO | null>(null);
   // Búsqueda robusta con debounce genérico
-  const [searchValue, setSearchValue] = useState(filters.q ?? '');
+  const [searchValue, setSearchValue] = useState(filters.q ?? "");
   useSearchDebounce({
     value: searchValue,
     delay: 300,
@@ -102,7 +127,8 @@ export function InvestmentList({
   const metaInfo = useMemo(() => {
     const total = meta?.total ?? investments.length;
     const page = meta?.page ?? 1;
-    const pageSize = meta?.pageSize ?? (investments.length > 0 ? investments.length : 10);
+    const pageSize =
+      meta?.pageSize ?? (investments.length > 0 ? investments.length : 10);
     const totalPages = meta?.totalPages ?? 1;
 
     return {
@@ -114,8 +140,8 @@ export function InvestmentList({
   }, [meta, investments.length]);
 
   const sorting: SortingState = useMemo(
-    () => (sortBy && sortDir ? [{ id: sortBy, desc: sortDir === 'desc' }] : []),
-    [sortBy, sortDir]
+    () => (sortBy && sortDir ? [{ id: sortBy, desc: sortDir === "desc" }] : []),
+    [sortBy, sortDir],
   );
 
   const handleCreate = useCallback(() => {
@@ -141,7 +167,7 @@ export function InvestmentList({
         await create.mutateAsync(data);
       }
     },
-    [create, update, selectedInvestment]
+    [create, update, selectedInvestment],
   );
 
   const handleConfirmDelete = useCallback(async () => {
@@ -153,12 +179,12 @@ export function InvestmentList({
   }, [deleteInvestment, selectedInvestment]);
 
   const handleSort = useCallback(
-    (columnId: NonNullable<InvestmentQueryParams['sortBy']>) => {
+    (columnId: NonNullable<InvestmentQueryParams["sortBy"]>) => {
       const current = sorting.find((s) => s.id === columnId);
-      const nextDir = current ? (current.desc ? 'asc' : 'desc') : 'desc';
+      const nextDir = current ? (current.desc ? "asc" : "desc") : "desc";
       onSortChange(columnId, nextDir);
     },
-    [onSortChange, sorting]
+    [onSortChange, sorting],
   );
 
   const renderSortIcon = useCallback(
@@ -171,47 +197,51 @@ export function InvestmentList({
         <ArrowUp className="ml-2 h-4 w-4" />
       );
     },
-    [sorting]
+    [sorting],
   );
 
   const columns = useMemo<ColumnDef<InvestmentDTO>[]>(
     () => [
       {
-        id: 'title',
-        accessorKey: 'title',
+        id: "title",
+        accessorKey: "title",
         header: () => (
           <Button
             variant="ghost"
-            onClick={() => handleSort('title')}
+            onClick={() => handleSort("title")}
             className="h-8 px-2 hover:bg-accent"
           >
             Título / Plataforma
-            {renderSortIcon('title')}
+            {renderSortIcon("title")}
           </Button>
         ),
         cell: ({ row }) => (
           <div>
             <div className="font-medium">{row.original.title}</div>
-            <div className="text-sm text-muted-foreground">{row.original.platform}</div>
+            <div className="text-sm text-muted-foreground">
+              {row.original.platform}
+            </div>
           </div>
         ),
       },
       {
-        id: 'principal',
-        accessorKey: 'principal',
+        id: "principal",
+        accessorKey: "principal",
         header: () => (
           <Button
             variant="ghost"
-            onClick={() => handleSort('principal')}
+            onClick={() => handleSort("principal")}
             className="h-8 px-2 hover:bg-accent"
           >
             Monto
-            {renderSortIcon('principal')}
+            {renderSortIcon("principal")}
           </Button>
         ),
         cell: ({ row }) => (
           <div className="text-right">
-            <div className="font-semibold">{formatCurrency(row.original.principal)}</div>
+            <div className="font-semibold">
+              {formatCurrency(row.original.principal)}
+            </div>
             <div className="text-xs text-muted-foreground">
               TNA: {row.original.tna.toFixed(2)}%
             </div>
@@ -219,8 +249,8 @@ export function InvestmentList({
         ),
       },
       {
-        id: 'yield',
-        header: 'Rendimiento',
+        id: "yield",
+        header: "Rendimiento",
         cell: ({ row }) => (
           <div className="text-right">
             <div className="font-semibold text-green-600 dark:text-green-400">
@@ -233,16 +263,16 @@ export function InvestmentList({
         ),
       },
       {
-        id: 'days',
-        accessorKey: 'days',
+        id: "days",
+        accessorKey: "days",
         header: () => (
           <Button
             variant="ghost"
-            onClick={() => handleSort('days')}
+            onClick={() => handleSort("days")}
             className="h-8 px-2 hover:bg-accent"
           >
             Duración
-            {renderSortIcon('days')}
+            {renderSortIcon("days")}
           </Button>
         ),
         cell: ({ row }) => (
@@ -258,28 +288,30 @@ export function InvestmentList({
         ),
       },
       {
-        id: 'startedOn',
-        accessorKey: 'startedOn',
+        id: "startedOn",
+        accessorKey: "startedOn",
         header: () => (
           <Button
             variant="ghost"
-            onClick={() => handleSort('startedOn')}
+            onClick={() => handleSort("startedOn")}
             className="h-8 px-2 hover:bg-accent"
           >
             Inicio
-            {renderSortIcon('startedOn')}
+            {renderSortIcon("startedOn")}
           </Button>
         ),
         cell: ({ row }) => (
           <div className="text-sm">
             <div className="font-medium">{row.original.startedOn}</div>
-            <div className="text-xs text-muted-foreground">Fin: {row.original.endDate}</div>
+            <div className="text-xs text-muted-foreground">
+              Fin: {row.original.endDate ?? "-"}
+            </div>
           </div>
         ),
       },
       {
-        id: 'status',
-        header: 'Estado',
+        id: "status",
+        header: "Estado",
         cell: ({ row }) => {
           if (row.original.hasEnded) {
             return (
@@ -302,11 +334,15 @@ export function InvestmentList({
         },
       },
       {
-        id: 'actions',
+        id: "actions",
         header: () => <div className="text-right">Acciones</div>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" size="icon" onClick={() => handleEdit(row.original)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEdit(row.original)}
+            >
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
@@ -321,7 +357,7 @@ export function InvestmentList({
         ),
       },
     ],
-    [handleDelete, handleEdit, handleSort, formatCurrency, renderSortIcon]
+    [handleDelete, handleEdit, handleSort, formatCurrency, renderSortIcon],
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -337,12 +373,12 @@ export function InvestmentList({
 
   const activeFiltersCount = useMemo(
     () => [filters.q, filters.active].filter(Boolean).length,
-    [filters.q, filters.active]
+    [filters.q, filters.active],
   );
 
   // Mantener el valor local de búsqueda sincronizado con el que viene de la URL
   useEffect(() => {
-    setSearchValue(filters.q ?? '');
+    setSearchValue(filters.q ?? "");
   }, [filters.q]);
 
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -350,18 +386,22 @@ export function InvestmentList({
   };
 
   const handleActiveChange = (value: string) => {
-    if (value === 'all') {
+    if (value === "all") {
       onFiltersChange({ active: undefined });
-    } else if (value === 'active') {
-      onFiltersChange({ active: 'true' });
+    } else if (value === "active") {
+      onFiltersChange({ active: "true" });
     } else {
-      onFiltersChange({ active: 'false' });
+      onFiltersChange({ active: "false" });
     }
   };
 
   const hasData = investments.length > 0;
   const activeFilterValue =
-    filters.active === 'true' ? 'active' : filters.active === 'false' ? 'ended' : 'all';
+    filters.active === "true"
+      ? "active"
+      : filters.active === "false"
+        ? "ended"
+        : "all";
   const isInitialLoading = isLoading && !hasData;
 
   return (
@@ -371,7 +411,9 @@ export function InvestmentList({
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <CardTitle>Inversiones</CardTitle>
-              <CardDescription>Gestiona tus inversiones y rendimientos</CardDescription>
+              <CardDescription>
+                Gestiona tus inversiones y rendimientos
+              </CardDescription>
             </div>
             {showCreateButton && (
               <Button onClick={handleCreate} size="sm">
@@ -392,7 +434,10 @@ export function InvestmentList({
                 />
               </div>
 
-              <Select value={activeFilterValue} onValueChange={handleActiveChange}>
+              <Select
+                value={activeFilterValue}
+                onValueChange={handleActiveChange}
+              >
                 <SelectTrigger className="sm:w-48">
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
@@ -437,10 +482,16 @@ export function InvestmentList({
                     {table.getHeaderGroups().map((headerGroup) => (
                       <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map((header) => (
-                          <TableHead key={header.id} className="whitespace-nowrap">
+                          <TableHead
+                            key={header.id}
+                            className="whitespace-nowrap"
+                          >
                             {header.isPlaceholder
                               ? null
-                              : flexRender(header.column.columnDef.header, header.getContext())}
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
                           </TableHead>
                         ))}
                       </TableRow>
@@ -451,7 +502,10 @@ export function InvestmentList({
                       <TableRow key={row.id}>
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id} className="align-top">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
                           </TableCell>
                         ))}
                       </TableRow>

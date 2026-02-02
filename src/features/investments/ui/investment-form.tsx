@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, type Resolver, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/shared/ui/button";
+import { Checkbox } from "@/shared/ui/checkbox";
+import { HelpCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +51,7 @@ export function InvestmentForm({
             principal: investment.principal,
             tna: investment.tna,
             days: investment.days,
+            isCompound: investment.isCompound,
             startedOn: new Date(investment.startedOn),
             notes: investment.notes,
           }
@@ -52,22 +61,27 @@ export function InvestmentForm({
             principal: 0,
             tna: 0,
             days: 30,
+            isCompound: false,
             startedOn: new Date(),
             notes: "",
           },
-    [investment]
+    [investment],
   );
 
   const form = useForm<CreateInvestmentInput>({
-    resolver: zodResolver(createInvestmentSchema) as Resolver<CreateInvestmentInput>,
+    resolver: zodResolver(
+      createInvestmentSchema,
+    ) as Resolver<CreateInvestmentInput>,
     mode: "onChange",
     defaultValues: getDefaultValues(),
   });
 
+  const isCompound = form.watch("isCompound");
+
   const { apiError, setApiError, clearError } = useDialogForm(
     form,
     open,
-    getDefaultValues
+    getDefaultValues,
   );
 
   useEffect(() => {
@@ -174,14 +188,34 @@ export function InvestmentForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="days">
-                Días <span className="text-red-500">*</span>
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="days">
+                  Días {!isCompound && <span className="text-red-500">*</span>}
+                </Label>
+                {isCompound && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 cursor-pointer text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-[250px]">
+                          Dejar vacío para inversiones indefinidas (ej:
+                          billeteras virtuales). Asignar días si es un plazo
+                          fijo con vencimiento.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <Input
                 id="days"
                 type="number"
-                {...form.register("days", { valueAsNumber: true })}
-                placeholder="30"
+                {...form.register("days", {
+                  setValueAs: (value) => (value === "" ? null : Number(value)),
+                })}
+                placeholder={isCompound ? "-" : "30"}
               />
               {form.formState.errors.days && (
                 <p className="text-sm text-red-500">
@@ -191,22 +225,51 @@ export function InvestmentForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="startedOn">
-              Fecha de inicio <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="startedOn"
-              type="date"
-              {...form.register("startedOn", {
-                setValueAs: (value) => (value ? new Date(value) : new Date()),
-              })}
-            />
-            {form.formState.errors.startedOn && (
-              <p className="text-sm text-red-500">
-                {form.formState.errors.startedOn.message}
-              </p>
-            )}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startedOn">
+                Fecha de inicio <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="startedOn"
+                type="date"
+                {...form.register("startedOn", {
+                  setValueAs: (value) => (value ? new Date(value) : new Date()),
+                })}
+              />
+              {form.formState.errors.startedOn && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.startedOn.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+              <Controller
+                control={form.control}
+                name="isCompound"
+                render={({ field }) => (
+                  <Checkbox
+                    id="isCompound"
+                    checked={field.value}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked);
+                      if (checked === true) {
+                        form.setValue("days", "" as any);
+                      }
+                    }}
+                  />
+                )}
+              />
+              <div className="space-y-1 leading-none">
+                <Label htmlFor="isCompound" className="cursor-pointer">
+                  Interés Compuesto
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Habilitar capitalización diaria
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">

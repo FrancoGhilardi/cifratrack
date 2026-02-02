@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { type Resolver, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -100,7 +100,7 @@ export function RecurringRuleForm({
   );
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as Resolver<FormValues>,
     mode: "onChange",
     defaultValues: getDefaultValues(),
   });
