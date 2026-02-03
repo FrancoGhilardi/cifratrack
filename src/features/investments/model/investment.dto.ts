@@ -1,3 +1,8 @@
+import type {
+  CreateInvestmentInput,
+  UpdateInvestmentInput,
+} from "@/entities/investment/model/investment.schema";
+
 import type { Paginated } from "@/shared/lib/types";
 
 /**
@@ -8,13 +13,15 @@ export interface InvestmentDTO {
   userId: string;
   platform: string;
   title: string;
+  yieldProviderId?: string | null;
   principal: number;
   tna: number;
-  days: number;
+  days: number | null;
+  isCompound: boolean;
   startedOn: string; // ISO date string YYYY-MM-DD
-  endDate: string; // ISO date string YYYY-MM-DD
+  endDate: string | null; // ISO date string YYYY-MM-DD
   hasEnded: boolean;
-  daysRemaining: number;
+  daysRemaining: number | null;
   notes: string | null;
   yield: number; // Rendimiento calculado
   total: number; // Principal + rendimiento
@@ -41,28 +48,4 @@ export interface InvestmentQueryParams {
  */
 export type PaginatedInvestmentsResponse = Paginated<InvestmentDTO>;
 
-/**
- * Input para crear inversión
- */
-export interface CreateInvestmentInput {
-  platform: string;
-  title: string;
-  principal: number;
-  tna: number;
-  days: number;
-  startedOn: Date;
-  notes?: string | null;
-}
-
-/**
- * Input para actualizar inversión
- */
-export interface UpdateInvestmentInput {
-  platform?: string;
-  title?: string;
-  principal?: number;
-  tna?: number;
-  days?: number;
-  startedOn?: Date;
-  notes?: string | null;
-}
+export type { CreateInvestmentInput, UpdateInvestmentInput };

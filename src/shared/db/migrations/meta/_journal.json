@@ -15,6 +15,27 @@
       "when": 1766792485891,
       "tag": "0001_bumpy_unicorn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770043263133,
+      "tag": "0002_majestic_daimon_hellstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770053798367,
+      "tag": "0003_talented_killmonger",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770055296374,
+      "tag": "0004_stormy_carlie_cooper",
+      "breakpoints": true
     }
   ]
 }

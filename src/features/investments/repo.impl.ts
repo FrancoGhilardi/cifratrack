@@ -30,7 +30,7 @@ export class InvestmentRepository implements IInvestmentRepository {
    */
   async list(
     userId: string,
-    params: InvestmentQueryParams
+    params: InvestmentQueryParams,
   ): Promise<PaginatedInvestments> {
     const {
       page = 1,
@@ -54,7 +54,7 @@ export class InvestmentRepository implements IInvestmentRepository {
     ];
     if (!validSortBy.includes(sortBy)) {
       throw new ValidationError(
-        `sortBy debe ser uno de: ${validSortBy.join(", ")}`
+        `sortBy debe ser uno de: ${validSortBy.join(", ")}`,
       );
     }
 
@@ -76,21 +76,27 @@ export class InvestmentRepository implements IInvestmentRepository {
         or(
           like(investments.title, `%${q}%`),
           like(investments.platform, `%${q}%`),
-          like(investments.notes, `%${q}%`)
-        )!
+          like(investments.notes, `%${q}%`),
+        )!,
       );
     }
 
     // Filtro por inversiones activas (no finalizadas)
     if (active === "true") {
-      // Inversión activa: endDate >= hoy (incluye el día de fin)
-      addBaseCondition(
-        sql`${investments.startedOn} + INTERVAL '1 day' * ${investments.days} >= CURRENT_DATE`
+      // Inversión activa: (days IS NULL) OR (endDate >= hoy)
+      conditions.push(
+        or(
+          sql`${investments.days} IS NULL`,
+          sql`${investments.startedOn} + INTERVAL '1 day' * ${investments.days} >= CURRENT_DATE`,
+        )!,
       );
     } else if (active === "false") {
-      // Inversión finalizada: endDate < hoy (el día de fin ya pasó)
-      addBaseCondition(
-        sql`${investments.startedOn} + INTERVAL '1 day' * ${investments.days} < CURRENT_DATE`
+      // Inversión finalizada: (days IS NOT NULL) AND (endDate < hoy)
+      conditions.push(
+        and(
+          sql`${investments.days} IS NOT NULL`,
+          sql`${investments.startedOn} + INTERVAL '1 day' * ${investments.days} < CURRENT_DATE`,
+        )!,
       );
     }
 
@@ -157,7 +163,7 @@ export class InvestmentRepository implements IInvestmentRepository {
 
       const keysetCondition = or(
         primaryCmp,
-        and(eq(orderByColumn, cursorValue), tieCmp)
+        and(eq(orderByColumn, cursorValue), tieCmp),
       );
       if (keysetCondition) {
         conditions.push(keysetCondition);
@@ -191,14 +197,16 @@ export class InvestmentRepository implements IInvestmentRepository {
         userId: row.userId,
         platform: row.platform,
         title: row.title,
+        yieldProviderId: row.yieldProviderId,
         principal: parseFloat(row.principal),
         tna: parseFloat(row.tna),
         days: row.days,
+        isCompound: row.isCompound,
         startedOn: new Date(row.startedOn),
         notes: row.notes,
         createdAt: new Date(row.createdAt),
         updatedAt: new Date(row.updatedAt),
-      })
+      }),
     );
 
     const getCursorValue = (item: Investment) => {
@@ -252,9 +260,11 @@ export class InvestmentRepository implements IInvestmentRepository {
       userId: row.userId,
       platform: row.platform,
       title: row.title,
+      yieldProviderId: row.yieldProviderId,
       principal: parseFloat(row.principal),
       tna: parseFloat(row.tna),
       days: row.days,
+      isCompound: row.isCompound,
       startedOn: new Date(row.startedOn),
       notes: row.notes,
       createdAt: new Date(row.createdAt),
@@ -273,9 +283,11 @@ export class InvestmentRepository implements IInvestmentRepository {
         userId: investment.userId,
         platform: investment.platform,
         title: investment.title,
+        yieldProviderId: investment.yieldProviderId,
         principal: investment.principal.toString(),
         tna: investment.tna.toString(),
         days: investment.days,
+        isCompound: investment.isCompound,
         startedOn: investment.startedOn.toISOString().split("T")[0],
         notes: investment.notes,
       })
@@ -286,9 +298,11 @@ export class InvestmentRepository implements IInvestmentRepository {
       userId: row.userId,
       platform: row.platform,
       title: row.title,
+      yieldProviderId: row.yieldProviderId,
       principal: parseFloat(row.principal),
       tna: parseFloat(row.tna),
       days: row.days,
+      isCompound: row.isCompound,
       startedOn: new Date(row.startedOn),
       notes: row.notes,
       createdAt: new Date(row.createdAt),
@@ -302,7 +316,7 @@ export class InvestmentRepository implements IInvestmentRepository {
   async update(
     id: string,
     userId: string,
-    data: Partial<Investment>
+    data: Partial<Investment>,
   ): Promise<Investment> {
     // Verificar que existe
     const existing = await this.findById(id, userId);
@@ -317,10 +331,13 @@ export class InvestmentRepository implements IInvestmentRepository {
 
     if (data.platform !== undefined) updateData.platform = data.platform;
     if (data.title !== undefined) updateData.title = data.title;
+    if (data.yieldProviderId !== undefined)
+      updateData.yieldProviderId = data.yieldProviderId;
     if (data.principal !== undefined)
       updateData.principal = data.principal.toString();
     if (data.tna !== undefined) updateData.tna = data.tna.toString();
     if (data.days !== undefined) updateData.days = data.days;
+    if (data.isCompound !== undefined) updateData.isCompound = data.isCompound;
     if (data.startedOn !== undefined) {
       updateData.startedOn = data.startedOn.toISOString().split("T")[0];
     }
@@ -337,9 +354,11 @@ export class InvestmentRepository implements IInvestmentRepository {
       userId: row.userId,
       platform: row.platform,
       title: row.title,
+      yieldProviderId: row.yieldProviderId,
       principal: parseFloat(row.principal),
       tna: parseFloat(row.tna),
       days: row.days,
+      isCompound: row.isCompound,
       startedOn: new Date(row.startedOn),
       notes: row.notes,
       createdAt: new Date(row.createdAt),
@@ -383,5 +402,26 @@ export class InvestmentRepository implements IInvestmentRepository {
       .where(eq(investments.userId, userId));
 
     return parseFloat(total);
+  }
+
+  /**
+   * Actualizar TNA de inversiones activas por proveedor
+   */
+  async updateRatesByProvider(providerId: string, rate: number): Promise<void> {
+    await db
+      .update(investments)
+      .set({
+        tna: rate.toString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(investments.yieldProviderId, providerId),
+          or(
+            sql`${investments.days} IS NULL`,
+            sql`${investments.startedOn} + INTERVAL '1 day' * ${investments.days} >= CURRENT_DATE`,
+          ),
+        ),
+      );
   }
 }

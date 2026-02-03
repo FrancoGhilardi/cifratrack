@@ -17,6 +17,7 @@ import {
   integer,
   primaryKey,
   pgEnum,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -55,7 +56,7 @@ export const users = pgTable(
       mode: "date",
     }),
   },
-  (table) => [unique("users_email_key").on(table.email)]
+  (table) => [unique("users_email_key").on(table.email)],
 );
 
 export const accounts = pgTable(
@@ -83,9 +84,9 @@ export const accounts = pgTable(
     }).onDelete("cascade"),
     unique("accounts_provider_provider_account_id_key").on(
       table.provider,
-      table.providerAccountId
+      table.providerAccountId,
     ),
-  ]
+  ],
 );
 
 export const sessions = pgTable(
@@ -103,7 +104,7 @@ export const sessions = pgTable(
       name: "sessions_user_id_fkey",
     }).onDelete("cascade"),
     unique("sessions_session_token_key").on(table.sessionToken),
-  ]
+  ],
 );
 
 export const categories = pgTable(
@@ -131,9 +132,9 @@ export const categories = pgTable(
     unique("categories_user_id_kind_name_key").on(
       table.userId,
       table.kind,
-      table.name
+      table.name,
     ),
-  ]
+  ],
 );
 
 export const paymentMethods = pgTable(
@@ -158,7 +159,7 @@ export const paymentMethods = pgTable(
       name: "payment_methods_user_id_fkey",
     }).onDelete("cascade"),
     unique("payment_methods_user_id_name_key").on(table.userId, table.name),
-  ]
+  ],
 );
 
 export const recurringRules = pgTable(
@@ -186,7 +187,7 @@ export const recurringRules = pgTable(
     index("idx_rr_user_month").using(
       "btree",
       table.userId.asc().nullsLast().op("uuid_ops"),
-      table.activeFromMonth.asc().nullsLast().op("text_ops")
+      table.activeFromMonth.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
       columns: [table.paymentMethodId],
@@ -201,9 +202,9 @@ export const recurringRules = pgTable(
     check("recurring_rules_amount_check", sql`amount > 0`),
     check(
       "recurring_rules_day_of_month_check",
-      sql`(day_of_month >= 1) AND (day_of_month <= 31)`
+      sql`(day_of_month >= 1) AND (day_of_month <= 31)`,
     ),
-  ]
+  ],
 );
 
 export const transactions = pgTable(
@@ -232,19 +233,25 @@ export const transactions = pgTable(
       .notNull(),
   },
   (table) => [
-    index("idx_tx_user_date").on(table.userId, table.occurredOn, table.id),
-    index("idx_tx_user_kind").on(table.userId, table.kind),
-    index("idx_tx_user_month").on(
-      table.userId,
-      table.occurredMonth,
-      table.occurredOn,
-      table.id
+    index("idx_tx_user_date").using(
+      "btree",
+      table.userId.asc().nullsLast().op("uuid_ops"),
+      table.occurredOn.asc().nullsLast().op("uuid_ops"),
     ),
-    index("idx_tx_user_status").on(table.userId, table.status),
-    index("idx_tx_user_created_at").on(table.userId, table.createdAt, table.id),
-    index("idx_tx_source_month").on(
-      table.sourceRecurringRuleId,
-      table.occurredMonth
+    index("idx_tx_user_kind").using(
+      "btree",
+      table.userId.asc().nullsLast().op("enum_ops"),
+      table.kind.asc().nullsLast().op("uuid_ops"),
+    ),
+    index("idx_tx_user_month").using(
+      "btree",
+      table.userId.asc().nullsLast().op("uuid_ops"),
+      table.occurredMonth.asc().nullsLast().op("date_ops"),
+    ),
+    index("idx_tx_user_status").using(
+      "btree",
+      table.userId.asc().nullsLast().op("uuid_ops"),
+      table.status.asc().nullsLast().op("enum_ops"),
     ),
     foreignKey({
       columns: [table.sourceRecurringRuleId],
@@ -263,10 +270,10 @@ export const transactions = pgTable(
     }).onDelete("cascade"),
     check(
       "chk_tx_pending_due_on",
-      sql`((status = 'pending'::transaction_status) AND (due_on IS NOT NULL)) OR (status = 'paid'::transaction_status)`
+      sql`((status = 'pending'::transaction_status) AND (due_on IS NOT NULL)) OR (status = 'paid'::transaction_status)`,
     ),
     check("transactions_amount_check", sql`amount > 0`),
-  ]
+  ],
 );
 
 export const investments = pgTable(
@@ -276,9 +283,12 @@ export const investments = pgTable(
     userId: uuid("user_id").notNull(),
     platform: varchar({ length: 80 }).notNull(),
     title: varchar({ length: 120 }).notNull(),
+    // Link to yield_rates provider (e.g. 'mercadopago')
+    yieldProviderId: varchar("yield_provider_id", { length: 50 }),
     principal: numeric({ precision: 14, scale: 2 }).notNull(),
     tna: numeric({ precision: 6, scale: 2 }).notNull(),
-    days: integer().notNull(),
+    days: integer(),
+    isCompound: boolean("is_compound").default(false).notNull(),
     startedOn: date("started_on")
       .default(sql`CURRENT_DATE`)
       .notNull(),
@@ -293,12 +303,7 @@ export const investments = pgTable(
   (table) => [
     index("idx_investments_user").using(
       "btree",
-      table.userId.asc().nullsLast().op("uuid_ops")
-    ),
-    index("idx_investments_user_started_on").on(
-      table.userId,
-      table.startedOn,
-      table.id
+      table.userId.asc().nullsLast().op("uuid_ops"),
     ),
     foreignKey({
       columns: [table.userId],
@@ -309,9 +314,9 @@ export const investments = pgTable(
     check("investments_principal_check", sql`principal > (0)::numeric`),
     check(
       "investments_tna_check",
-      sql`(tna >= (0)::numeric) AND (tna <= 999.99)`
+      sql`(tna >= (0)::numeric) AND (tna <= 999.99)`,
     ),
-  ]
+  ],
 );
 
 export const verificationTokens = pgTable(
@@ -327,7 +332,7 @@ export const verificationTokens = pgTable(
       name: "verification_tokens_pkey",
     }),
     unique("verification_tokens_token_key").on(table.token),
-  ]
+  ],
 );
 
 export const recurringRuleCategories = pgTable(
@@ -354,9 +359,9 @@ export const recurringRuleCategories = pgTable(
     }).onDelete("cascade"),
     check(
       "recurring_rule_categories_allocated_amount_check",
-      sql`allocated_amount > 0`
+      sql`allocated_amount > 0`,
     ),
-  ]
+  ],
 );
 
 export const transactionCategories = pgTable(
@@ -369,9 +374,8 @@ export const transactionCategories = pgTable(
   (table) => [
     index("idx_txcat_category").using(
       "btree",
-      table.categoryId.asc().nullsLast().op("uuid_ops")
+      table.categoryId.asc().nullsLast().op("uuid_ops"),
     ),
-    index("idx_txcat_category_tx").on(table.categoryId, table.transactionId),
     foreignKey({
       columns: [table.categoryId],
       foreignColumns: [categories.id],
@@ -388,7 +392,25 @@ export const transactionCategories = pgTable(
     }),
     check(
       "transaction_categories_allocated_amount_check",
-      sql`allocated_amount > 0`
+      sql`allocated_amount > 0`,
     ),
-  ]
+  ],
+);
+
+export const yieldRates = pgTable(
+  "yield_rates",
+  {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    providerId: text("provider_id").notNull(),
+    rate: numeric("rate", { precision: 10, scale: 2 }).notNull(),
+    currency: char("currency", { length: 3 }).default("ARS").notNull(),
+    date: date("date").notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("yield_rates_provider_date_idx").on(
+      table.providerId,
+      table.date,
+    ),
+  ],
 );

@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch } from 'react-hook-form';
-import { z } from 'zod';
-import { useEffect, useRef } from 'react';
-import { Button } from '@/shared/ui/button';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { type Resolver, useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
+import { useEffect, useRef } from "react";
+import { Button } from "@/shared/ui/button";
 import {
   Form,
   FormControl,
@@ -12,37 +12,60 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/shared/ui/form';
-import { Input } from '@/shared/ui/input';
-import { CategorySplitInput } from './category-split-input';
-import { type CreateTransactionInput } from '@/entities/transaction/model/transaction.schema';
-import { type TransactionDTO } from '../mappers/transaction.mapper';
-import { usePaymentMethods } from '@/features/payment-methods/hooks/usePaymentMethods';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
-import { Checkbox } from '@/shared/ui/checkbox';
-import { Month } from '@/shared/lib/date';
-import { pesosTocents, centsToPesos, validateSplitsSum } from '@/shared/lib/utils/money-conversion';
-import { isoStringToDateInput, getCurrentDateInput } from '@/shared/lib/utils/form-data';
+} from "@/shared/ui/form";
+import { Input } from "@/shared/ui/input";
+import { CategorySplitInput } from "./category-split-input";
+import { type CreateTransactionInput } from "@/entities/transaction/model/transaction.schema";
+import { type TransactionDTO } from "../mappers/transaction.mapper";
+import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/select";
+import { Checkbox } from "@/shared/ui/checkbox";
+import { Month } from "@/shared/lib/date";
+import {
+  pesosTocents,
+  centsToPesos,
+  validateSplitsSum,
+} from "@/shared/lib/utils/money-conversion";
+import {
+  isoStringToDateInput,
+  getCurrentDateInput,
+} from "@/shared/lib/utils/form-data";
 
 /**
  * Schema para el formulario
  * Extiende el schema de creación pero permite montos en pesos (se convierten a centavos)
  */
 const formSchema = z.object({
-  kind: z.enum(['income', 'expense']),
-  title: z.string().min(2, 'El título debe tener al menos 2 caracteres').max(120, 'Máximo 120 caracteres'),
-  description: z.string().max(500, 'Máximo 500 caracteres').optional(),
-  amount: z.number().positive('El monto debe ser mayor a cero'),
-  paymentMethodId: z.string().uuid('Selecciona una forma de pago').optional(),
+  kind: z.enum(["income", "expense"]),
+  title: z
+    .string()
+    .min(2, "El título debe tener al menos 2 caracteres")
+    .max(120, "Máximo 120 caracteres"),
+  description: z.string().max(500, "Máximo 500 caracteres").optional(),
+  amount: z.coerce
+    .number()
+    .positive("El monto debe ser mayor a cero")
+    .max(21000000, "El monto excede el límite permitido por el sistema ($21M)"),
+  paymentMethodId: z.string().uuid("Selecciona una forma de pago").optional(),
   isFixed: z.boolean().optional(),
-  status: z.enum(['pending', 'paid']),
+  status: z.enum(["pending", "paid"]),
   occurredOn: z.string(), // Se maneja como string en el form (input date)
   dueOn: z.string().optional(),
   paidOn: z.string().optional(),
-  split: z.array(z.object({
-    categoryId: z.string().uuid(),
-    allocatedAmount: z.number().int().positive(),
-  })).min(1, 'Debe haber al menos una categoría'),
+  split: z
+    .array(
+      z.object({
+        categoryId: z.string().uuid(),
+        allocatedAmount: z.number().int().positive(),
+      }),
+    )
+    .min(1, "Debe haber al menos una categoría"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -64,49 +87,60 @@ export function TransactionForm({
   const isEdit = !!transaction;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    mode: 'onChange',
+    resolver: zodResolver(formSchema) as Resolver<FormValues>,
+    mode: "onChange",
     defaultValues: {
-      kind: transaction?.kind ?? 'expense',
-      title: transaction?.title ?? '',
-      description: transaction?.description ?? '',
-      amount: transaction?.amount ? centsToPesos(transaction.amount) : undefined,
+      kind: transaction?.kind ?? "expense",
+      title: transaction?.title ?? "",
+      description: transaction?.description ?? "",
+      amount: transaction?.amount
+        ? centsToPesos(transaction.amount)
+        : undefined,
       paymentMethodId: transaction?.paymentMethodId ?? undefined,
       isFixed: transaction?.isFixed,
-      status: transaction?.status ?? 'paid',
-      occurredOn: isoStringToDateInput(transaction?.occurredOn) ?? getCurrentDateInput(),
+      status: transaction?.status ?? "paid",
+      occurredOn:
+        isoStringToDateInput(transaction?.occurredOn) ?? getCurrentDateInput(),
       dueOn: isoStringToDateInput(transaction?.dueOn),
       paidOn: isoStringToDateInput(transaction?.paidOn),
-      split: transaction?.categories.map((cat) => ({
-        categoryId: cat.categoryId,
-        allocatedAmount: cat.allocatedAmount,
-      })) ?? [],
+      split:
+        transaction?.categories.map((cat) => ({
+          categoryId: cat.categoryId,
+          allocatedAmount: cat.allocatedAmount,
+        })) ?? [],
     },
   });
 
   // Observar campos relevantes
-  const watchKind = useWatch({ control: form.control, name: 'kind', defaultValue: transaction?.kind ?? 'expense' });
-  const watchIsFixed = useWatch({ control: form.control, name: 'isFixed' });
-  const watchAmount = useWatch({ control: form.control, name: 'amount' });
+  const watchKind = useWatch({
+    control: form.control,
+    name: "kind",
+    defaultValue: transaction?.kind ?? "expense",
+  });
+  const watchIsFixed = useWatch({ control: form.control, name: "isFixed" });
+  const watchAmount = useWatch({ control: form.control, name: "amount" });
 
   // Limpiar splits cuando cambia el tipo (income <-> expense)
   const prevKindRef = useRef(watchKind);
   useEffect(() => {
-    if (prevKindRef.current !== watchKind && prevKindRef.current !== undefined) {
-      form.setValue('split', []);
+    if (
+      prevKindRef.current !== watchKind &&
+      prevKindRef.current !== undefined
+    ) {
+      form.setValue("split", []);
     }
     prevKindRef.current = watchKind;
   }, [watchKind, form]);
 
   // Ajustar status cuando cambia isFixed
   useEffect(() => {
-    if (watchIsFixed && watchKind === 'expense') {
-      const currentStatus = form.getValues('status');
+    if (watchIsFixed && watchKind === "expense") {
+      const currentStatus = form.getValues("status");
       if (!currentStatus) {
-        form.setValue('status', 'pending');
+        form.setValue("status", "pending");
       }
     } else {
-      form.setValue('status', 'paid');
+      form.setValue("status", "paid");
     }
   }, [watchIsFixed, watchKind, form]);
 
@@ -118,10 +152,10 @@ export function TransactionForm({
     if (!validateSplitsSum(values.split, amountInCents)) {
       const totalAllocated = values.split.reduce(
         (sum, split) => sum + split.allocatedAmount,
-        0
+        0,
       );
-      form.setError('split', {
-        type: 'manual',
+      form.setError("split", {
+        type: "manual",
         message: `La suma de categorías (${centsToPesos(totalAllocated)}) debe ser igual al monto total (${values.amount})`,
       });
       return;
@@ -136,7 +170,7 @@ export function TransactionForm({
       title: values.title,
       description: values.description || null,
       amount: amountInCents,
-      currency: 'ARS',
+      currency: "ARS",
       paymentMethodId: values.paymentMethodId || null,
       isFixed: values.isFixed,
       status: values.status,
@@ -151,12 +185,15 @@ export function TransactionForm({
     onSubmit(payload);
   };
 
-  const showStatusAndDue = watchIsFixed && watchKind === 'expense';
+  const showStatusAndDue = watchIsFixed && watchKind === "expense";
   const amountInCents = watchAmount ? Math.round(watchAmount * 100) : 0;
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form
+        onSubmit={form.handleSubmit(handleFormSubmit)}
+        className="space-y-6"
+      >
         {/* Tipo de movimiento */}
         <FormField
           control={form.control}
@@ -227,7 +264,6 @@ export function TransactionForm({
                   step="0.01"
                   placeholder="0.00"
                   {...field}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
                 />
               </FormControl>
               <FormMessage />
@@ -243,10 +279,7 @@ export function TransactionForm({
             <FormItem>
               <FormLabel>Forma de pago (opcional)</FormLabel>
               <FormControl>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                >
+                <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona una forma de pago" />
                   </SelectTrigger>
@@ -265,7 +298,7 @@ export function TransactionForm({
         />
 
         {/* Es fijo? (solo para gastos) */}
-        {watchKind === 'expense' && (
+        {watchKind === "expense" && (
           <FormField
             control={form.control}
             name="isFixed"
@@ -380,12 +413,17 @@ export function TransactionForm({
         {/* Botones de acción */}
         <div className="flex justify-end space-x-4">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isLoading}
+            >
               Cancelar
             </Button>
           )}
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear'}
+            {isLoading ? "Guardando..." : isEdit ? "Actualizar" : "Crear"}
           </Button>
         </div>
       </form>

@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, type Resolver, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/shared/ui/button";
+import { Checkbox } from "@/shared/ui/checkbox";
+import { HelpCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +28,16 @@ import {
 } from "@/entities/investment/model/investment.schema";
 import type { InvestmentDTO } from "../model/investment.dto";
 import { useDialogForm } from "@/shared/lib/hooks";
+import { YIELD_PROVIDERS } from "@/features/market-data/config/providers";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/select";
+
+import { useLatestYield } from "@/features/market-data/hooks/useLatestYield";
 
 interface InvestmentFormProps {
   open: boolean;
@@ -40,34 +58,57 @@ export function InvestmentForm({
         ? {
             platform: investment.platform,
             title: investment.title,
+            yieldProviderId: investment.yieldProviderId ?? undefined,
             principal: investment.principal,
             tna: investment.tna,
             days: investment.days,
+            isCompound: investment.isCompound,
             startedOn: new Date(investment.startedOn),
             notes: investment.notes,
           }
         : {
             platform: "",
             title: "",
+            yieldProviderId: undefined,
             principal: 0,
             tna: 0,
             days: 30,
+            isCompound: false,
             startedOn: new Date(),
             notes: "",
           },
-    [investment]
+    [investment],
   );
 
   const form = useForm<CreateInvestmentInput>({
-    resolver: zodResolver(createInvestmentSchema) as Resolver<CreateInvestmentInput>,
+    resolver: zodResolver(
+      createInvestmentSchema,
+    ) as Resolver<CreateInvestmentInput>,
     mode: "onChange",
     defaultValues: getDefaultValues(),
   });
 
+  const isCompound = form.watch("isCompound");
+  const yieldProviderId = form.watch("yieldProviderId");
+
+  const { data: latestYield, isLoading: isLoadingYield } =
+    useLatestYield(yieldProviderId);
+
+  // Auto-update TNA when yield provider changes
+  useEffect(() => {
+    if (yieldProviderId && latestYield) {
+      form.setValue("tna", latestYield.rate);
+      // Optional: Auto-fill platform/title if empty?
+      // const providerName = YIELD_PROVIDERS[yieldProviderId]?.name;
+      // if (!form.getValues("platform")) form.setValue("platform", providerName);
+      // if (!form.getValues("title")) form.setValue("title", `${providerName} Money Market`);
+    }
+  }, [yieldProviderId, latestYield, form]);
+
   const { apiError, setApiError, clearError } = useDialogForm(
     form,
     open,
-    getDefaultValues
+    getDefaultValues,
   );
 
   useEffect(() => {
@@ -136,6 +177,40 @@ export function InvestmentForm({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="yieldProviderId">
+              Vincular Rendimiento (Opcional)
+            </Label>
+            <Controller
+              name="yieldProviderId"
+              control={form.control}
+              render={({ field }) => (
+                <Select
+                  onValueChange={(val) =>
+                    field.onChange(val === "none" ? null : val)
+                  }
+                  value={field.value || "none"}
+                >
+                  <SelectTrigger id="yieldProviderId">
+                    <SelectValue placeholder="Seleccionar proveedor..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin vinculación</SelectItem>
+                    {Object.entries(YIELD_PROVIDERS).map(([id, cfg]) => (
+                      <SelectItem key={id} value={id}>
+                        {cfg.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-[0.8rem] text-muted-foreground">
+              Al vincular un proveedor, podrás ver gráficos de rendimiento
+              histórico.
+            </p>
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="principal">
@@ -159,13 +234,28 @@ export function InvestmentForm({
               <Label htmlFor="tna">
                 TNA % <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="tna"
-                type="number"
-                step="0.01"
-                {...form.register("tna", { valueAsNumber: true })}
-                placeholder="45.50"
-              />
+              <div className="relative">
+                <Input
+                  id="tna"
+                  type="number"
+                  step="0.01"
+                  disabled={!!yieldProviderId}
+                  className={yieldProviderId ? "bg-muted pr-8" : ""}
+                  {...form.register("tna", { valueAsNumber: true })}
+                  placeholder="45.50"
+                />
+                {isLoadingYield && (
+                  <div className="absolute right-2 top-2.5">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  </div>
+                )}
+              </div>
+              {yieldProviderId && latestYield && (
+                <p className="text-[0.7rem] text-muted-foreground mt-1">
+                  Actualizado automáticamente (
+                  {latestYield.date.toLocaleDateString()})
+                </p>
+              )}
               {form.formState.errors.tna && (
                 <p className="text-sm text-red-500">
                   {form.formState.errors.tna.message}
@@ -174,14 +264,34 @@ export function InvestmentForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="days">
-                Días <span className="text-red-500">*</span>
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="days">
+                  Días {!isCompound && <span className="text-red-500">*</span>}
+                </Label>
+                {isCompound && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 cursor-pointer text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-[250px]">
+                          Dejar vacío para inversiones indefinidas (ej:
+                          billeteras virtuales). Asignar días si es un plazo
+                          fijo con vencimiento.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <Input
                 id="days"
                 type="number"
-                {...form.register("days", { valueAsNumber: true })}
-                placeholder="30"
+                {...form.register("days", {
+                  setValueAs: (value) => (value === "" ? null : Number(value)),
+                })}
+                placeholder={isCompound ? "-" : "30"}
               />
               {form.formState.errors.days && (
                 <p className="text-sm text-red-500">
@@ -191,22 +301,51 @@ export function InvestmentForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="startedOn">
-              Fecha de inicio <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="startedOn"
-              type="date"
-              {...form.register("startedOn", {
-                setValueAs: (value) => (value ? new Date(value) : new Date()),
-              })}
-            />
-            {form.formState.errors.startedOn && (
-              <p className="text-sm text-red-500">
-                {form.formState.errors.startedOn.message}
-              </p>
-            )}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startedOn">
+                Fecha de inicio <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="startedOn"
+                type="date"
+                {...form.register("startedOn", {
+                  setValueAs: (value) => (value ? new Date(value) : new Date()),
+                })}
+              />
+              {form.formState.errors.startedOn && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.startedOn.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+              <Controller
+                control={form.control}
+                name="isCompound"
+                render={({ field }) => (
+                  <Checkbox
+                    id="isCompound"
+                    checked={field.value}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked);
+                      if (checked === true) {
+                        form.setValue("days", "" as any);
+                      }
+                    }}
+                  />
+                )}
+              />
+              <div className="space-y-1 leading-none">
+                <Label htmlFor="isCompound" className="cursor-pointer">
+                  Interés Compuesto
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Habilitar capitalización diaria
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">

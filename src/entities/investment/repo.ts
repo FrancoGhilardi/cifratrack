@@ -25,13 +25,18 @@ export interface IInvestmentRepository {
    */
   list(
     userId: string,
-    params: InvestmentQueryParams
+    params: InvestmentQueryParams,
   ): Promise<PaginatedInvestments>;
 
   /**
    * Busca una inversión por ID y userId
    */
   findById(id: string, userId: string): Promise<Investment | null>;
+
+  /**
+   * Actualiza la TNA de todas las inversiones activas de un proveedor
+   */
+  updateRatesByProvider(providerId: string, rate: number): Promise<void>;
 
   /**
    * Crea una nueva inversión
@@ -44,7 +49,7 @@ export interface IInvestmentRepository {
   update(
     id: string,
     userId: string,
-    data: Partial<Investment>
+    data: Partial<Investment>,
   ): Promise<Investment>;
 
   /**
