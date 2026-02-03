@@ -53,9 +53,12 @@ export const createInvestmentSchema = z
 
     isCompound: z.boolean().default(false),
 
-    startedOn: z.coerce
-      .date()
-      .max(new Date(), "La fecha de inicio no puede ser futura"),
+    startedOn: z.coerce.date().refine((date) => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      return date < tomorrow;
+    }, "La fecha de inicio no puede ser futura"),
 
     notes: z
       .string()
