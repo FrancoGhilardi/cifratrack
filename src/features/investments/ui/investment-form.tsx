@@ -58,7 +58,7 @@ export function InvestmentForm({
         ? {
             platform: investment.platform,
             title: investment.title,
-            yieldProviderId: investment.yieldProviderId ?? undefined,
+            yieldProviderId: investment.yieldProviderId || null,
             principal: investment.principal,
             tna: investment.tna,
             days: investment.days,
@@ -69,7 +69,7 @@ export function InvestmentForm({
         : {
             platform: "",
             title: "",
-            yieldProviderId: undefined,
+            yieldProviderId: null,
             principal: 0,
             tna: 0,
             days: 30,
@@ -184,26 +184,28 @@ export function InvestmentForm({
             <Controller
               name="yieldProviderId"
               control={form.control}
-              render={({ field }) => (
-                <Select
-                  onValueChange={(val) =>
-                    field.onChange(val === "none" ? null : val)
-                  }
-                  value={field.value || "none"}
-                >
-                  <SelectTrigger id="yieldProviderId">
-                    <SelectValue placeholder="Seleccionar proveedor..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin vinculación</SelectItem>
-                    {Object.entries(YIELD_PROVIDERS).map(([id, cfg]) => (
-                      <SelectItem key={id} value={id}>
-                        {cfg.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              render={({ field }) => {
+                return (
+                  <Select
+                    onValueChange={(val) =>
+                      field.onChange(val === "none" ? null : val)
+                    }
+                    value={field.value || "none"}
+                  >
+                    <SelectTrigger id="yieldProviderId">
+                      <SelectValue placeholder="Seleccionar proveedor..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin vinculación</SelectItem>
+                      {Object.entries(YIELD_PROVIDERS).map(([id, cfg]) => (
+                        <SelectItem key={id} value={id}>
+                          {cfg.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              }}
             />
             <p className="text-[0.8rem] text-muted-foreground">
               Al vincular un proveedor, podrás ver gráficos de rendimiento
@@ -306,12 +308,27 @@ export function InvestmentForm({
               <Label htmlFor="startedOn">
                 Fecha de inicio <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="startedOn"
-                type="date"
-                {...form.register("startedOn", {
-                  setValueAs: (value) => (value ? new Date(value) : new Date()),
-                })}
+              <Controller
+                control={form.control}
+                name="startedOn"
+                render={({ field }) => (
+                  <Input
+                    id="startedOn"
+                    type="date"
+                    value={
+                      field.value instanceof Date
+                        ? field.value.toISOString().split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const date = e.target.valueAsDate;
+                      if (date) {
+                        // valueAsDate returns UTC midnight, perfectly safe for date-only fields
+                        field.onChange(date);
+                      }
+                    }}
+                  />
+                )}
               />
               {form.formState.errors.startedOn && (
                 <p className="text-sm text-red-500">
@@ -331,7 +348,8 @@ export function InvestmentForm({
                     onCheckedChange={(checked) => {
                       field.onChange(checked);
                       if (checked === true) {
-                        form.setValue("days", "" as any);
+                        form.setValue("days", null, { shouldValidate: true });
+                        form.clearErrors("days");
                       }
                     }}
                   />

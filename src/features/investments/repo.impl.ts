@@ -286,7 +286,7 @@ export class InvestmentRepository implements IInvestmentRepository {
         yieldProviderId: investment.yieldProviderId,
         principal: investment.principal.toString(),
         tna: investment.tna.toString(),
-        days: investment.days,
+        days: investment.days === 0 ? null : investment.days,
         isCompound: investment.isCompound,
         startedOn: investment.startedOn.toISOString().split("T")[0],
         notes: investment.notes,
@@ -336,7 +336,8 @@ export class InvestmentRepository implements IInvestmentRepository {
     if (data.principal !== undefined)
       updateData.principal = data.principal.toString();
     if (data.tna !== undefined) updateData.tna = data.tna.toString();
-    if (data.days !== undefined) updateData.days = data.days;
+    if (data.days !== undefined)
+      updateData.days = data.days === 0 ? null : data.days;
     if (data.isCompound !== undefined) updateData.isCompound = data.isCompound;
     if (data.startedOn !== undefined) {
       updateData.startedOn = data.startedOn.toISOString().split("T")[0];

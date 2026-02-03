@@ -22,8 +22,9 @@ export class InvestmentMapper {
       now.setHours(0, 0, 0, 0);
       const start = new Date(investment.startedOn);
       start.setHours(0, 0, 0, 0);
-      const diffTime = Math.abs(now.getTime() - start.getTime());
-      calculationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffTime = now.getTime() - start.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      calculationDays = Math.max(0, diffDays);
     }
 
     const yieldResult = this.yieldCalculator.calculate(
