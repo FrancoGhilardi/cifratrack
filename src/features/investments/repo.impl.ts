@@ -129,6 +129,7 @@ export class InvestmentRepository implements IInvestmentRepository {
         userId: row.userId,
         platform: row.platform,
         title: row.title,
+        yieldProviderId: row.yieldProviderId,
         principal: parseFloat(row.principal),
         tna: parseFloat(row.tna),
         days: row.days,
@@ -168,6 +169,7 @@ export class InvestmentRepository implements IInvestmentRepository {
       userId: row.userId,
       platform: row.platform,
       title: row.title,
+      yieldProviderId: row.yieldProviderId,
       principal: parseFloat(row.principal),
       tna: parseFloat(row.tna),
       days: row.days,
@@ -190,6 +192,7 @@ export class InvestmentRepository implements IInvestmentRepository {
         userId: investment.userId,
         platform: investment.platform,
         title: investment.title,
+        yieldProviderId: investment.yieldProviderId,
         principal: investment.principal.toString(),
         tna: investment.tna.toString(),
         days: investment.days,
@@ -204,6 +207,7 @@ export class InvestmentRepository implements IInvestmentRepository {
       userId: row.userId,
       platform: row.platform,
       title: row.title,
+      yieldProviderId: row.yieldProviderId,
       principal: parseFloat(row.principal),
       tna: parseFloat(row.tna),
       days: row.days,
@@ -236,6 +240,8 @@ export class InvestmentRepository implements IInvestmentRepository {
 
     if (data.platform !== undefined) updateData.platform = data.platform;
     if (data.title !== undefined) updateData.title = data.title;
+    if (data.yieldProviderId !== undefined)
+      updateData.yieldProviderId = data.yieldProviderId;
     if (data.principal !== undefined)
       updateData.principal = data.principal.toString();
     if (data.tna !== undefined) updateData.tna = data.tna.toString();
@@ -257,6 +263,7 @@ export class InvestmentRepository implements IInvestmentRepository {
       userId: row.userId,
       platform: row.platform,
       title: row.title,
+      yieldProviderId: row.yieldProviderId,
       principal: parseFloat(row.principal),
       tna: parseFloat(row.tna),
       days: row.days,
@@ -304,5 +311,26 @@ export class InvestmentRepository implements IInvestmentRepository {
       .where(eq(investments.userId, userId));
 
     return parseFloat(total);
+  }
+
+  /**
+   * Actualizar TNA de inversiones activas por proveedor
+   */
+  async updateRatesByProvider(providerId: string, rate: number): Promise<void> {
+    await db
+      .update(investments)
+      .set({
+        tna: rate.toString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(investments.yieldProviderId, providerId),
+          or(
+            sql`${investments.days} IS NULL`,
+            sql`${investments.startedOn} + INTERVAL '1 day' * ${investments.days} >= CURRENT_DATE`,
+          ),
+        ),
+      );
   }
 }

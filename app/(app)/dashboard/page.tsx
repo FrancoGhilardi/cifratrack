@@ -1,12 +1,16 @@
-'use client';
+"use client";
 
-import { useDashboardSummary } from '@/features/dashboard/hooks/useDashboardSummary';
-import { SummaryCards } from '@/widgets/dashboard/summary-cards';
-import { ExpensesChart } from '@/widgets/dashboard/expenses-chart';
-import { SummaryCardsSkeleton, ExpensesChartSkeleton } from '@/widgets/dashboard/dashboard-skeleton';
-import { useMonthNavigation } from '@/shared/lib/hooks/useMonthNavigation';
-import { MonthSelector } from '@/shared/ui/month-selector';
-import { ErrorState } from '@/shared/ui/error-state';
+import { useDashboardSummary } from "@/features/dashboard/hooks/useDashboardSummary";
+import { SummaryCards } from "@/widgets/dashboard/summary-cards";
+import { ExpensesChart } from "@/widgets/dashboard/expenses-chart";
+import {
+  SummaryCardsSkeleton,
+  ExpensesChartSkeleton,
+} from "@/widgets/dashboard/dashboard-skeleton";
+import { useMonthNavigation } from "@/shared/lib/hooks/useMonthNavigation";
+import { MonthSelector } from "@/shared/ui/month-selector";
+import { ErrorState } from "@/shared/ui/error-state";
+import { YieldChart } from "@/features/market-data/ui/yield-chart";
 
 /**
  * Página del Dashboard
@@ -47,7 +51,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Panel Principal</h1>
-        
+
         {/* Selector de mes */}
         <MonthSelector
           currentMonth={currentMonth}
@@ -61,10 +65,7 @@ export default function DashboardPage() {
 
       {/* Mensaje de error */}
       {error && !isLoading && (
-        <ErrorState
-          message={error.message}
-          showReloadButton
-        />
+        <ErrorState message={error.message} showReloadButton />
       )}
 
       {/* Dashboard Content - Siempre visible */}
@@ -77,6 +78,14 @@ export default function DashboardPage() {
         <>
           <SummaryCards summary={displaySummary} />
           <ExpensesChart summary={displaySummary} />
+
+          {/* Market Data / Yields */}
+          <div className="pt-4">
+            <h2 className="text-xl font-semibold mb-4 text-muted-foreground">
+              Mercado
+            </h2>
+            <YieldChart />
+          </div>
         </>
       )}
     </div>

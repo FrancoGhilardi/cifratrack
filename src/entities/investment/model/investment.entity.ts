@@ -11,6 +11,7 @@ export class Investment {
     public readonly userId: string,
     public readonly platform: string,
     public readonly title: string,
+    public readonly yieldProviderId: string | null = null, // ID del proveedor de rendimientos (ej: mercadopago)
     public readonly principal: number, // en formato decimal (no centavos)
     public readonly tna: number, // tasa nominal anual (porcentaje)
     public readonly days: number | null, // duración de la inversión (null para indefinido)
@@ -113,6 +114,7 @@ export class Investment {
     userId: string;
     platform: string;
     title: string;
+    yieldProviderId?: string | null;
     principal: number;
     tna: number;
     days: number | null;
@@ -127,6 +129,7 @@ export class Investment {
       data.userId,
       data.platform,
       data.title,
+      data.yieldProviderId ?? null,
       data.principal,
       data.tna,
       data.days,
@@ -147,6 +150,7 @@ export class Investment {
     userId: string;
     platform: string;
     title: string;
+    yieldProviderId: string | null;
     principal: number;
     tna: number;
     days: number | null;
@@ -161,6 +165,7 @@ export class Investment {
       data.userId,
       data.platform,
       data.title,
+      data.yieldProviderId,
       data.principal,
       data.tna,
       data.days,

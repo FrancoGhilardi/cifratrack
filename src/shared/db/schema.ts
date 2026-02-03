@@ -17,6 +17,7 @@ import {
   integer,
   primaryKey,
   pgEnum,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -282,6 +283,8 @@ export const investments = pgTable(
     userId: uuid("user_id").notNull(),
     platform: varchar({ length: 80 }).notNull(),
     title: varchar({ length: 120 }).notNull(),
+    // Link to yield_rates provider (e.g. 'mercadopago')
+    yieldProviderId: varchar("yield_provider_id", { length: 50 }),
     principal: numeric({ precision: 14, scale: 2 }).notNull(),
     tna: numeric({ precision: 6, scale: 2 }).notNull(),
     days: integer(),
@@ -390,6 +393,24 @@ export const transactionCategories = pgTable(
     check(
       "transaction_categories_allocated_amount_check",
       sql`allocated_amount > 0`,
+    ),
+  ],
+);
+
+export const yieldRates = pgTable(
+  "yield_rates",
+  {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    providerId: text("provider_id").notNull(),
+    rate: numeric("rate", { precision: 10, scale: 2 }).notNull(),
+    currency: char("currency", { length: 3 }).default("ARS").notNull(),
+    date: date("date").notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("yield_rates_provider_date_idx").on(
+      table.providerId,
+      table.date,
     ),
   ],
 );

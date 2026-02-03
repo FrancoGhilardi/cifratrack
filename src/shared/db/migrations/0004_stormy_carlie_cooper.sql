@@ -1,0 +1,1 @@
+ALTER TABLE "investments" ADD COLUMN "yield_provider_id" varchar(50);

@@ -17,6 +17,8 @@ export const createInvestmentSchema = z
       .max(120, "El título es demasiado largo (máx 120 caracteres)")
       .trim(),
 
+    yieldProviderId: z.string().optional().nullable(),
+
     principal: z
       .number()
       .positive("El monto principal debe ser mayor a cero")

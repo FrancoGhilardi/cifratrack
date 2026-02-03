@@ -38,6 +38,7 @@ export class InvestmentMapper {
       userId: investment.userId,
       platform: investment.platform,
       title: investment.title,
+      yieldProviderId: investment.yieldProviderId,
       principal: investment.principal,
       tna: investment.tna,
       days: investment.days,

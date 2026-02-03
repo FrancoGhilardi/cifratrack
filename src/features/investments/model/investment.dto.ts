@@ -11,6 +11,7 @@ export interface InvestmentDTO {
   userId: string;
   platform: string;
   title: string;
+  yieldProviderId?: string | null;
   principal: number;
   tna: number;
   days: number | null;

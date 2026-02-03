@@ -28,6 +28,16 @@ import {
 } from "@/entities/investment/model/investment.schema";
 import type { InvestmentDTO } from "../model/investment.dto";
 import { useDialogForm } from "@/shared/lib/hooks";
+import { YIELD_PROVIDERS } from "@/features/market-data/config/providers";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/select";
+
+import { useLatestYield } from "@/features/market-data/hooks/useLatestYield";
 
 interface InvestmentFormProps {
   open: boolean;
@@ -48,6 +58,7 @@ export function InvestmentForm({
         ? {
             platform: investment.platform,
             title: investment.title,
+            yieldProviderId: investment.yieldProviderId ?? undefined,
             principal: investment.principal,
             tna: investment.tna,
             days: investment.days,
@@ -58,6 +69,7 @@ export function InvestmentForm({
         : {
             platform: "",
             title: "",
+            yieldProviderId: undefined,
             principal: 0,
             tna: 0,
             days: 30,
@@ -77,6 +89,21 @@ export function InvestmentForm({
   });
 
   const isCompound = form.watch("isCompound");
+  const yieldProviderId = form.watch("yieldProviderId");
+
+  const { data: latestYield, isLoading: isLoadingYield } =
+    useLatestYield(yieldProviderId);
+
+  // Auto-update TNA when yield provider changes
+  useEffect(() => {
+    if (yieldProviderId && latestYield) {
+      form.setValue("tna", latestYield.rate);
+      // Optional: Auto-fill platform/title if empty?
+      // const providerName = YIELD_PROVIDERS[yieldProviderId]?.name;
+      // if (!form.getValues("platform")) form.setValue("platform", providerName);
+      // if (!form.getValues("title")) form.setValue("title", `${providerName} Money Market`);
+    }
+  }, [yieldProviderId, latestYield, form]);
 
   const { apiError, setApiError, clearError } = useDialogForm(
     form,
@@ -150,6 +177,40 @@ export function InvestmentForm({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="yieldProviderId">
+              Vincular Rendimiento (Opcional)
+            </Label>
+            <Controller
+              name="yieldProviderId"
+              control={form.control}
+              render={({ field }) => (
+                <Select
+                  onValueChange={(val) =>
+                    field.onChange(val === "none" ? null : val)
+                  }
+                  value={field.value || "none"}
+                >
+                  <SelectTrigger id="yieldProviderId">
+                    <SelectValue placeholder="Seleccionar proveedor..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin vinculación</SelectItem>
+                    {Object.entries(YIELD_PROVIDERS).map(([id, cfg]) => (
+                      <SelectItem key={id} value={id}>
+                        {cfg.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-[0.8rem] text-muted-foreground">
+              Al vincular un proveedor, podrás ver gráficos de rendimiento
+              histórico.
+            </p>
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="principal">
@@ -173,13 +234,28 @@ export function InvestmentForm({
               <Label htmlFor="tna">
                 TNA % <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="tna"
-                type="number"
-                step="0.01"
-                {...form.register("tna", { valueAsNumber: true })}
-                placeholder="45.50"
-              />
+              <div className="relative">
+                <Input
+                  id="tna"
+                  type="number"
+                  step="0.01"
+                  disabled={!!yieldProviderId}
+                  className={yieldProviderId ? "bg-muted pr-8" : ""}
+                  {...form.register("tna", { valueAsNumber: true })}
+                  placeholder="45.50"
+                />
+                {isLoadingYield && (
+                  <div className="absolute right-2 top-2.5">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  </div>
+                )}
+              </div>
+              {yieldProviderId && latestYield && (
+                <p className="text-[0.7rem] text-muted-foreground mt-1">
+                  Actualizado automáticamente (
+                  {latestYield.date.toLocaleDateString()})
+                </p>
+              )}
               {form.formState.errors.tna && (
                 <p className="text-sm text-red-500">
                   {form.formState.errors.tna.message}
