@@ -8,6 +8,8 @@ import {
   InvestmentListSkeleton,
   InvestmentSummaryCards,
   InvestmentSummaryCardsSkeleton,
+  InvestmentDistributionCharts,
+  InvestmentDistributionChartsSkeleton,
 } from "@/features/investments/ui";
 import { ErrorState } from "@/shared/ui/error-state";
 
@@ -46,6 +48,7 @@ export default function InvestmentsPage() {
         />
         <div className="space-y-6">
           <InvestmentSummaryCardsSkeleton />
+          <InvestmentDistributionChartsSkeleton />
           <InvestmentListSkeleton />
         </div>
       </PageContainer>
@@ -62,6 +65,9 @@ export default function InvestmentsPage() {
       <div className="space-y-6">
         {/* Cards de resumen de inversiones activas */}
         <InvestmentSummaryCards investments={investments} />
+
+        {/* Gráficos de distribución */}
+        <InvestmentDistributionCharts investments={investments} />
 
         <InvestmentList
           investments={investments}

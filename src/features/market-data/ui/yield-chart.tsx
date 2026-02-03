@@ -33,9 +33,13 @@ export function YieldChart() {
       date: item.date.toLocaleDateString("es-AR", {
         day: "2-digit",
         month: "2-digit",
+        timeZone: "UTC",
       }),
       rate: item.rate,
-      fullDate: item.date.toLocaleDateString("es-AR", { dateStyle: "medium" }),
+      fullDate: item.date.toLocaleDateString("es-AR", {
+        dateStyle: "medium",
+        timeZone: "UTC",
+      }),
     })) || [];
 
   const providersList = Object.entries(YIELD_PROVIDERS).map(([id, cfg]) => ({
