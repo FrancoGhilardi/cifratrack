@@ -1,6 +1,17 @@
 import { db } from "@/shared/db/client";
 import { investments } from "@/shared/db/schema";
-import { eq, and, desc, asc, sql, like, or, type SQL } from "drizzle-orm";
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  sql,
+  like,
+  or,
+  gt,
+  lt,
+  type SQL,
+} from "drizzle-orm";
 import type {
   IInvestmentRepository,
   PaginatedInvestments,
@@ -25,9 +36,11 @@ export class InvestmentRepository implements IInvestmentRepository {
       page = 1,
       pageSize = 20,
       sortBy = "startedOn",
-      sortDir = "desc",
+      sortOrder = "desc",
       q,
       active,
+      cursor,
+      cursorId,
     } = params;
 
     // Validar parámetros
@@ -50,11 +63,16 @@ export class InvestmentRepository implements IInvestmentRepository {
     }
 
     // Construir condiciones WHERE
-    const conditions: SQL[] = [eq(investments.userId, userId)];
+    const baseConditions: SQL[] = [eq(investments.userId, userId)];
+    const conditions: SQL[] = [...baseConditions];
+    const addBaseCondition = (condition: SQL) => {
+      baseConditions.push(condition);
+      conditions.push(condition);
+    };
 
     // Filtro de búsqueda
     if (q) {
-      conditions.push(
+      addBaseCondition(
         or(
           like(investments.title, `%${q}%`),
           like(investments.platform, `%${q}%`),
@@ -82,8 +100,6 @@ export class InvestmentRepository implements IInvestmentRepository {
       );
     }
 
-    const whereClause = and(...conditions);
-
     // Determinar ordenamiento
     const getOrderColumn = () => {
       switch (sortBy) {
@@ -104,23 +120,75 @@ export class InvestmentRepository implements IInvestmentRepository {
       }
     };
     const orderByColumn = getOrderColumn();
-    const orderFn = sortDir === "asc" ? asc : desc;
+    const orderFn = sortOrder === "asc" ? asc : desc;
+
+    const parseCursorValue = (value: string) => {
+      switch (sortBy) {
+        case "principal":
+        case "tna":
+        case "days":
+          return Number(value);
+        case "startedOn":
+          return value;
+        default:
+          return value;
+      }
+    };
+
+    const useKeyset = Boolean(cursor && cursorId);
+    const cursorValue = cursor ? parseCursorValue(cursor) : undefined;
+
+    if (useKeyset && cursorValue !== undefined) {
+      if (
+        (sortBy === "principal" || sortBy === "tna" || sortBy === "days") &&
+        !Number.isFinite(cursorValue as number)
+      ) {
+        throw new ValidationError(`cursor invalido para sortBy ${sortBy}`);
+      }
+      if (
+        sortBy === "startedOn" &&
+        Number.isNaN(Date.parse(cursorValue as string))
+      ) {
+        throw new ValidationError("cursor invalido para sortBy startedOn");
+      }
+
+      const primaryCmp =
+        sortOrder === "asc"
+          ? gt(orderByColumn, cursorValue)
+          : lt(orderByColumn, cursorValue);
+      const tieCmp =
+        sortOrder === "asc"
+          ? gt(investments.id, cursorId!)
+          : lt(investments.id, cursorId!);
+
+      const keysetCondition = or(
+        primaryCmp,
+        and(eq(orderByColumn, cursorValue), tieCmp),
+      );
+      if (keysetCondition) {
+        conditions.push(keysetCondition);
+      }
+    }
+
+    const baseWhereClause = and(...baseConditions);
+    const whereClause = and(...conditions);
 
     // Contar total
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(investments)
-      .where(whereClause);
+      .where(baseWhereClause);
 
     // Obtener datos paginados
     const offset = (page - 1) * pageSize;
-    const rows = await db
+    const listQuery = db
       .select()
       .from(investments)
       .where(whereClause)
-      .orderBy(orderFn(orderByColumn))
-      .limit(pageSize)
-      .offset(offset);
+      .orderBy(orderFn(orderByColumn), orderFn(investments.id))
+      .limit(pageSize);
+
+    const rows = await (useKeyset ? listQuery : listQuery.offset(offset));
 
     // Mapear a entidades de dominio
     const data = rows.map((row) =>
@@ -141,12 +209,35 @@ export class InvestmentRepository implements IInvestmentRepository {
       }),
     );
 
+    const getCursorValue = (item: Investment) => {
+      switch (sortBy) {
+        case "principal":
+          return String(item.principal);
+        case "tna":
+          return String(item.tna);
+        case "days":
+          return String(item.days);
+        case "platform":
+          return item.platform;
+        case "title":
+          return item.title;
+        case "startedOn":
+        default:
+          return item.startedOn.toISOString().split("T")[0];
+      }
+    };
+
+    const hasNextPage = data.length === pageSize;
+    const lastItem = hasNextPage ? data[data.length - 1] : undefined;
+
     return {
       data,
       total: count,
       page,
       pageSize,
       totalPages: Math.ceil(count / pageSize),
+      nextCursor: lastItem ? getCursorValue(lastItem) : undefined,
+      nextCursorId: lastItem ? lastItem.id : undefined,
     };
   }
 

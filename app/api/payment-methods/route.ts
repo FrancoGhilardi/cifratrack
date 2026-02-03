@@ -5,7 +5,7 @@ import { PaymentMethodRepository } from "@/features/payment-methods/repo.impl";
 import { ListPaymentMethodsUseCase } from "@/features/payment-methods/usecases/list-payment-methods.usecase";
 import { UpsertPaymentMethodUseCase } from "@/features/payment-methods/usecases/upsert-payment-method.usecase";
 import { createPaymentMethodSchema } from "@/entities/payment-method/model/payment-method.schema";
-import { DomainError, ValidationError } from "@/shared/lib/errors";
+import { AuthenticationError, DomainError, ValidationError } from "@/shared/lib/errors";
 
 const paymentMethodRepo = new PaymentMethodRepository();
 
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return err("No autenticado", 401);
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     const { searchParams } = request.nextUrl;
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     return ok(paymentMethods.map((pm) => pm.toDTO()));
   } catch (error) {
     console.error("Error listing payment methods:", error);
-    return err("Error al listar formas de pago", 500);
+    return err(error);
   }
 }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return err("No autenticado", 401);
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     const body = await request.json();
@@ -51,10 +51,7 @@ export async function POST(request: NextRequest) {
     // Validar con schema zod
     const parsed = createPaymentMethodSchema.safeParse(body);
     if (!parsed.success) {
-      return err(
-        parsed.error.issues[0]?.message || "Datos inválidos",
-        400
-      );
+      return err(new ValidationError("Datos inválidos", parsed.error.issues));
     }
 
     const useCase = new UpsertPaymentMethodUseCase(paymentMethodRepo);
@@ -65,9 +62,9 @@ export async function POST(request: NextRequest) {
     console.error("Error creating payment method:", error);
 
     if (error instanceof DomainError || error instanceof ValidationError) {
-      return err(error.message, 400);
+      return err(error);
     }
 
-    return err("Error al crear forma de pago", 500);
+    return err(error);
   }
 }

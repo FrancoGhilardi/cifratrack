@@ -1,14 +1,20 @@
-import { auth } from '@/shared/lib/auth';
-import { CategoryRepository } from '@/features/categories/repo.impl';
-import { UpsertCategoryUseCase } from '@/features/categories/usecases/upsert-category.usecase';
-import { DeleteCategoryUseCase } from '@/features/categories/usecases/delete-category.usecase';
-import { ok, err } from '@/shared/lib/response';
-import { AuthenticationError, NotFoundError, ValidationError } from '@/shared/lib/errors';
-import { updateCategorySchema } from '@/entities/category/model/category.schema';
+import { auth } from "@/shared/lib/auth";
+import { CategoryRepository } from "@/features/categories/repo.impl";
+import { UpsertCategoryUseCase } from "@/features/categories/usecases/upsert-category.usecase";
+import { DeleteCategoryUseCase } from "@/features/categories/usecases/delete-category.usecase";
+import { GetCategoryByIdUseCase } from "@/features/categories/usecases/get-category-by-id.usecase";
+import { ok, err } from "@/shared/lib/response";
+import {
+  AuthenticationError,
+  NotFoundError,
+  ValidationError,
+} from "@/shared/lib/errors";
+import { updateCategorySchema } from "@/entities/category/model/category.schema";
 
 const categoryRepository = new CategoryRepository();
 const upsertCategoryUseCase = new UpsertCategoryUseCase(categoryRepository);
 const deleteCategoryUseCase = new DeleteCategoryUseCase(categoryRepository);
+const getCategoryByIdUseCase = new GetCategoryByIdUseCase(categoryRepository);
 
 /**
  * GET /api/categories/[id]
@@ -20,29 +26,29 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    
-    // Verificar autenticación
+
+    // Verificar autenticaciÃ³n
     const session = await auth();
     if (!session?.user?.id) {
-      return err(new AuthenticationError('No autenticado'), 401);
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     // Buscar categoría
-    const category = await categoryRepository.findById(id, session.user.id);
-
-    if (!category) {
-      return err(new NotFoundError('Categoría'), 404);
-    }
+    const category = await getCategoryByIdUseCase.execute(id, session.user.id);
 
     return ok(category.toDTO());
   } catch (error) {
-    console.error('[Category Get Error]', error);
+    console.error("[Category Get Error]", error);
+
+    if (error instanceof NotFoundError) {
+      return err(error, 404);
+    }
 
     if (error instanceof Error) {
       return err(error, 400);
     }
 
-    return err(new Error('Error interno del servidor'), 500);
+    return err(new Error("Error interno del servidor"), 500);
   }
 }
 
@@ -56,11 +62,11 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    
+
     // Verificar autenticación
     const session = await auth();
     if (!session?.user?.id) {
-      return err(new AuthenticationError('No autenticado'), 401);
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     // Parsear body
@@ -78,7 +84,7 @@ export async function PUT(
 
     return ok(category.toDTO());
   } catch (error) {
-    console.error('[Category Update Error]', error);
+    console.error("[Category Update Error]", error);
 
     if (error instanceof ValidationError || error instanceof NotFoundError) {
       return err(error, 400);
@@ -88,7 +94,7 @@ export async function PUT(
       return err(error, 400);
     }
 
-    return err(new Error('Error interno del servidor'), 500);
+    return err(new Error("Error interno del servidor"), 500);
   }
 }
 
@@ -102,19 +108,19 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    
+
     // Verificar autenticación
     const session = await auth();
     if (!session?.user?.id) {
-      return err(new AuthenticationError('No autenticado'), 401);
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     // Ejecutar caso de uso
     await deleteCategoryUseCase.execute(id, session.user.id);
 
-    return ok({ message: 'Categoría eliminada correctamente' });
+    return ok({ message: "Categoría eliminada correctamente" });
   } catch (error) {
-    console.error('[Category Delete Error]', error);
+    console.error("[Category Delete Error]", error);
 
     if (error instanceof NotFoundError) {
       return err(error, 404);
@@ -124,6 +130,6 @@ export async function DELETE(
       return err(error, 400);
     }
 
-    return err(new Error('Error interno del servidor'), 500);
+    return err(new Error("Error interno del servidor"), 500);
   }
 }

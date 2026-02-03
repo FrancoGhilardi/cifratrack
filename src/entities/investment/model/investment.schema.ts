@@ -84,16 +84,28 @@ export const updateInvestmentSchema = createInvestmentSchema.partial();
 /**
  * Schema para validar query params de listado
  */
-export const investmentQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).default(20),
-  sortBy: z
-    .enum(["startedOn", "principal", "tna", "days", "platform", "title"])
-    .default("startedOn"),
-  sortDir: z.enum(["asc", "desc"]).default("desc"),
-  q: z.string().max(100).optional(), // búsqueda por título o plataforma
-  active: z.enum(["true", "false"]).optional(), // filtrar por activas (no finalizadas)
-});
+export const investmentQuerySchema = z
+  .object({
+    page: z.coerce.number().int().positive().default(1),
+    pageSize: z.coerce.number().int().positive().max(100).default(20),
+    sortBy: z
+      .enum(["startedOn", "principal", "tna", "days", "platform", "title"])
+      .default("startedOn"),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
+    q: z.string().max(100).optional(), // busqueda por titulo o plataforma
+    active: z.enum(["true", "false"]).optional(), // filtrar por activas (no finalizadas)
+    cursor: z.string().min(1).optional(),
+    cursorId: z.string().uuid().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if ((data.cursor && !data.cursorId) || (!data.cursor && data.cursorId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "cursor y cursorId deben enviarse juntos",
+        path: ["cursor"],
+      });
+    }
+  });
 
 /**
  * Tipos inferidos

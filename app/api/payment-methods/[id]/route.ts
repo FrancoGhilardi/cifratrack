@@ -4,10 +4,19 @@ import { ok, err } from "@/shared/lib/response";
 import { PaymentMethodRepository } from "@/features/payment-methods/repo.impl";
 import { UpsertPaymentMethodUseCase } from "@/features/payment-methods/usecases/upsert-payment-method.usecase";
 import { DeletePaymentMethodUseCase } from "@/features/payment-methods/usecases/delete-payment-method.usecase";
+import { GetPaymentMethodByIdUseCase } from "@/features/payment-methods/usecases/get-payment-method-by-id.usecase";
 import { updatePaymentMethodSchema } from "@/entities/payment-method/model/payment-method.schema";
-import { DomainError, ValidationError } from "@/shared/lib/errors";
+import {
+  AuthenticationError,
+  DomainError,
+  NotFoundError,
+  ValidationError,
+} from "@/shared/lib/errors";
 
 const paymentMethodRepo = new PaymentMethodRepository();
+const getPaymentMethodByIdUseCase = new GetPaymentMethodByIdUseCase(
+  paymentMethodRepo
+);
 
 /**
  * GET /api/payment-methods/[id]
@@ -20,20 +29,24 @@ export async function GET(
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return err("No autenticado", 401);
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     const { id } = await context.params;
-    const paymentMethod = await paymentMethodRepo.findById(id, session.user.id);
-
-    if (!paymentMethod) {
-      return err("Forma de pago no encontrada", 404);
-    }
+    const paymentMethod = await getPaymentMethodByIdUseCase.execute(
+      id,
+      session.user.id
+    );
 
     return ok(paymentMethod.toDTO());
   } catch (error) {
     console.error("Error fetching payment method:", error);
-    return err("Error al obtener forma de pago", 500);
+
+    if (error instanceof NotFoundError) {
+      return err(error, 404);
+    }
+
+    return err(error);
   }
 }
 
@@ -48,7 +61,7 @@ export async function PUT(
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return err("No autenticado", 401);
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     const { id } = await context.params;
@@ -57,10 +70,7 @@ export async function PUT(
     // Validar con schema zod
     const parsed = updatePaymentMethodSchema.safeParse(body);
     if (!parsed.success) {
-      return err(
-        parsed.error.issues[0]?.message || "Datos inválidos",
-        400
-      );
+      return err(new ValidationError("Datos inválidos", parsed.error.issues));
     }
 
     const useCase = new UpsertPaymentMethodUseCase(paymentMethodRepo);
@@ -74,10 +84,10 @@ export async function PUT(
     console.error("Error updating payment method:", error);
 
     if (error instanceof DomainError || error instanceof ValidationError) {
-      return err(error.message, 400);
+      return err(error);
     }
 
-    return err("Error al actualizar forma de pago", 500);
+    return err(error);
   }
 }
 
@@ -92,7 +102,7 @@ export async function DELETE(
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return err("No autenticado", 401);
+      return err(new AuthenticationError("No autenticado"), 401);
     }
 
     const { id } = await context.params;
@@ -105,9 +115,9 @@ export async function DELETE(
     console.error("Error deleting payment method:", error);
 
     if (error instanceof DomainError || error instanceof ValidationError) {
-      return err(error.message, 400);
+      return err(error);
     }
 
-    return err("Error al eliminar forma de pago", 500);
+    return err(error);
   }
 }

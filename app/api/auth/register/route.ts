@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { registerSchema } from '@/entities/user/model/user.schema';
 import { RegisterUserUseCase } from '@/features/auth/usecases/register-user.usecase';
 import { UserRepository } from '@/features/auth/repo.impl';
@@ -15,29 +14,20 @@ export async function POST(request: Request) {
     // Validar input
     const result = registerSchema.safeParse(body);
     if (!result.success) {
-      return NextResponse.json(
-        err(new ValidationError('Datos inválidos', result.error.issues)),
-        { status: 400 }
-      );
+      return err(new ValidationError('Datos inválidos', result.error.issues));
     }
 
     // Ejecutar caso de uso
     const user = await registerUserUseCase.execute(result.data);
 
-    return NextResponse.json(ok(user.toDTO()), { status: 201 });
+    return ok(user.toDTO(), 201);
   } catch (error) {
     console.error('[Register Error]', error);
 
     if (error instanceof Error) {
-      return NextResponse.json(
-        err(error),
-        { status: 400 }
-      );
+      return err(error, 400);
     }
 
-    return NextResponse.json(
-      err(new Error('Error interno del servidor')),
-      { status: 500 }
-    );
+    return err(new Error('Error interno del servidor'), 500);
   }
 }

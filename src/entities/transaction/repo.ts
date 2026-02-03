@@ -1,5 +1,9 @@
-import type { Transaction } from './model/transaction.entity';
-import type { CreateTransactionInput, UpdateTransactionInput } from './model/transaction.schema';
+import type { Transaction } from "./model/transaction.entity";
+import type { TransactionSummaryDTO } from "./model/transaction-summary.dto";
+import type {
+  CreateTransactionInput,
+  UpdateTransactionInput,
+} from "./model/transaction.schema";
 
 /**
  * Parámetros para listar transacciones con paginación
@@ -7,15 +11,17 @@ import type { CreateTransactionInput, UpdateTransactionInput } from './model/tra
 export interface ListTransactionsParams {
   userId: string;
   month?: string;
-  kind?: 'income' | 'expense';
-  status?: 'pending' | 'paid';
+  kind?: "income" | "expense";
+  status?: "pending" | "paid";
   paymentMethodId?: string;
   categoryIds?: string[];
   q?: string;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+  cursor?: string;
+  cursorId?: string;
 }
 
 /**
@@ -40,6 +46,8 @@ export interface PaginatedTransactions {
   page: number;
   pageSize: number;
   totalPages: number;
+  nextCursor?: string;
+  nextCursorId?: string;
 }
 
 /**
@@ -59,12 +67,19 @@ export interface ITransactionRepository {
   /**
    * Crear nueva transacción
    */
-  create(userId: string, data: CreateTransactionInput): Promise<TransactionWithNames>;
+  create(
+    userId: string,
+    data: CreateTransactionInput
+  ): Promise<TransactionWithNames>;
 
   /**
    * Actualizar transacción
    */
-  update(id: string, userId: string, data: UpdateTransactionInput): Promise<TransactionWithNames>;
+  update(
+    id: string,
+    userId: string,
+    data: UpdateTransactionInput
+  ): Promise<TransactionWithNames>;
 
   /**
    * Eliminar transacción
@@ -75,6 +90,14 @@ export interface ITransactionRepository {
    * Obtener transacciones de un mes específico
    */
   getByMonth(userId: string, month: string): Promise<Transaction[]>;
+
+  /**
+   * Obtener resumen de egresos por estado (paid/pending) en un mes
+   */
+  getExpenseStatusSummary(
+    userId: string,
+    month: string
+  ): Promise<TransactionSummaryDTO>;
 
   /**
    * Obtener resumen mensual

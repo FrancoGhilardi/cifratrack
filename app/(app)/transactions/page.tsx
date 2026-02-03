@@ -1,18 +1,25 @@
-'use client';
+"use client";
 
-import { useTransactionsTable } from '@/features/transactions/hooks';
-import { TransactionsTable } from '@/features/transactions/ui/transactions-table';
-import { TransactionFilters } from '@/features/transactions/ui/transaction-filters';
-import { TransactionDialog } from '@/features/transactions/ui/transaction-dialog';
-import { useTransactionMutations } from '@/features/transactions/hooks/useTransactionMutations';
-import { Skeleton } from '@/shared/ui/skeleton';
-import { Pagination } from '@/shared/ui/pagination';
-import { PageHeader } from '@/shared/ui/page-header';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { Plus } from 'lucide-react';
-import { useCrudDialogState } from '@/shared/lib/hooks/useCrudDialogState';
-import { handleMutationError, logMutationSuccess } from '@/shared/lib/utils/mutation-handlers';
-import type { SortingState } from '@tanstack/react-table';
+import {
+  useTransactionsTable,
+  useTransactionsSummaryQuery,
+} from "@/features/transactions/hooks";
+import { TransactionsTable } from "@/features/transactions/ui/transactions-table";
+import { TransactionFilters } from "@/features/transactions/ui/transaction-filters";
+import { TransactionDialog } from "@/features/transactions/ui/transaction-dialog";
+import { TransactionSummaryCards } from "@/features/transactions/ui/transaction-summary-cards";
+import { useTransactionMutations } from "@/features/transactions/hooks/useTransactionMutations";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { Pagination } from "@/shared/ui/pagination";
+import { PageHeader } from "@/shared/ui/page-header";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { Plus } from "lucide-react";
+import { useCrudDialogState } from "@/shared/lib/hooks/useCrudDialogState";
+import {
+  handleMutationError,
+  logMutationSuccess,
+} from "@/shared/lib/utils/mutation-handlers";
+import type { SortingState } from "@tanstack/react-table";
 
 export default function TransactionsPage() {
   const {
@@ -28,6 +35,9 @@ export default function TransactionsPage() {
     setSort,
   } = useTransactionsTable();
 
+  // Query separada para las cards (solo filtra por mes, sin otros filtros)
+  const summaryQuery = useTransactionsSummaryQuery(params.month || "");
+
   const mutations = useTransactionMutations();
   const { state: dialogState, actions: dialogActions } = useCrudDialogState();
 
@@ -36,26 +46,29 @@ export default function TransactionsPage() {
 
     try {
       await mutations.delete.mutateAsync(dialogState.deleteId);
-      logMutationSuccess('delete', 'Movimiento');
+      logMutationSuccess("delete", "Movimiento");
       dialogActions.closeDelete();
     } catch (error) {
-      handleMutationError('delete', 'movimiento', error);
+      handleMutationError("delete", "movimiento", error);
     }
   };
 
   const handleFormSuccess = () => {
-    logMutationSuccess(dialogState.editingId ? 'update' : 'create', 'Movimiento');
+    logMutationSuccess(
+      dialogState.editingId ? "update" : "create",
+      "Movimiento"
+    );
   };
 
-  const handleSortChange = (sortBy: string, sortOrder: 'asc' | 'desc') => {
+  const handleSortChange = (sortBy: string, sortOrder: "asc" | "desc") => {
     setSort(sortBy, sortOrder);
   };
 
   // Convertir params a SortingState para TanStack Table
   const sorting: SortingState = [
     {
-      id: params.sortBy || 'occurredOn',
-      desc: params.sortOrder === 'desc',
+      id: params.sortBy || "occurredOn",
+      desc: params.sortOrder === "desc",
     },
   ];
 
@@ -77,6 +90,16 @@ export default function TransactionsPage() {
         actionText="Nuevo Movimiento"
         onAction={dialogActions.openCreate}
       />
+
+      {/* Cards de resumen */}
+      {summaryQuery.isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <TransactionSummaryCards summary={summaryQuery.summary} />
+      )}
 
       {/* Filtros */}
       <div className="rounded-lg border bg-card p-4">
@@ -108,7 +131,7 @@ export default function TransactionsPage() {
             onEdit={dialogActions.openEdit}
             onDelete={dialogActions.openDelete}
           />
-          
+
           {/* Paginación */}
           {meta && meta.totalPages > 1 && (
             <div className="rounded-lg border bg-card p-4">
@@ -118,7 +141,9 @@ export default function TransactionsPage() {
                 pageSize={meta.pageSize}
                 totalItems={meta.total}
                 onPageChange={goToPage}
-                onPageSizeChange={(pageSize) => updateParams({ pageSize, page: 1 })}
+                onPageSizeChange={(pageSize) =>
+                  updateParams({ pageSize, page: 1 })
+                }
               />
             </div>
           )}

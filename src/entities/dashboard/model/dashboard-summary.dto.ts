@@ -1,7 +1,7 @@
 /**
  * DTO: Dashboard Summary
- * 
- * Resumen financiero de un mes específico
+ *
+ * Resumen financiero de un mes especifico
  */
 export interface DashboardSummaryDTO {
   month: string; // formato YYYY-MM

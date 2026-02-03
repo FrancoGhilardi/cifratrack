@@ -1,16 +1,25 @@
-import { eq, and, sql } from 'drizzle-orm';
-import { db } from '@/shared/db/client';
-import { transactions, transactionCategories, categories, paymentMethods } from '@/shared/db/schema';
-import type { DashboardSummaryDTO } from './model/dashboard-summary.dto';
+import { eq, and, sql } from "drizzle-orm";
+import { db } from "@/shared/db/client";
+import {
+  transactions,
+  transactionCategories,
+  categories,
+  paymentMethods,
+} from "@/shared/db/schema";
+import type { DashboardSummaryDTO } from "@/entities/dashboard/model/dashboard-summary.dto";
+import type { IDashboardRepository } from "@/entities/dashboard/repo";
 
 /**
  * Repositorio para consultas del Dashboard
  */
-export class DashboardRepository {
+export class DashboardRepository implements IDashboardRepository {
   /**
    * Obtener resumen del dashboard para un mes específico
    */
-  async getSummary(userId: string, month: string): Promise<DashboardSummaryDTO> {
+  async getSummary(
+    userId: string,
+    month: string
+  ): Promise<DashboardSummaryDTO> {
     // Consultar totales de ingresos y egresos
     const totalsResult = await db
       .select({
@@ -20,7 +29,12 @@ export class DashboardRepository {
         count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
       })
       .from(transactions)
-      .where(and(eq(transactions.userId, userId), eq(transactions.occurredMonth, month)))
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.occurredMonth, month)
+        )
+      )
       .groupBy(transactions.kind, transactions.status);
 
     // Procesar totales
@@ -31,14 +45,14 @@ export class DashboardRepository {
     let pendingCount = 0;
 
     for (const row of totalsResult) {
-      if (row.kind === 'income') {
+      if (row.kind === "income") {
         totalIncome += row.total || 0;
         incomeCount += row.count || 0;
       } else {
         totalExpenses += row.total || 0;
         expensesCount += row.count || 0;
       }
-      if (row.status === 'pending') {
+      if (row.status === "pending") {
         pendingCount += row.count || 0;
       }
     }
@@ -53,13 +67,19 @@ export class DashboardRepository {
         total: sql<number>`CAST(SUM(${transactionCategories.allocatedAmount}) AS INTEGER)`,
       })
       .from(transactionCategories)
-      .innerJoin(categories, eq(transactionCategories.categoryId, categories.id))
-      .innerJoin(transactions, eq(transactionCategories.transactionId, transactions.id))
+      .innerJoin(
+        categories,
+        eq(transactionCategories.categoryId, categories.id)
+      )
+      .innerJoin(
+        transactions,
+        eq(transactionCategories.transactionId, transactions.id)
+      )
       .where(
         and(
           eq(transactions.userId, userId),
           eq(transactions.occurredMonth, month),
-          eq(transactions.kind, 'expense')
+          eq(transactions.kind, "expense")
         )
       )
       .groupBy(categories.id, categories.name)
@@ -73,13 +93,19 @@ export class DashboardRepository {
         total: sql<number>`CAST(SUM(${transactionCategories.allocatedAmount}) AS INTEGER)`,
       })
       .from(transactionCategories)
-      .innerJoin(categories, eq(transactionCategories.categoryId, categories.id))
-      .innerJoin(transactions, eq(transactionCategories.transactionId, transactions.id))
+      .innerJoin(
+        categories,
+        eq(transactionCategories.categoryId, categories.id)
+      )
+      .innerJoin(
+        transactions,
+        eq(transactionCategories.transactionId, transactions.id)
+      )
       .where(
         and(
           eq(transactions.userId, userId),
           eq(transactions.occurredMonth, month),
-          eq(transactions.kind, 'income')
+          eq(transactions.kind, "income")
         )
       )
       .groupBy(categories.id, categories.name)
@@ -93,12 +119,15 @@ export class DashboardRepository {
         total: sql<number>`CAST(SUM(${transactions.amount}) AS INTEGER)`,
       })
       .from(transactions)
-      .innerJoin(paymentMethods, eq(transactions.paymentMethodId, paymentMethods.id))
+      .innerJoin(
+        paymentMethods,
+        eq(transactions.paymentMethodId, paymentMethods.id)
+      )
       .where(
         and(
           eq(transactions.userId, userId),
           eq(transactions.occurredMonth, month),
-          eq(transactions.kind, 'expense')
+          eq(transactions.kind, "expense")
         )
       )
       .groupBy(paymentMethods.id, paymentMethods.name)

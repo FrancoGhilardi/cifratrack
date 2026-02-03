@@ -73,7 +73,7 @@ interface InvestmentListProps {
     totalPages: number;
   };
   sortBy: NonNullable<InvestmentQueryParams["sortBy"]>;
-  sortDir: NonNullable<InvestmentQueryParams["sortDir"]>;
+  sortOrder: NonNullable<InvestmentQueryParams["sortOrder"]>;
   filters: Partial<Pick<InvestmentQueryParams, "q" | "active">>;
   onFiltersChange: (
     filters: Partial<Pick<InvestmentQueryParams, "q" | "active">>,
@@ -82,7 +82,7 @@ interface InvestmentListProps {
   isLoading?: boolean;
   onSortChange: (
     sortBy: NonNullable<InvestmentQueryParams["sortBy"]>,
-    sortDir: NonNullable<InvestmentQueryParams["sortDir"]>,
+    sortOrder: NonNullable<InvestmentQueryParams["sortOrder"]>,
   ) => void;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
@@ -93,7 +93,7 @@ export function InvestmentList({
   investments,
   meta,
   sortBy,
-  sortDir,
+  sortOrder,
   filters,
   onFiltersChange,
   onResetFilters,
@@ -140,8 +140,9 @@ export function InvestmentList({
   }, [meta, investments.length]);
 
   const sorting: SortingState = useMemo(
-    () => (sortBy && sortDir ? [{ id: sortBy, desc: sortDir === "desc" }] : []),
-    [sortBy, sortDir],
+    () =>
+      sortBy && sortOrder ? [{ id: sortBy, desc: sortOrder === "desc" }] : [],
+    [sortBy, sortOrder],
   );
 
   const handleCreate = useCallback(() => {
@@ -181,8 +182,8 @@ export function InvestmentList({
   const handleSort = useCallback(
     (columnId: NonNullable<InvestmentQueryParams["sortBy"]>) => {
       const current = sorting.find((s) => s.id === columnId);
-      const nextDir = current ? (current.desc ? "asc" : "desc") : "desc";
-      onSortChange(columnId, nextDir);
+      const nextOrder = current ? (current.desc ? "asc" : "desc") : "desc";
+      onSortChange(columnId, nextOrder);
     },
     [onSortChange, sorting],
   );

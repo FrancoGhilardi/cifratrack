@@ -1,83 +1,152 @@
-'use client';
+"use client";
 
-import { useCallback, useMemo } from 'react';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import type { InvestmentQueryParams, PaginatedInvestmentsResponse } from '../model/investment.dto';
-import { investmentKeys } from '../model/query-keys';
-import { fetchInvestments } from '../api/investments.api';
+import { useCallback, useMemo, useState } from "react";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
+import type {
+  InvestmentQueryParams,
+  PaginatedInvestmentsResponse,
+} from "../model/investment.dto";
+import { investmentKeys } from "../model/query-keys";
+import { fetchInvestments } from "../api/investments.api";
+import { useTableParams } from "@/shared/lib/hooks/useTableParams";
+
+type CursorState = {
+  cursor: string;
+  cursorId: string;
+};
 
 /**
  * Hook para gestionar la tabla de inversiones con filtros/orden/paginación desde la URL
  */
 export function useInvestmentsTable() {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const sortOrderFallback = (searchParams.get("sortOrder") ??
+    searchParams.get("sortDir")) as InvestmentQueryParams["sortOrder"];
 
   // Leer parámetros actuales desde la URL
-  const params: InvestmentQueryParams = useMemo(() => {
-    const sortByParam = searchParams.get('sortBy') as InvestmentQueryParams['sortBy'];
-    const sortDirParam = searchParams.get('sortDir') as InvestmentQueryParams['sortDir'];
-    const pageParam = Number(searchParams.get('page')) || 1;
-    const pageSizeParam = Number(searchParams.get('pageSize')) || 20;
-    const qParam = searchParams.get('q') || undefined;
-    const activeParam = searchParams.get('active') as InvestmentQueryParams['active'];
+  const {
+    params: baseParams,
+    updateParams,
+    resetFilters,
+    goToPage,
+    setSort,
+  } = useTableParams<InvestmentQueryParams>({
+    defaultSortBy: "startedOn",
+    defaultSortOrder: sortOrderFallback || "desc",
+    defaultPage: 1,
+    defaultPageSize: 20,
+    filterKeys: ["q", "active", "pageSize"],
+    mapSortBy: (sortBy) => sortBy,
+  });
 
+  const extraParams = useMemo(() => {
+    const activeParam =
+      (searchParams.get("active") as InvestmentQueryParams["active"]) ||
+      undefined;
     return {
-      page: pageParam,
-      pageSize: pageSizeParam,
-      sortBy: sortByParam || 'startedOn',
-      sortDir: sortDirParam || 'desc',
-      q: qParam,
       active: activeParam,
     };
   }, [searchParams]);
 
+  const params: InvestmentQueryParams = useMemo(
+    () => ({
+      ...baseParams,
+      ...extraParams,
+    }),
+    [baseParams, extraParams]
+  );
+
+  const [cursorBySignature, setCursorBySignature] = useState<
+    Record<string, Record<number, CursorState>>
+  >({});
+
+  const cursorSignature = useMemo(
+    () =>
+      JSON.stringify({
+        q: baseParams.q,
+        active: extraParams.active,
+        sortBy: baseParams.sortBy,
+        sortOrder: baseParams.sortOrder,
+        pageSize: baseParams.pageSize,
+      }),
+    [
+      baseParams.q,
+      extraParams.active,
+      baseParams.sortBy,
+      baseParams.sortOrder,
+      baseParams.pageSize,
+    ]
+  );
+
+  const cursorMap = cursorBySignature[cursorSignature] ?? {};
+  const currentPage = params.page ?? 1;
+  const cursorForPage =
+    currentPage > 1 ? cursorMap[currentPage] : undefined;
+
+  const paramsWithCursor: InvestmentQueryParams = useMemo(
+    () => ({
+      ...params,
+      cursor: cursorForPage?.cursor,
+      cursorId: cursorForPage?.cursorId,
+    }),
+    [params, cursorForPage]
+  );
+
   const query = useQuery<PaginatedInvestmentsResponse>({
-    queryKey: investmentKeys.list(params as Record<string, unknown>),
-    queryFn: () => fetchInvestments(params),
+    queryKey: investmentKeys.list(paramsWithCursor as Record<string, unknown>),
+    queryFn: () => fetchInvestments(paramsWithCursor),
     placeholderData: keepPreviousData,
   });
 
-  const updateParams = useCallback(
-    (newParams: Partial<InvestmentQueryParams>) => {
-      const current = new URLSearchParams(searchParams.toString());
+  const storeNextCursor = useCallback(() => {
+    if (!query.data || query.data.page !== currentPage) {
+      return;
+    }
 
-      Object.entries(newParams).forEach(([key, value]) => {
-        if (value === undefined || value === null || value === '') {
-          current.delete(key);
-        } else {
-          current.set(key, String(value));
-        }
-      });
+    const { nextCursor, nextCursorId } = query.data;
+    if (!nextCursor || !nextCursorId) {
+      return;
+    }
 
-      // Si cambian filtros o pageSize, resetear página a 1
-      const filterKeys = ['q', 'active', 'pageSize'];
-      const isFilterChange = Object.keys(newParams).some((key) => filterKeys.includes(key));
-      if (isFilterChange && !('page' in newParams)) {
-        current.set('page', '1');
+    setCursorBySignature((prev) => {
+      const nextPage = currentPage + 1;
+      const signatureMap = prev[cursorSignature] ?? {};
+      const existing = signatureMap[nextPage];
+      if (
+        existing &&
+        existing.cursor === nextCursor &&
+        existing.cursorId === nextCursorId
+      ) {
+        return prev;
       }
 
-      router.push(`${pathname}?${current.toString()}`);
+      return {
+        ...prev,
+        [cursorSignature]: {
+          ...signatureMap,
+          [nextPage]: {
+            cursor: nextCursor,
+            cursorId: nextCursorId,
+          },
+        },
+      };
+    });
+  }, [cursorSignature, currentPage, query.data]);
+
+  const goToPageWithCursor = useCallback(
+    (page: number) => {
+      if (page === currentPage + 1) {
+        storeNextCursor();
+      }
+      goToPage(page);
     },
-    [searchParams, router, pathname]
+    [currentPage, goToPage, storeNextCursor]
   );
 
   const setFilters = useCallback(
-    (filters: Partial<Pick<InvestmentQueryParams, 'q' | 'active'>>) => {
+    (filters: Partial<Pick<InvestmentQueryParams, "q" | "active">>) => {
       updateParams(filters);
-    },
-    [updateParams]
-  );
-
-  const resetFilters = useCallback(() => {
-    router.push(pathname);
-  }, [router, pathname]);
-
-  const goToPage = useCallback(
-    (page: number) => {
-      updateParams({ page });
     },
     [updateParams]
   );
@@ -89,16 +158,18 @@ export function useInvestmentsTable() {
     [updateParams]
   );
 
-  const setSort = useCallback(
-    (sortBy: NonNullable<InvestmentQueryParams['sortBy']>, sortDir: NonNullable<InvestmentQueryParams['sortDir']>) => {
-      updateParams({ sortBy, sortDir });
-    },
-    [updateParams]
-  );
+  const meta = query.data
+    ? {
+        total: query.data.total,
+        page: query.data.page,
+        pageSize: query.data.pageSize,
+        totalPages: query.data.totalPages,
+      }
+    : undefined;
 
   return {
-    investments: query.data?.data ?? [],
-    meta: query.data?.meta,
+    investments: query.data?.items ?? [],
+    meta,
     params,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
@@ -107,7 +178,7 @@ export function useInvestmentsTable() {
     setFilters,
     resetFilters,
     setSort,
-    goToPage,
+    goToPage: goToPageWithCursor,
     setPageSize,
     refetch: query.refetch,
   };

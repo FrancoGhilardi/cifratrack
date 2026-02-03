@@ -23,6 +23,7 @@ export interface UseTableParamsOptions {
   allowedSortColumns?: string[];
   /** Mapeos personalizados de columnas camelCase → snake_case */
   columnMappings?: Record<string, string>;
+  mapSortBy?: (sortBy: string) => string;
   /** Columna de sorting por defecto (en camelCase) */
   defaultSortBy?: string;
   /** Orden por defecto */
@@ -31,6 +32,7 @@ export interface UseTableParamsOptions {
   defaultPage?: number;
   /** Tamaño de página por defecto */
   defaultPageSize?: number;
+  filterKeys?: string[];
 }
 
 /**
@@ -55,24 +57,38 @@ export function useTableParams<T extends BaseTableParams>(
 
   const {
     columnMappings,
+    mapSortBy,
     defaultSortBy = 'createdAt',
     defaultSortOrder = 'desc',
     defaultPage = 1,
     defaultPageSize = 20,
+    filterKeys = ['q', 'month', 'kind', 'status'],
   } = options;
 
   // Parsear parámetros desde URL
   const params = useMemo(() => {
     const sortBy = searchParams.get('sortBy') || defaultSortBy;
-    
+
+    const normalizedSortBy = mapSortBy
+      ? mapSortBy(sortBy)
+      : columnToSnakeCase(sortBy, columnMappings);
+
     return {
-      sortBy: columnToSnakeCase(sortBy, columnMappings),
+      sortBy: normalizedSortBy,
       sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || defaultSortOrder,
       page: Number(searchParams.get('page')) || defaultPage,
       pageSize: Number(searchParams.get('pageSize')) || defaultPageSize,
       q: searchParams.get('q') || undefined,
     } as T;
-  }, [searchParams, columnMappings, defaultSortBy, defaultSortOrder, defaultPage, defaultPageSize]);
+  }, [
+    searchParams,
+    columnMappings,
+    mapSortBy,
+    defaultSortBy,
+    defaultSortOrder,
+    defaultPage,
+    defaultPageSize,
+  ]);
 
   // Actualizar parámetros en la URL
   const updateParams = useCallback(
@@ -94,7 +110,6 @@ export function useTableParams<T extends BaseTableParams>(
       });
 
       // Si se cambian filtros, resetear a página 1
-      const filterKeys = ['q', 'month', 'kind', 'status'];
       const isFilterChange = Object.keys(newParams).some((key) => filterKeys.includes(key));
       if (isFilterChange && !('page' in newParams)) {
         current.set('page', '1');
@@ -102,7 +117,7 @@ export function useTableParams<T extends BaseTableParams>(
 
       router.push(`${pathname}?${current.toString()}`);
     },
-    [searchParams, router, pathname]
+    [searchParams, router, pathname, filterKeys]
   );
 
   // Resetear todos los filtros

@@ -10,6 +10,8 @@ export interface PaginatedInvestments {
   page: number;
   pageSize: number;
   totalPages: number;
+  nextCursor?: string;
+  nextCursorId?: string;
 }
 
 /**

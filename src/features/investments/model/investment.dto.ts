@@ -3,6 +3,8 @@ import type {
   UpdateInvestmentInput,
 } from "@/entities/investment/model/investment.schema";
 
+import type { Paginated } from "@/shared/lib/types";
+
 /**
  * DTO para inversión con rendimiento calculado
  */
@@ -34,22 +36,16 @@ export interface InvestmentQueryParams {
   page?: number;
   pageSize?: number;
   sortBy?: "startedOn" | "principal" | "tna" | "days" | "platform" | "title";
-  sortDir?: "asc" | "desc";
+  sortOrder?: "asc" | "desc";
   q?: string;
   active?: "true" | "false";
+  cursor?: string;
+  cursorId?: string;
 }
 
 /**
  * Respuesta paginada de inversiones
  */
-export interface PaginatedInvestmentsResponse {
-  data: InvestmentDTO[];
-  meta: {
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  };
-}
+export type PaginatedInvestmentsResponse = Paginated<InvestmentDTO>;
 
 export type { CreateInvestmentInput, UpdateInvestmentInput };
