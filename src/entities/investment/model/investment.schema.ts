@@ -48,8 +48,6 @@ export const createInvestmentSchema = z
     days: z
       .number()
       .int("Los días deben ser un número entero")
-      .positive("La duración debe ser mayor a cero días")
-      .max(36500, "La duración excede el límite permitido (~100 años)")
       .optional()
       .nullable(),
 
@@ -67,12 +65,46 @@ export const createInvestmentSchema = z
       .nullable(),
   })
   .superRefine((data, ctx) => {
+    // Validar duración
+    if (data.days !== null && data.days !== undefined) {
+      if (data.days < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "La duración no puede ser negativa",
+          path: ["days"],
+        });
+      }
+      if (data.days > 36500) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "La duración excede el límite permitido (~100 años)",
+          path: ["days"],
+        });
+      }
+      // Para inversiones NO compuestas, debe ser positivo (> 0)
+      if (!data.isCompound && data.days === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "La duración debe ser mayor a cero días",
+          path: ["days"],
+        });
+      }
+    }
+
     if (!data.isCompound && !data.days) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "La duración es requerida para inversiones simples",
-        path: ["days"],
-      });
+      // !data.days catches 0, null, undefined.
+      // Need to distinguish if we already added an error for 0 above?
+      // If data.days is 0, !data.days is true.
+
+      // If data.days is 0, we added error above.
+      // If data.days is null/undefined, we add error here.
+      if (data.days === null || data.days === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "La duración es requerida para inversiones simples",
+          path: ["days"],
+        });
+      }
     }
   });
 

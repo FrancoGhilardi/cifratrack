@@ -43,8 +43,8 @@ export class InvestmentYieldCalculator {
       throw new Error("La TNA no puede ser negativa");
     }
 
-    if (days <= 0) {
-      throw new Error("Los días deben ser mayor a cero");
+    if (days < 0) {
+      throw new Error("Los días no pueden ser negativos");
     }
 
     let yieldAmount = 0;

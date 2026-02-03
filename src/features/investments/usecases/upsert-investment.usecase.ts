@@ -32,6 +32,7 @@ export class UpsertInvestmentUseCase {
       userId,
       platform: data.platform,
       title: data.title,
+      yieldProviderId: data.yieldProviderId ?? null,
       principal: data.principal,
       tna: data.tna,
       days: data.days ?? null,
@@ -58,6 +59,8 @@ export class UpsertInvestmentUseCase {
 
     if (data.platform !== undefined) updateData.platform = data.platform;
     if (data.title !== undefined) updateData.title = data.title;
+    if (data.yieldProviderId !== undefined)
+      updateData.yieldProviderId = data.yieldProviderId;
     if (data.principal !== undefined) updateData.principal = data.principal;
     if (data.tna !== undefined) updateData.tna = data.tna;
     if (data.days !== undefined) updateData.days = data.days;
