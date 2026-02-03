@@ -71,9 +71,10 @@ export class InvestmentMapper {
     userId: string;
     platform: string;
     title: string;
+    yieldProviderId: string | null;
     principal: number;
     tna: number;
-    days: number;
+    days: number | null;
     isCompound: boolean;
     startedOn: Date;
     notes: string | null;
