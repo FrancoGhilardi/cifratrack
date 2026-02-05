@@ -20,24 +20,24 @@ El proyecto sigue una **Clean Architecture** (Arquitectura Limpia) y principios 
 ### Estratificación Estricta (Strict Layering)
 
 1.  **UI (React Components):**
-    *   Capa de presentación.
-    *   Interactúa con la aplicación solo a través de **Custom Hooks** que envuelven TanStack Query.
-    *   **Regla:** Nunca importa la base de datos ni realiza lógica compleja.
+    - Capa de presentación.
+    - Interactúa con la aplicación solo a través de **Custom Hooks** que envuelven TanStack Query.
+    - **Regla:** Nunca importa la base de datos ni realiza lógica compleja.
 2.  **API Routes (Next.js App Router):**
-    *   Puntos de entrada de la aplicación (`app/api/**`).
-    *   **Responsabilidad:** Validar Request -> Ejecutar UseCase -> Mapear Resultado a DTO -> Retornar JSON.
-3.  **UseCases (`src/features/**/usecases`):**
-    *   Contienen la **lógica de negocio pura** de la aplicación.
-    *   Orquestan las operaciones, validan reglas de negocio y llaman a los repositorios.
-    *   **Regla:** Retornan *Entidades de Dominio*, nunca objetos directos de la base de datos.
-4.  **Repositories (`src/features/**/repo.impl.ts`):**
-    *   Implementaciones concretas de las interfaces de dominio.
-    *   Encapsulan el acceso a datos (Drizzle ORM).
-    *   **Responsabilidad:** Mapear de Rows (BD) a Entidades (Dominio) y viceversa.
-5.  **Domain Entities (`src/entities/**/model/*.entity.ts`):**
-    *   Corazón de la aplicación.
-    *   Clases puras de TypeScript que encapsulan datos y comportamiento.
-    *   Validan su propia integridad en el constructor.
+    - Puntos de entrada de la aplicación (`app/api/**`).
+    - **Responsabilidad:** Validar Request -> Ejecutar UseCase -> Mapear Resultado a DTO -> Retornar JSON.
+3.  **UseCases (`src/features/**/usecases`):\*\*
+    - Contienen la **lógica de negocio pura** de la aplicación.
+    - Orquestan las operaciones, validan reglas de negocio y llaman a los repositorios.
+    - **Regla:** Retornan _Entidades de Dominio_, nunca objetos directos de la base de datos.
+4.  **Repositories (`src/features/**/repo.impl.ts`):\*\*
+    - Implementaciones concretas de las interfaces de dominio.
+    - Encapsulan el acceso a datos (Drizzle ORM).
+    - **Responsabilidad:** Mapear de Rows (BD) a Entidades (Dominio) y viceversa.
+5.  **Domain Entities (`src/entities/**/model/\*.entity.ts`):\*\*
+    - Corazón de la aplicación.
+    - Clases puras de TypeScript que encapsulan datos y comportamiento.
+    - Validan su propia integridad en el constructor.
 
 ### Flujo de Datos
 
@@ -59,37 +59,40 @@ El código fuente está organizado por funcionalidades (**Feature-Based**) en lu
 El sistema está compuesto por los siguientes módulos principales:
 
 - **🔐 Auth (`features/auth`)**:
-    - Sistema completo de gestión de identidad.
-    - Registro e inicio de sesión seguro.
-    - Protección de rutas y gestión de sesiones.
+  - Sistema completo de gestión de identidad.
+  - Registro e inicio de sesión seguro.
+  - Protección de rutas y gestión de sesiones.
 - **📂 Categories (`features/categories`)**:
-    - Organización jerárquica de ingresos y gastos.
-    - Personalización de categorías para el usuario.
+  - Organización jerárquica de ingresos y gastos.
+  - Personalización de categorías para el usuario.
 - **📊 Dashboard (`features/dashboard`)**:
-    - Panel de control principal.
-    - Visualización de métricas clave, resúmenes de saldo y gráficos de evolución patrimonial.
+  - Panel de control principal.
+  - Visualización de métricas clave, resúmenes de saldo y gráficos de evolución patrimonial.
 - **📈 Investments (`features/investments`)**:
-    - Gestión avanzada de portafolio.
-    - Registro de activos, cálculo de rendimientos y seguimiento de valor actual.
+  - Gestión avanzada de portafolio.
+  - Registro de activos, cálculo de rendimientos y seguimiento de valor actual.
 - **🪙 Market Data (`features/market-data`)**:
-    - Infraestructura para la obtención de datos financieros externos.
-    - Historial de precios y cotizaciones en tiempo real para valorizar inversiones.
+  - Infraestructura robusta multi-fuente para la obtención de datos financieros (API ArgentinaDatos).
+  - Soporte integral para Dólar, Criptomonedas, Plazos Fijos y Fondos Comunes de Inversión (FCI).
+  - Sistema de visualización híbrida: combina histórico persistido en BD con cotizaciones "Live" en tiempo real.
+  - Automatización mediante Cron Jobs para la construcción diaria del historial de rendimientos.
 - **💳 Payment Methods (`features/payment-methods`)**:
-    - Administración de fuentes de dinero.
-    - Soporte para Tarjetas de Crédito, Efectivo, Cuentas Bancarias y Monederos Digitales.
+  - Administración de fuentes de dinero.
+  - Soporte para Tarjetas de Crédito, Efectivo, Cuentas Bancarias y Monederos Digitales.
 - **👤 Profile (`features/profile`)**:
-    - Configuración de usuario.
-    - Gestión de preferencias y seguridad de la cuenta.
+  - Configuración de usuario.
+  - Gestión de preferencias y seguridad de la cuenta.
 - **🔄 Recurring (`features/recurring`)**:
-    - Motor de automatización financiera.
-    - Gestión de reglas para transacciones que se repiten (suscripciones, alquileres, salarios).
+  - Motor de automatización financiera.
+  - Gestión de reglas para transacciones que se repiten (suscripciones, alquileres, salarios).
 - **💸 Transactions (`features/transactions`)**:
-    - El núcleo contable del sistema.
-    - Registro detallado de cada movimiento financiero con soporte para múltiples monedas y conversiones.
+  - El núcleo contable del sistema.
+  - Registro detallado de cada movimiento financiero con soporte para múltiples monedas y conversiones.
 
 ## 🚀 Cómo Iniciar
 
 ### Prerrequisitos
+
 - Node.js 20+
 - pnpm
 
@@ -102,29 +105,37 @@ pnpm install
 ### Comandos Principales
 
 #### Desarrollo
+
 Inicia el servidor de desarrollo en `http://localhost:3000`.
+
 ```bash
 pnpm dev
 ```
 
 #### Base de Datos
+
 Generar archivos SQL basados en cambios del esquema (`src/shared/db/schema.ts`):
+
 ```bash
 pnpm db:generate
 ```
 
 Aplicar cambios a la base de datos:
+
 ```bash
 pnpm db:migrate
 ```
 
 Visualizar y gestionar la base de datos con Drizzle Studio:
+
 ```bash
 pnpm db:studio
 ```
 
 #### Calidad de Código
+
 Ejecutar chequeo de tipos de TypeScript:
+
 ```bash
 pnpm typecheck
 ```

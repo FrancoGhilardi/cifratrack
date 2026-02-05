@@ -63,6 +63,7 @@ import { useInvestmentMutations } from "../hooks/useInvestments";
 import type { CreateInvestmentInput } from "@/entities/investment/model/investment.schema";
 import { useCurrency } from "@/shared/lib/hooks";
 import { useSearchDebounce } from "@/shared/lib/hooks/useSearchDebounce";
+import { useAllLiveRates } from "@/features/market-data/hooks/useLatestYield";
 
 interface InvestmentListProps {
   investments: InvestmentDTO[];
@@ -123,6 +124,7 @@ export function InvestmentList({
 
   const { create, update, delete: deleteInvestment } = useInvestmentMutations();
   const { formatCurrency } = useCurrency();
+  const { data: liveRates } = useAllLiveRates();
 
   const metaInfo = useMemo(() => {
     const total = meta?.total ?? investments.length;
@@ -238,30 +240,77 @@ export function InvestmentList({
             {renderSortIcon("principal")}
           </Button>
         ),
-        cell: ({ row }) => (
-          <div className="text-right">
-            <div className="font-semibold">
-              {formatCurrency(row.original.principal)}
+        cell: ({ row }) => {
+          const liveRate = liveRates?.find(
+            (r) => r.providerId === row.original.yieldProviderId,
+          );
+          const displayTna = liveRate ? liveRate.rate : row.original.tna;
+          const isLive = !!liveRate && liveRate.rate !== row.original.tna;
+
+          return (
+            <div className="text-right">
+              <div className="font-semibold">
+                {formatCurrency(row.original.principal)}
+              </div>
+              <div
+                className={`text-xs ${isLive ? "text-blue-600 font-medium" : "text-muted-foreground"}`}
+              >
+                TNA: {displayTna.toFixed(2)}% {isLive && "(Live)"}
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              TNA: {row.original.tna.toFixed(2)}%
-            </div>
-          </div>
-        ),
+          );
+        },
       },
       {
         id: "yield",
         header: "Rendimiento",
-        cell: ({ row }) => (
-          <div className="text-right">
-            <div className="font-semibold text-green-600 dark:text-green-400">
-              +{formatCurrency(row.original.yield)}
+        cell: ({ row }) => {
+          const liveRate = liveRates?.find(
+            (r) => r.providerId === row.original.yieldProviderId,
+          );
+
+          let currentYield = row.original.yield;
+          let currentTotal = row.original.total;
+
+          // Recalcular solo si hay live rate válido y si la inversión NO ha terminado
+          // Si ya terminó, el rendimiento es histórico fijo.
+          if (
+            liveRate &&
+            liveRate.rate !== row.original.tna &&
+            !row.original.hasEnded
+          ) {
+            const start = new Date(row.original.startedOn);
+            const now = new Date();
+            const timeDiff = now.getTime() - start.getTime();
+            const daysElapsed = Math.max(
+              0,
+              Math.floor(timeDiff / (1000 * 60 * 60 * 24)),
+            );
+
+            const rate = liveRate.rate / 100;
+            const dailyRate = rate / 365;
+
+            if (row.original.isCompound) {
+              currentTotal =
+                row.original.principal * Math.pow(1 + dailyRate, daysElapsed);
+            } else {
+              currentTotal =
+                row.original.principal * (1 + dailyRate * daysElapsed);
+            }
+            currentYield = currentTotal - row.original.principal;
+          }
+
+          return (
+            <div className="text-right">
+              <div className="font-semibold text-green-600 dark:text-green-400">
+                +{formatCurrency(currentYield)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Total: {formatCurrency(currentTotal)}
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Total: {formatCurrency(row.original.total)}
-            </div>
-          </div>
-        ),
+          );
+        },
       },
       {
         id: "days",

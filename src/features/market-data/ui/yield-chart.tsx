@@ -20,12 +20,12 @@ import {
 } from "recharts";
 import { useYieldHistory } from "../hooks/useYieldHistory";
 import { YIELD_PROVIDERS } from "../config/providers";
-import { useTheme } from "next-themes";
+import { useProviders } from "../hooks/useProviders";
 
 export function YieldChart() {
   const [providerId, setProviderId] = useState("mercadopago");
   const { data: history, isLoading } = useYieldHistory(providerId);
-  const { theme } = useTheme();
+  const { data: availableProviders } = useProviders();
 
   // Prepare data for chart
   const chartData =
@@ -42,14 +42,18 @@ export function YieldChart() {
       }),
     })) || [];
 
-  const providersList = Object.entries(YIELD_PROVIDERS).map(([id, cfg]) => ({
-    id,
-    name: cfg.name,
-    color: cfg.color,
-  }));
+  const providersList =
+    availableProviders && availableProviders.length > 0
+      ? availableProviders
+      : Object.entries(YIELD_PROVIDERS).map(([id, cfg]) => ({
+          id,
+          name: cfg.name,
+          color: cfg.color,
+        }));
 
-  const currentColor = YIELD_PROVIDERS[providerId]?.color || "#8884d8";
-  const isDark = theme === "dark";
+  const currentProvider = providersList.find((p) => p.id === providerId);
+  const currentColor =
+    currentProvider?.color || YIELD_PROVIDERS[providerId]?.color || "#8884d8";
 
   return (
     <Card>

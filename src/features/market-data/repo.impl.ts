@@ -75,6 +75,19 @@ export class YieldRepositoryImpl implements IYieldRepository {
     return rows.map(this.mapToEntity);
   }
 
+  async listProviders(): Promise<{ id: string; name: string }[]> {
+    const rows = await db
+      .selectDistinct({ providerId: yieldRates.providerId })
+      .from(yieldRates);
+
+    return rows
+      .map((r) => ({
+        id: r.providerId,
+        name: getProviderName(r.providerId),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   private mapToEntity(row: typeof yieldRates.$inferSelect): YieldRate {
     return new YieldRate(
       row.id,
