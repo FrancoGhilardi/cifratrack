@@ -24,5 +24,8 @@ export const YIELD_PROVIDERS: Record<string, { name: string; color: string }> =
   };
 
 export function getProviderName(id: string): string {
-  return YIELD_PROVIDERS[id]?.name || id.replace(/_/g, " ").toUpperCase();
+  return (
+    YIELD_PROVIDERS[id]?.name ||
+    id.replace(/[_-]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+  );
 }

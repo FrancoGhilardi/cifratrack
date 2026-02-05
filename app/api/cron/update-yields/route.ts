@@ -34,9 +34,27 @@ export async function GET(req: Request) {
     // 1. Sync market rates
     const result = await syncUseCase.execute();
 
-    // 2. Update active investments with new rates
+    // 2. Update active investments with new rates (only use the latest rate per provider)
     if (result.length > 0) {
-      await updateInvestmentsUseCase.execute(result);
+      const latestRatesMap = new Map();
+      for (const rate of result) {
+        // Ensure rate is valid number
+        if (typeof rate.rate !== "number" || isNaN(rate.rate)) continue;
+
+        const existing = latestRatesMap.get(rate.providerId);
+        if (!existing || rate.date > existing.date) {
+          latestRatesMap.set(rate.providerId, rate);
+        }
+      }
+
+      const latestRates = Array.from(latestRatesMap.values()) as any[];
+
+      // Filter safe rates for investments table (CHECK constraint: tna <= 999.99)
+      const safeRates = latestRates.filter(
+        (r) => r.rate >= 0 && r.rate <= 999.99,
+      );
+
+      await updateInvestmentsUseCase.execute(safeRates);
     }
 
     return NextResponse.json({
@@ -45,8 +63,14 @@ export async function GET(req: Request) {
       data: result,
       investmentsUpdated: true,
     });
-  } catch (error) {
-    console.error("Cron Error:", error);
-    return NextResponse.json({ error: "Sync failed" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Cron Error details:", error?.message || error);
+    return NextResponse.json(
+      {
+        error: "Sync failed",
+        details: error?.message,
+      },
+      { status: 500 },
+    );
   }
 }

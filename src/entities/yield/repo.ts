@@ -22,4 +22,9 @@ export interface IYieldRepository {
    * Useful when showing a list of investment options.
    */
   getLatestForProviders(providerIds: string[]): Promise<YieldRate[]>;
+
+  /**
+   * List all available providers with history.
+   */
+  listProviders(): Promise<{ id: string; name: string }[]>;
 }

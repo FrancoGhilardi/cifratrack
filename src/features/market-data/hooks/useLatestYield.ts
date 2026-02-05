@@ -1,14 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { YieldRate } from "@/entities/yield/model/yield-rate.entity";
 
-async function fetchLatest(providerId: string): Promise<YieldRate | null> {
-  const params = new URLSearchParams({ providerId });
-  const res = await fetch(`/api/market-data/latest?${params}`);
+async function fetchLive(
+  providerId?: string,
+): Promise<YieldRate | YieldRate[] | null> {
+  const url = providerId
+    ? `/api/market-data/live?providerId=${providerId}`
+    : `/api/market-data/live`;
+
+  const res = await fetch(url);
+
   if (!res.ok) {
     if (res.status === 404) return null;
-    throw new Error("Failed to fetch latest rate");
+    throw new Error("Failed to fetch live rates");
   }
+
   const raw = await res.json();
+
+  if (Array.isArray(raw)) {
+    return raw.map((r) => ({ ...r, date: new Date(r.date) }));
+  }
+
   return {
     ...raw,
     date: new Date(raw.date),
@@ -17,9 +29,18 @@ async function fetchLatest(providerId: string): Promise<YieldRate | null> {
 
 export function useLatestYield(providerId: string | null | undefined) {
   return useQuery({
-    queryKey: ["yield-latest", providerId],
-    queryFn: () => (providerId ? fetchLatest(providerId) : null),
+    queryKey: ["yield-live", providerId],
+    queryFn: () =>
+      providerId ? (fetchLive(providerId) as Promise<YieldRate | null>) : null,
     enabled: !!providerId,
-    staleTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+export function useAllLiveRates() {
+  return useQuery({
+    queryKey: ["yield-live", "all"],
+    queryFn: () => fetchLive() as Promise<YieldRate[]>,
+    staleTime: 1000 * 60 * 5,
   });
 }
