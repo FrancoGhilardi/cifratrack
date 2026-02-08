@@ -1,34 +1,34 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { useSearchDebounce } from '@/shared/lib/hooks/useSearchDebounce';
-import { Search, X } from 'lucide-react';
-import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
+import { useCallback, useEffect, useState } from "react";
+import { useSearchDebounce } from "@/shared/lib/hooks/useSearchDebounce";
+import { Search, X } from "lucide-react";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/select';
-import { Badge } from '@/shared/ui/badge';
-import { useCategories } from '@/features/categories/hooks/useCategories';
-import { usePaymentMethods } from '@/features/payment-methods/hooks/usePaymentMethods';
-import { Month } from '@/shared/lib/date';
+} from "@/shared/ui/select";
+import { Badge } from "@/shared/ui/badge";
+import { useCategories } from "@/features/categories/hooks/useCategories";
+import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
+import { Month } from "@/shared/lib/date";
 
 export interface TransactionFiltersProps {
   month?: string;
-  kind?: 'income' | 'expense';
-  status?: 'pending' | 'paid';
+  kind?: "income" | "expense";
+  status?: "pending" | "paid";
   paymentMethodId?: string;
   categoryIds?: string[];
   q?: string;
   onFiltersChange: (filters: {
     month?: string;
-    kind?: 'income' | 'expense';
-    status?: 'pending' | 'paid';
+    kind?: "income" | "expense";
+    status?: "pending" | "paid";
     paymentMethodId?: string;
     categoryIds?: string[];
     q?: string;
@@ -46,45 +46,53 @@ export function TransactionFilters({
   onFiltersChange,
   onReset,
 }: TransactionFiltersProps) {
-  const { data: incomeCategories } = useCategories({ kind: 'income' });
-  const { data: expenseCategories } = useCategories({ kind: 'expense' });
+  const { data: incomeCategories } = useCategories({ kind: "income" });
+  const { data: expenseCategories } = useCategories({ kind: "expense" });
   const { data: paymentMethods } = usePaymentMethods({ isActive: true });
 
   // Obtener categorías según el tipo seleccionado
-  const availableCategories = kind === 'income'
-    ? incomeCategories || []
-    : kind === 'expense'
-    ? expenseCategories || []
-    : [...(incomeCategories || []), ...(expenseCategories || [])];
+  const availableCategories =
+    kind === "income"
+      ? incomeCategories || []
+      : kind === "expense"
+        ? expenseCategories || []
+        : [...(incomeCategories || []), ...(expenseCategories || [])];
 
   const handleMonthChange = useCallback(
     (newMonth: string) => {
       onFiltersChange({ month: newMonth });
     },
-    [onFiltersChange]
+    [onFiltersChange],
   );
 
   const handleKindChange = useCallback(
     (newKind: string) => {
-      const kindValue = newKind === 'all' ? undefined : (newKind as 'income' | 'expense');
+      const kindValue =
+        newKind === "all" ? undefined : (newKind as "income" | "expense");
       // Si cambia el tipo, resetear las categorías seleccionadas
       onFiltersChange({ kind: kindValue, categoryIds: [] });
     },
-    [onFiltersChange]
+    [onFiltersChange],
   );
 
   const handleStatusChange = useCallback(
     (newStatus: string) => {
-      onFiltersChange({ status: newStatus === 'all' ? undefined : (newStatus as 'pending' | 'paid') });
+      onFiltersChange({
+        status:
+          newStatus === "all" ? undefined : (newStatus as "pending" | "paid"),
+      });
     },
-    [onFiltersChange]
+    [onFiltersChange],
   );
 
   const handlePaymentMethodChange = useCallback(
     (newPaymentMethodId: string) => {
-      onFiltersChange({ paymentMethodId: newPaymentMethodId === 'all' ? undefined : newPaymentMethodId });
+      onFiltersChange({
+        paymentMethodId:
+          newPaymentMethodId === "all" ? undefined : newPaymentMethodId,
+      });
     },
-    [onFiltersChange]
+    [onFiltersChange],
   );
 
   const handleCategoryToggle = useCallback(
@@ -92,19 +100,22 @@ export function TransactionFilters({
       const newCategoryIds = categoryIds.includes(categoryId)
         ? categoryIds.filter((id) => id !== categoryId)
         : [...categoryIds, categoryId];
-      
-      onFiltersChange({ categoryIds: newCategoryIds.length > 0 ? newCategoryIds : undefined });
+
+      onFiltersChange({
+        categoryIds: newCategoryIds.length > 0 ? newCategoryIds : undefined,
+      });
     },
-    [categoryIds, onFiltersChange]
+    [categoryIds, onFiltersChange],
   );
 
   // Búsqueda robusta con debounce genérico
-  const [searchValue, setSearchValue] = useState(q ?? '');
+  const [searchValue, setSearchValue] = useState(q ?? "");
   useSearchDebounce({
     value: searchValue,
     delay: 300,
     minLength: 2,
     enabled: true,
+    caseInsensitive: false,
     onDebounced: (debounced) => {
       if (debounced !== q) {
         onFiltersChange({ q: debounced });
@@ -114,18 +125,21 @@ export function TransactionFilters({
   useEffect(() => {
     // Mantener el input sincronizado con q externo
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSearchValue(q ?? '');
+    setSearchValue(q ?? "");
   }, [q]);
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
   };
 
   const getCategoryName = (categoryId: string) => {
-    return availableCategories.find((c) => c.id === categoryId)?.name || 'Desconocida';
+    return (
+      availableCategories.find((c) => c.id === categoryId)?.name ||
+      "Desconocida"
+    );
   };
 
   const getPaymentMethodName = (id: string) => {
-    return paymentMethods?.find((pm) => pm.id === id)?.name || 'Desconocida';
+    return paymentMethods?.find((pm) => pm.id === id)?.name || "Desconocida";
   };
 
   // Contar filtros activos
@@ -174,7 +188,7 @@ export function TransactionFilters({
         {/* Tipo */}
         <div className="space-y-2">
           <Label>Tipo</Label>
-          <Select value={kind || 'all'} onValueChange={handleKindChange}>
+          <Select value={kind || "all"} onValueChange={handleKindChange}>
             <SelectTrigger>
               <SelectValue placeholder="Todos los tipos" />
             </SelectTrigger>
@@ -189,7 +203,7 @@ export function TransactionFilters({
         {/* Estado */}
         <div className="space-y-2">
           <Label>Estado</Label>
-          <Select value={status || 'all'} onValueChange={handleStatusChange}>
+          <Select value={status || "all"} onValueChange={handleStatusChange}>
             <SelectTrigger>
               <SelectValue placeholder="Todos los estados" />
             </SelectTrigger>
@@ -204,7 +218,10 @@ export function TransactionFilters({
         {/* Forma de pago */}
         <div className="space-y-2">
           <Label>Forma de pago</Label>
-          <Select value={paymentMethodId || 'all'} onValueChange={handlePaymentMethodChange}>
+          <Select
+            value={paymentMethodId || "all"}
+            onValueChange={handlePaymentMethodChange}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Todas las formas" />
             </SelectTrigger>
@@ -230,7 +247,7 @@ export function TransactionFilters({
               return (
                 <Badge
                   key={category.id}
-                  variant={isSelected ? 'default' : 'outline'}
+                  variant={isSelected ? "default" : "outline"}
                   className="cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => handleCategoryToggle(category.id)}
                 >
@@ -248,7 +265,7 @@ export function TransactionFilters({
         <div className="flex flex-wrap gap-2 pt-2 border-t">
           {kind && (
             <Badge variant="secondary">
-              {kind === 'income' ? 'Ingresos' : 'Egresos'}
+              {kind === "income" ? "Ingresos" : "Egresos"}
               <button
                 onClick={() => onFiltersChange({ kind: undefined })}
                 className="ml-1 hover:text-destructive"
@@ -259,7 +276,7 @@ export function TransactionFilters({
           )}
           {status && (
             <Badge variant="secondary">
-              {status === 'pending' ? 'Pendiente' : 'Pagado'}
+              {status === "pending" ? "Pendiente" : "Pagado"}
               <button
                 onClick={() => onFiltersChange({ status: undefined })}
                 className="ml-1 hover:text-destructive"

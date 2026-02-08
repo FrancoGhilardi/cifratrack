@@ -95,11 +95,24 @@ export class TransactionRepository implements ITransactionRepository {
     }
 
     if (q) {
+      // Normalizar query para quitar acentos y pasar a minúsculas (Búsqueda Case Insensitive + Accent Insensitive)
+      const normalize = (str: string) =>
+        str
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+      const searchPattern = `%${normalize(q)}%`;
+
+      // Mapeo de caracteres en DB: pasar a minúsculas y luego quitar tildes
+      const translateSql = (
+        col: SQL | typeof transactions.title | typeof transactions.description,
+      ) => sql`translate(lower(${col}), 'áéíóúäëïöüñ', 'aeiouaeioun')`;
+
       addBaseCondition(
         or(
-          like(transactions.title, `%${q}%`),
-          like(transactions.description, `%${q}%`)
-        )!
+          like(translateSql(transactions.title), searchPattern),
+          like(translateSql(transactions.description), searchPattern),
+        )!,
       );
     }
 
@@ -111,7 +124,7 @@ export class TransactionRepository implements ITransactionRepository {
         .where(inArray(transactionCategories.categoryId, categoryIds));
 
       addBaseCondition(
-        inArray(transactions.id, sql`(${transactionIdsSubquery})`)
+        inArray(transactions.id, sql`(${transactionIdsSubquery})`),
       );
     }
 
@@ -120,10 +133,10 @@ export class TransactionRepository implements ITransactionRepository {
       sortBy === "occurred_on"
         ? transactions.occurredOn
         : sortBy === "amount"
-        ? transactions.amount
-        : sortBy === "title"
-        ? transactions.title
-        : transactions.createdAt;
+          ? transactions.amount
+          : sortBy === "title"
+            ? transactions.title
+            : transactions.createdAt;
 
     const orderFn = sortOrder === "asc" ? asc : desc;
 
@@ -155,7 +168,7 @@ export class TransactionRepository implements ITransactionRepository {
 
       const keysetCondition = or(
         primaryCmp,
-        and(eq(orderColumn, cursorValue), tieCmp)
+        and(eq(orderColumn, cursorValue), tieCmp),
       );
       if (keysetCondition) {
         conditions.push(keysetCondition);
@@ -198,7 +211,7 @@ export class TransactionRepository implements ITransactionRepository {
             .from(transactionCategories)
             .innerJoin(
               categories,
-              eq(transactionCategories.categoryId, categories.id)
+              eq(transactionCategories.categoryId, categories.id),
             )
             .where(inArray(transactionCategories.transactionId, transactionIds))
         : [];
@@ -220,13 +233,13 @@ export class TransactionRepository implements ITransactionRepository {
     const transactionsWithRelations: TransactionWithRelations[] =
       transactionRows.map((transaction) => {
         const transactionCategories = categoriesData.filter(
-          (c) => c.transactionId === transaction.id
+          (c) => c.transactionId === transaction.id,
         );
 
         const paymentMethod = transaction.paymentMethodId
-          ? paymentMethodsData.find(
-              (pm) => pm.id === transaction.paymentMethodId
-            ) ?? null
+          ? (paymentMethodsData.find(
+              (pm) => pm.id === transaction.paymentMethodId,
+            ) ?? null)
           : null;
 
         return {
@@ -242,7 +255,7 @@ export class TransactionRepository implements ITransactionRepository {
 
     // Convertir a entidades de dominio
     const domainTransactions = transactionsWithRelations.map((item) =>
-      TransactionMapper.rowToDomain(item)
+      TransactionMapper.rowToDomain(item),
     );
 
     const getCursorValue = (item: TransactionWithNames) => {
@@ -280,7 +293,7 @@ export class TransactionRepository implements ITransactionRepository {
    */
   async findById(
     id: string,
-    userId: string
+    userId: string,
   ): Promise<TransactionWithNames | null> {
     const [transaction] = await db
       .select()
@@ -302,7 +315,7 @@ export class TransactionRepository implements ITransactionRepository {
       .from(transactionCategories)
       .innerJoin(
         categories,
-        eq(transactionCategories.categoryId, categories.id)
+        eq(transactionCategories.categoryId, categories.id),
       )
       .where(eq(transactionCategories.transactionId, id));
 
@@ -336,7 +349,7 @@ export class TransactionRepository implements ITransactionRepository {
    */
   async create(
     userId: string,
-    data: CreateTransactionInput
+    data: CreateTransactionInput,
   ): Promise<TransactionWithNames> {
     return await db.transaction(async (tx) => {
       // Crear transacción usando SQL raw para omitir occurredMonth (calculado por trigger)
@@ -376,7 +389,7 @@ export class TransactionRepository implements ITransactionRepository {
             transactionId: transaction.id,
             categoryId: split.categoryId,
             allocatedAmount: split.allocatedAmount,
-          }))
+          })),
         );
 
         // Obtener nombres de categorías
@@ -388,7 +401,7 @@ export class TransactionRepository implements ITransactionRepository {
 
         data.split.forEach((split) => {
           const category = categoriesRows.find(
-            (c) => c.id === split.categoryId
+            (c) => c.id === split.categoryId,
           );
           if (category) {
             categoriesData.push({
@@ -428,7 +441,7 @@ export class TransactionRepository implements ITransactionRepository {
   async update(
     id: string,
     userId: string,
-    data: UpdateTransactionInput
+    data: UpdateTransactionInput,
   ): Promise<TransactionWithNames> {
     // Validar que existe
     const existing = await this.findById(id, userId);
@@ -456,7 +469,7 @@ export class TransactionRepository implements ITransactionRepository {
         } else {
           // Fallback: convertir cualquier otro tipo a Date primero
           dateStr = new Date(
-            data.occurredOn as unknown as string | number | Date
+            data.occurredOn as unknown as string | number | Date,
           )
             .toISOString()
             .split("T")[0];
@@ -517,7 +530,7 @@ export class TransactionRepository implements ITransactionRepository {
               transactionId: id,
               categoryId: split.categoryId,
               allocatedAmount: split.allocatedAmount,
-            }))
+            })),
           );
 
           // Obtener nombres de categorías
@@ -529,7 +542,7 @@ export class TransactionRepository implements ITransactionRepository {
 
           data.split.forEach((split) => {
             const category = categoriesRows.find(
-              (c) => c.id === split.categoryId
+              (c) => c.id === split.categoryId,
             );
             if (category) {
               categoriesData.push({
@@ -551,7 +564,7 @@ export class TransactionRepository implements ITransactionRepository {
           .from(transactionCategories)
           .innerJoin(
             categories,
-            eq(transactionCategories.categoryId, categories.id)
+            eq(transactionCategories.categoryId, categories.id),
           )
           .where(eq(transactionCategories.transactionId, id));
 
@@ -620,7 +633,7 @@ export class TransactionRepository implements ITransactionRepository {
    */
   async getExpenseStatusSummary(
     userId: string,
-    month: string
+    month: string,
   ): Promise<TransactionSummaryDTO> {
     const rows = await db
       .select({
@@ -633,8 +646,8 @@ export class TransactionRepository implements ITransactionRepository {
         and(
           eq(transactions.userId, userId),
           eq(transactions.occurredMonth, month),
-          eq(transactions.kind, "expense")
-        )
+          eq(transactions.kind, "expense"),
+        ),
       )
       .groupBy(transactions.status);
 
@@ -668,7 +681,7 @@ export class TransactionRepository implements ITransactionRepository {
    */
   async getMonthlySummary(
     userId: string,
-    month: string
+    month: string,
   ): Promise<{
     totalIncome: number;
     totalExpenses: number;
@@ -685,8 +698,8 @@ export class TransactionRepository implements ITransactionRepository {
       .where(
         and(
           eq(transactions.userId, userId),
-          eq(transactions.occurredMonth, month)
-        )
+          eq(transactions.occurredMonth, month),
+        ),
       )
       .groupBy(transactions.kind);
 
