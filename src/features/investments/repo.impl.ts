@@ -404,25 +404,4 @@ export class InvestmentRepository implements IInvestmentRepository {
 
     return parseFloat(total);
   }
-
-  /**
-   * Actualizar TNA de inversiones activas por proveedor
-   */
-  async updateRatesByProvider(providerId: string, rate: number): Promise<void> {
-    await db
-      .update(investments)
-      .set({
-        tna: rate.toString(),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(investments.yieldProviderId, providerId),
-          or(
-            sql`${investments.days} IS NULL`,
-            sql`${investments.startedOn} + INTERVAL '1 day' * ${investments.days} >= CURRENT_DATE`,
-          ),
-        ),
-      );
-  }
 }

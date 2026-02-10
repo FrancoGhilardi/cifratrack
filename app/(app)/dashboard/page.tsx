@@ -10,7 +10,6 @@ import {
 import { useMonthNavigation } from "@/shared/lib/hooks/useMonthNavigation";
 import { MonthSelector } from "@/shared/ui/month-selector";
 import { ErrorState } from "@/shared/ui/error-state";
-import { YieldChart } from "@/features/market-data/ui/yield-chart";
 
 /**
  * Página del Dashboard
@@ -78,14 +77,6 @@ export default function DashboardPage() {
         <>
           <SummaryCards summary={displaySummary} />
           <ExpensesChart summary={displaySummary} />
-
-          {/* Market Data / Yields */}
-          <div className="pt-4">
-            <h2 className="text-xl font-semibold mb-4 text-muted-foreground">
-              Mercado
-            </h2>
-            <YieldChart />
-          </div>
         </>
       )}
     </div>

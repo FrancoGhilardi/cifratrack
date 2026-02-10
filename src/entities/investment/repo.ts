@@ -34,11 +34,6 @@ export interface IInvestmentRepository {
   findById(id: string, userId: string): Promise<Investment | null>;
 
   /**
-   * Actualiza la TNA de todas las inversiones activas de un proveedor
-   */
-  updateRatesByProvider(providerId: string, rate: number): Promise<void>;
-
-  /**
    * Crea una nueva inversión
    */
   create(investment: Investment): Promise<Investment>;
