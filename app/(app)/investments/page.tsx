@@ -2,6 +2,8 @@
 
 import { PageContainer } from "@/shared/ui/page-container";
 import { PageHeader } from "@/shared/ui/page-header";
+import { Button } from "@/shared/ui/button";
+import { ExternalLink } from "lucide-react";
 import { useInvestmentsTable } from "@/features/investments/hooks";
 import {
   InvestmentList,
@@ -60,6 +62,15 @@ export default function InvestmentsPage() {
       <PageHeader
         title="Inversiones"
         description="Gestiona tus inversiones y rendimientos"
+        action={
+          <Button
+            variant="outline"
+            onClick={() => window.open("https://comparatasas.ar/", "_blank")}
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Comparar Tasas
+          </Button>
+        }
       />
 
       <div className="space-y-6">
