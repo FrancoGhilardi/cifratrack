@@ -1,26 +1,40 @@
-'use client';
+"use client";
 
-import { TransactionDTO } from '@/features/transactions/mappers/transaction.mapper';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
-import { Button } from '@/shared/ui/button';
-import { Badge } from '@/shared/ui/badge';
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeftRight } from 'lucide-react';
-import { formatCurrency } from '@/shared/lib/money';
-import { formatDateToLocal } from '@/shared/lib/utils/date-format';
+import { TransactionDTO } from "@/features/transactions/mappers/transaction.mapper";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/ui/table";
+import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
+import {
+  Pencil,
+  Trash2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeftRight,
+} from "lucide-react";
+import { formatCurrency } from "@/shared/lib/money";
+import { formatDateToLocal } from "@/shared/lib/utils/date-format";
 import {
   useReactTable,
   getCoreRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
-} from '@tanstack/react-table';
-import { useMemo } from 'react';
-import { EmptyState } from '@/shared/ui/empty-state';
+} from "@tanstack/react-table";
+import { useMemo } from "react";
+import { EmptyState } from "@/shared/ui/empty-state";
 
 interface TransactionsTableProps {
   transactions: TransactionDTO[];
   sorting?: SortingState;
-  onSortingChange?: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
+  onSortingChange?: (sortBy: string, sortOrder: "asc" | "desc") => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
 }
@@ -36,22 +50,22 @@ export function TransactionsTable({
   const columns = useMemo<ColumnDef<TransactionDTO>[]>(
     () => [
       {
-        accessorKey: 'occurredOn',
+        accessorKey: "occurredOn",
         header: ({ column }) => {
           const isSorted = column.getIsSorted();
           return (
             <Button
               variant="ghost"
               onClick={() => {
-                const newOrder = isSorted === 'asc' ? 'desc' : 'asc';
-                onSortingChange?.('occurredOn', newOrder);
+                const newOrder = isSorted === "asc" ? "desc" : "asc";
+                onSortingChange?.("occurredOn", newOrder);
               }}
               className="h-8 px-2 hover:bg-accent"
             >
               Fecha
-              {isSorted === 'asc' ? (
+              {isSorted === "asc" ? (
                 <ArrowUp className="ml-2 h-4 w-4" />
-              ) : isSorted === 'desc' ? (
+              ) : isSorted === "desc" ? (
                 <ArrowDown className="ml-2 h-4 w-4" />
               ) : (
                 <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -65,22 +79,22 @@ export function TransactionsTable({
         },
       },
       {
-        accessorKey: 'title',
+        accessorKey: "title",
         header: ({ column }) => {
           const isSorted = column.getIsSorted();
           return (
             <Button
               variant="ghost"
               onClick={() => {
-                const newOrder = isSorted === 'asc' ? 'desc' : 'asc';
-                onSortingChange?.('title', newOrder);
+                const newOrder = isSorted === "asc" ? "desc" : "asc";
+                onSortingChange?.("title", newOrder);
               }}
               className="h-8 px-2 hover:bg-accent"
             >
               Título
-              {isSorted === 'asc' ? (
+              {isSorted === "asc" ? (
                 <ArrowUp className="ml-2 h-4 w-4" />
-              ) : isSorted === 'desc' ? (
+              ) : isSorted === "desc" ? (
                 <ArrowDown className="ml-2 h-4 w-4" />
               ) : (
                 <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -99,21 +113,23 @@ export function TransactionsTable({
               )}
             </div>
             {row.original.description && (
-              <span className="text-sm text-muted-foreground">{row.original.description}</span>
+              <span className="text-sm text-muted-foreground">
+                {row.original.description}
+              </span>
             )}
           </div>
         ),
       },
       {
-        accessorKey: 'paymentMethodName',
-        header: 'Forma de Pago',
-        cell: ({ row }) => row.original.paymentMethodName || '-',
+        accessorKey: "paymentMethodName",
+        header: "Forma de Pago",
+        cell: ({ row }) => row.original.paymentMethodName || "-",
       },
       {
-        accessorKey: 'income',
+        accessorKey: "income",
         header: () => <div className="text-right">Ingreso</div>,
         cell: ({ row }) => {
-          if (row.original.kind !== 'income') return null;
+          if (row.original.kind !== "income") return null;
           return (
             <div className="text-right font-medium text-green-600">
               {formatCurrency(row.original.amount, row.original.currency)}
@@ -122,32 +138,42 @@ export function TransactionsTable({
         },
       },
       {
-        accessorKey: 'expense',
+        accessorKey: "expense",
         header: () => <div className="text-right">Egreso</div>,
         cell: ({ row }) => {
-          if (row.original.kind !== 'expense') return null;
+          if (row.original.kind !== "expense") return null;
+
+          // Determinar color según el estado
+          const colorClass =
+            row.original.status === "pending"
+              ? "text-amber-600 dark:text-amber-400"
+              : "text-red-600";
+
           return (
-            <div className="text-right font-medium text-red-600">
+            <div className={`text-right font-medium ${colorClass}`}>
               {formatCurrency(row.original.amount, row.original.currency)}
             </div>
           );
         },
       },
       {
-        accessorKey: 'status',
-        header: 'Estado',
+        accessorKey: "status",
+        header: "Estado",
         cell: ({ row }) => {
-          if (!row.original.isFixed || row.original.kind !== 'expense') return null;
+          if (!row.original.isFixed || row.original.kind !== "expense")
+            return null;
           return (
-            <Badge variant={row.original.status === 'paid' ? 'default' : 'secondary'}>
-              {row.original.status === 'paid' ? 'Pagado' : 'Pendiente'}
+            <Badge
+              variant={row.original.status === "paid" ? "default" : "secondary"}
+            >
+              {row.original.status === "paid" ? "Pagado" : "Pendiente"}
             </Badge>
           );
         },
       },
       {
-        accessorKey: 'categories',
-        header: 'Categorías',
+        accessorKey: "categories",
+        header: "Categorías",
         cell: ({ row }) => (
           <div className="flex flex-wrap gap-1">
             {row.original.categories.map((cat) => (
@@ -159,7 +185,7 @@ export function TransactionsTable({
         ),
       },
       {
-        id: 'actions',
+        id: "actions",
         header: () => <div className="text-right">Acciones</div>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
@@ -183,12 +209,12 @@ export function TransactionsTable({
         ),
       },
     ],
-    [onSortingChange, onEdit, onDelete]
+    [onSortingChange, onEdit, onDelete],
   );
 
   // Convertir sorting a formato TanStack
   const tanstackSorting: SortingState = sorting.map((s) => {
-    if (typeof s === 'string') {
+    if (typeof s === "string") {
       return { id: s, desc: false };
     }
     return s;
@@ -226,7 +252,10 @@ export function TransactionsTable({
                 <TableHead key={header.id}>
                   {header.isPlaceholder
                     ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
                 </TableHead>
               ))}
             </TableRow>

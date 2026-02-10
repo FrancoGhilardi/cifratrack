@@ -72,10 +72,9 @@ El sistema está compuesto por los siguientes módulos principales:
   - Gestión avanzada de portafolio.
   - Registro de activos, cálculo de rendimientos y seguimiento de valor actual.
 - **🪙 Market Data (`features/market-data`)**:
-  - Infraestructura robusta multi-fuente para la obtención de datos financieros (API ArgentinaDatos).
-  - Soporte integral para Dólar, Criptomonedas, Plazos Fijos y Fondos Comunes de Inversión (FCI).
-  - Sistema de visualización híbrida: combina histórico persistido en BD con cotizaciones "Live" en tiempo real.
-  - Automatización mediante Cron Jobs para la construcción diaria del historial de rendimientos.
+  - Módulo simplificado para obtener tasas de rendimiento en vivo desde APIs externas.
+  - Provee datos actualizados de TNA para inversiones sin persistir historial.
+  - Configuración centralizada de proveedores financieros (Mercado Pago, Ualá, etc.).
 - **💳 Payment Methods (`features/payment-methods`)**:
   - Administración de fuentes de dinero.
   - Soporte para Tarjetas de Crédito, Efectivo, Cuentas Bancarias y Monederos Digitales.

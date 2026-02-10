@@ -397,7 +397,17 @@ export const transactionCategories = pgTable(
   ],
 );
 
-export const yieldRates = pgTable(
+/**
+ * DEPRECATED: Tabla obsoleta - Ya no se usa después de eliminar YieldChart
+ *
+ * Esta tabla almacenaba tasas históricas de rendimiento (TNA) de diferentes proveedores
+ * para mostrar gráficos de tendencia. Fue eliminada junto con la funcionalidad de YieldChart
+ * en el dashboard. Ahora solo se consultan tasas en vivo directamente desde la API externa.
+ *
+ * Nota: La tabla todavía existe en la base de datos pero no tiene código que la use.
+ * Se puede eliminar en una migración futura si se confirma que no hay datos importantes.
+ */
+/* export const yieldRates = pgTable(
   "yield_rates",
   {
     id: uuid("id").defaultRandom().primaryKey().notNull(),
@@ -413,4 +423,4 @@ export const yieldRates = pgTable(
       table.date,
     ),
   ],
-);
+); */

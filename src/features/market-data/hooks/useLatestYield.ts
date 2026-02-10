@@ -1,5 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { YieldRate } from "@/entities/yield/model/yield-rate.entity";
+
+// Tipo simple para las tasas en vivo (solo para UI)
+export interface YieldRate {
+  providerId: string;
+  rate: number;
+  currency: string;
+  date: Date;
+  providerName?: string;
+}
 
 async function fetchLive(
   providerId?: string,
