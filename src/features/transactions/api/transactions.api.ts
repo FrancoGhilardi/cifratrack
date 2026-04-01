@@ -12,7 +12,7 @@ const API_BASE = "/api/transactions";
  * Fetcher para listar transacciones con filtros y paginación
  */
 export async function fetchTransactions(
-  params: TransactionListParams
+  params: TransactionListParams,
 ): Promise<Paginated<TransactionDTO>> {
   const searchParams = buildQueryParams({
     month: params.month,
@@ -38,7 +38,7 @@ export async function fetchTransactions(
  * Fetcher para obtener una transacción por ID
  */
 export async function fetchTransactionById(
-  id: string
+  id: string,
 ): Promise<TransactionDTO> {
   const data = await apiFetch<ApiOk<TransactionDTO>>(`${API_BASE}/${id}`);
   return data.data;
@@ -48,7 +48,7 @@ export async function fetchTransactionById(
  * Fetcher para obtener resumen de egresos pagados/pendientes por mes
  */
 export async function fetchTransactionsSummary(
-  month: string
+  month: string,
 ): Promise<TransactionSummaryDTO> {
   const searchParams = buildQueryParams({ month });
   const url = `${API_BASE}/summary?${searchParams.toString()}`;
@@ -62,17 +62,17 @@ export async function fetchTransactionsSummary(
 export async function createTransaction(data: {
   kind: "income" | "expense";
   title: string;
-  description?: string;
+  description?: string | null;
   amount: number;
   currency?: string;
-  paymentMethodId?: string;
+  paymentMethodId?: string | null;
   isFixed?: boolean;
   status: "pending" | "paid";
   occurredOn: string;
-  dueOn?: string;
-  paidOn?: string;
+  dueOn?: string | null;
+  paidOn?: string | null;
   occurredMonth: string;
-  sourceRecurringRuleId?: string;
+  sourceRecurringRuleId?: string | null;
   split: Array<{
     categoryId: string;
     allocatedAmount: number;
@@ -95,22 +95,22 @@ export async function updateTransaction(
   data: {
     kind?: "income" | "expense";
     title?: string;
-    description?: string;
+    description?: string | null;
     amount?: number;
     currency?: string;
-    paymentMethodId?: string;
+    paymentMethodId?: string | null;
     isFixed?: boolean;
     status?: "pending" | "paid";
     occurredOn?: string;
-    dueOn?: string;
-    paidOn?: string;
+    dueOn?: string | null;
+    paidOn?: string | null;
     occurredMonth?: string;
-    sourceRecurringRuleId?: string;
+    sourceRecurringRuleId?: string | null;
     split?: Array<{
       categoryId: string;
       allocatedAmount: number;
     }>;
-  }
+  },
 ): Promise<TransactionDTO> {
   const result = await apiFetch<ApiOk<TransactionDTO>>(`${API_BASE}/${id}`, {
     method: "PUT",

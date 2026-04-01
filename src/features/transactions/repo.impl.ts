@@ -30,7 +30,7 @@ import type {
 } from "@/entities/transaction/repo";
 import type { TransactionSummaryDTO } from "@/entities/transaction/model/transaction-summary.dto";
 import type { Transaction } from "@/entities/transaction/model/transaction.entity";
-import { NotFoundError } from "@/shared/lib/errors";
+import { NotFoundError, ValidationError } from "@/shared/lib/errors";
 import { TransactionMapper } from "./mappers/transaction.mapper";
 
 export interface TransactionWithRelations {
@@ -352,6 +352,24 @@ export class TransactionRepository implements ITransactionRepository {
     data: CreateTransactionInput,
   ): Promise<TransactionWithNames> {
     return await db.transaction(async (tx) => {
+      const occurredOn = data.occurredOn.toISOString().split("T")[0];
+      const dueOn =
+        data.status === "pending"
+          ? data.dueOn
+            ? data.dueOn.toISOString().split("T")[0]
+            : data.isFixed && data.kind === "expense"
+              ? occurredOn
+              : null
+          : data.dueOn
+            ? data.dueOn.toISOString().split("T")[0]
+            : null;
+
+      if (data.status === "pending" && !dueOn) {
+        throw new ValidationError(
+          "Una transacción pendiente debe tener fecha de vencimiento",
+        );
+      }
+
       // Crear transacción usando SQL raw para omitir occurredMonth (calculado por trigger)
       const [transaction] = await tx
         .insert(transactions)
@@ -365,13 +383,15 @@ export class TransactionRepository implements ITransactionRepository {
           paymentMethodId: data.paymentMethodId ?? null,
           isFixed: data.isFixed ?? false,
           status: data.status,
-          occurredOn: data.occurredOn.toISOString().split("T")[0],
-          dueOn: data.dueOn ? data.dueOn.toISOString().split("T")[0] : null,
-          paidOn: data.paidOn ? data.paidOn.toISOString().split("T")[0] : null,
-          occurredMonth: data.occurredOn
-            .toISOString()
-            .split("T")[0]
-            .substring(0, 7),
+          occurredOn,
+          dueOn,
+          paidOn:
+            data.status === "pending"
+              ? null
+              : data.paidOn
+                ? data.paidOn.toISOString().split("T")[0]
+                : null,
+          occurredMonth: occurredOn.substring(0, 7),
           sourceRecurringRuleId: data.sourceRecurringRuleId ?? null,
         })
         .returning();
@@ -454,6 +474,13 @@ export class TransactionRepository implements ITransactionRepository {
       const updateData: Record<string, string | number | boolean | null | SQL> =
         {};
 
+      const existingTransaction = existing.transaction;
+      const existingOccurredOn = existingTransaction.occurredOn
+        .toISOString()
+        .split("T")[0];
+      const existingDueOn =
+        existingTransaction.dueOn?.toISOString().split("T")[0] ?? null;
+
       if (data.title !== undefined) updateData.title = data.title;
       if (data.description !== undefined)
         updateData.description = data.description;
@@ -501,6 +528,38 @@ export class TransactionRepository implements ITransactionRepository {
       if (data.paymentMethodId !== undefined)
         updateData.paymentMethodId = data.paymentMethodId;
       if (data.isFixed !== undefined) updateData.isFixed = data.isFixed;
+
+      const nextStatus = data.status ?? existingTransaction.status;
+      const nextOccurredOn =
+        typeof updateData.occurredOn === "string"
+          ? updateData.occurredOn
+          : existingOccurredOn;
+
+      if (nextStatus === "pending") {
+        const shouldSyncDueOnWithOccurredOn =
+          existingTransaction.isFixed &&
+          existingTransaction.kind === "expense" &&
+          data.dueOn === undefined &&
+          (existingDueOn === null || existingDueOn === existingOccurredOn);
+
+        const nextDueOn =
+          typeof updateData.dueOn === "string"
+            ? updateData.dueOn
+            : updateData.dueOn === null
+              ? null
+              : shouldSyncDueOnWithOccurredOn
+                ? nextOccurredOn
+                : existingDueOn;
+
+        if (!nextDueOn) {
+          throw new ValidationError(
+            "Una transacción pendiente debe tener fecha de vencimiento",
+          );
+        }
+
+        updateData.dueOn = nextDueOn;
+        updateData.paidOn = null;
+      }
 
       updateData.updatedAt = sql`now()`;
 
