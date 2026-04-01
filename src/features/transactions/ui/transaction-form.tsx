@@ -118,6 +118,11 @@ export function TransactionForm({
     defaultValue: transaction?.kind ?? "expense",
   });
   const watchIsFixed = useWatch({ control: form.control, name: "isFixed" });
+  const watchStatus = useWatch({
+    control: form.control,
+    name: "status",
+    defaultValue: transaction?.status ?? "paid",
+  });
   const watchAmount = useWatch({ control: form.control, name: "amount" });
 
   // Limpiar splits cuando cambia el tipo (income <-> expense)
@@ -144,6 +149,22 @@ export function TransactionForm({
     }
   }, [watchIsFixed, watchKind, form]);
 
+  const showStatusAndDue = watchIsFixed && watchKind === "expense";
+
+  useEffect(() => {
+    if (!showStatusAndDue || watchStatus !== "pending") {
+      return;
+    }
+
+    if (!form.getValues("dueOn")) {
+      form.setValue("dueOn", form.getValues("occurredOn"));
+    }
+
+    if (form.getValues("paidOn")) {
+      form.setValue("paidOn", "");
+    }
+  }, [showStatusAndDue, watchStatus, form]);
+
   const handleFormSubmit = (values: FormValues) => {
     // Convertir el monto a centavos
     const amountInCents = pesosTocents(values.amount);
@@ -161,6 +182,20 @@ export function TransactionForm({
       return;
     }
 
+    const normalizedDueOn =
+      showStatusAndDue && values.status === "pending"
+        ? new Date(values.dueOn || values.occurredOn)
+        : values.dueOn
+          ? new Date(values.dueOn)
+          : null;
+
+    const normalizedPaidOn =
+      showStatusAndDue && values.status === "pending"
+        ? null
+        : values.paidOn
+          ? new Date(values.paidOn)
+          : null;
+
     // Convertir valores del formulario al formato de CreateTransactionInput
     const occurredDate = new Date(values.occurredOn);
     const occurredMonth = Month.fromDate(occurredDate).toString();
@@ -176,8 +211,8 @@ export function TransactionForm({
       status: values.status,
       occurredOn: occurredDate,
       occurredMonth,
-      dueOn: values.dueOn ? new Date(values.dueOn) : null,
-      paidOn: values.paidOn ? new Date(values.paidOn) : null,
+      dueOn: normalizedDueOn,
+      paidOn: normalizedPaidOn,
       sourceRecurringRuleId: null,
       split: values.split,
     };
@@ -185,7 +220,6 @@ export function TransactionForm({
     onSubmit(payload);
   };
 
-  const showStatusAndDue = watchIsFixed && watchKind === "expense";
   const amountInCents = watchAmount ? Math.round(watchAmount * 100) : 0;
 
   return (
