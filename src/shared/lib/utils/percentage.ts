@@ -8,9 +8,9 @@
 export function calculatePercentage(
   part: number,
   total: number,
-  decimals: number = 1
+  decimals: number = 1,
 ): string {
-  if (total === 0) return '0';
+  if (total === 0) return "0";
   return ((part / total) * 100).toFixed(decimals);
 }
 
@@ -23,4 +23,21 @@ export function calculatePercentage(
 export function getPercentageValue(part: number, total: number): number {
   if (total === 0) return 0;
   return (part / total) * 100;
+}
+
+/**
+ * Formatear un porcentaje con decimales fijos para UI.
+ * @param value - Valor porcentual ya expresado en escala 0-100
+ * @param decimals - Cantidad fija de decimales
+ * @param locale - Locale a usar en la salida
+ */
+export function formatPercentageValue(
+  value: number,
+  decimals: number = 2,
+  locale: string = "es-AR",
+): string {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value);
 }

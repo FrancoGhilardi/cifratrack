@@ -1,7 +1,14 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Input } from '@/shared/ui/input';
-import { Button } from '@/shared/ui/button';
-import { Spinner } from '@/shared/ui/spinner';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
+import { Button } from "@/shared/ui/button";
+import { Spinner } from "@/shared/ui/spinner";
+import { Label } from "@/shared/ui/label";
 
 interface RecurringGenerateCardProps {
   month: string;
@@ -22,32 +29,47 @@ export function RecurringGenerateCard({
   errorMessage,
 }: RecurringGenerateCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <CardTitle>Generar transacciones del mes</CardTitle>
+    <Card className="border shadow-none">
+      <CardHeader className="space-y-2 pb-3">
+        <div className="space-y-2">
+          <CardTitle className="text-lg">
+            Generar transacciones del mes
+          </CardTitle>
           <CardDescription>
-            Ejecuta las reglas activas para el mes seleccionado. Es idempotente: no duplica transacciones existentes.
+            Ejecuta las reglas activas para el mes seleccionado. Es idempotente:
+            no duplica transacciones existentes.
           </CardDescription>
         </div>
-        <div className="flex items-center gap-2">
-          <Input
-            type="month"
-            value={month}
-            onChange={(e) => onMonthChange(e.target.value)}
-            className="w-36"
-          />
-          <Button onClick={onGenerate} disabled={isLoading}>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-[180px_auto] md:items-end">
+          <div className="space-y-2">
+            <Label htmlFor="recurring-target-month">Mes a generar</Label>
+            <Input
+              id="recurring-target-month"
+              type="month"
+              value={month}
+              onChange={(e) => onMonthChange(e.target.value)}
+              className="h-11 w-full"
+            />
+          </div>
+
+          <Button
+            onClick={onGenerate}
+            disabled={isLoading || !month}
+            className="h-11 w-full md:w-auto md:justify-self-start"
+          >
             {isLoading && <Spinner size="xs" />}
-            {isLoading ? 'Generando...' : 'Generar'}
+            {isLoading ? "Generando..." : "Generar movimientos"}
           </Button>
         </div>
-      </CardHeader>
-      {errorMessage && (
-        <CardContent>
-          <p className="text-sm text-destructive">{errorMessage}</p>
-        </CardContent>
-      )}
+
+        {errorMessage && (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+            <p className="text-sm text-destructive">{errorMessage}</p>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }

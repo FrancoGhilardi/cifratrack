@@ -10,9 +10,13 @@ export function ExpensesChartSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {[1, 2].map((i) => (
-        <Card key={i} className="relative overflow-hidden border-0">
-          <CardHeader>
+        <Card
+          key={i}
+          className="relative overflow-hidden border border-border/70 shadow-none"
+        >
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-8 w-24 rounded-full" />
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

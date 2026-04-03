@@ -1,10 +1,13 @@
 "use client";
 
+import type { ComponentType } from "react";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
-import { TrendingUp, Wallet, DollarSign } from "lucide-react";
-import { Switch } from "@/shared/ui/switch";
+import { DollarSign, TrendingUp, Wallet } from "lucide-react";
+
 import { useCurrency } from "@/shared/lib/hooks/useCurrency";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Switch } from "@/shared/ui/switch";
+
 import { useInvestmentsSummary } from "../hooks/useInvestmentsSummary";
 import type { InvestmentDTO } from "../model/investment.dto";
 
@@ -12,9 +15,67 @@ interface InvestmentSummaryCardsProps {
   investments: InvestmentDTO[];
 }
 
-/**
- * Widget: Tarjetas de resumen de inversiones activas
- */
+interface SummaryCardProps {
+  title: string;
+  value: string;
+  description: string;
+  emptyDescription: string;
+  hasData: boolean;
+  checked: boolean;
+  onCheckedChange: () => void;
+  icon: ComponentType<{ className?: string }>;
+  iconClassName: string;
+  valueClassName: string;
+}
+
+function SummaryCard({
+  title,
+  value,
+  description,
+  emptyDescription,
+  hasData,
+  checked,
+  onCheckedChange,
+  icon: Icon,
+  iconClassName,
+  valueClassName,
+}: SummaryCardProps) {
+  return (
+    <Card className="border shadow-none">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
+        <div className="space-y-1">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            {hasData ? description : emptyDescription}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <Switch
+            checked={checked}
+            onCheckedChange={onCheckedChange}
+            aria-label={`Mostrar tarjeta ${title}`}
+            className="scale-75"
+          />
+          <Icon className={iconClassName} />
+        </div>
+      </CardHeader>
+
+      {checked && (
+        <CardContent className="space-y-1">
+          <div
+            className={`text-xl font-bold sm:text-2xl ${
+              hasData ? valueClassName : "text-muted-foreground/50"
+            }`}
+          >
+            {value}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 export function InvestmentSummaryCards({
   investments,
 }: InvestmentSummaryCardsProps) {
@@ -31,144 +92,65 @@ export function InvestmentSummaryCards({
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {/* Total Principal Invertido */}
-      <Card className="border-0">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Invertido</CardTitle>
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={visibleCards.invested}
-              onCheckedChange={() => toggleCard("invested")}
-              aria-label="Toggle Invested Card"
-              className="scale-75"
-            />
-            <Wallet
-              className={`h-4 w-4 ${
-                summary.hasActiveInvestments
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-muted-foreground/50"
-              }`}
-            />
-          </div>
-        </CardHeader>
-        {visibleCards.invested && (
-          <CardContent>
-            {summary.hasActiveInvestments ? (
-              <>
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {formatCurrency(summary.totalPrincipal)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {summary.count}{" "}
-                  {summary.count === 1
-                    ? "inversión activa"
-                    : "inversiones activas"}
-                </p>
-              </>
-            ) : (
-              <div className="py-4">
-                <div className="text-2xl font-bold text-muted-foreground/50">
-                  {formatCurrency(0)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  No hay inversiones activas
-                </p>
-              </div>
-            )}
-          </CardContent>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <SummaryCard
+        title="Invertido"
+        value={formatCurrency(
+          summary.hasActiveInvestments ? summary.totalPrincipal : 0,
         )}
-      </Card>
+        description={`${summary.count} ${
+          summary.count === 1 ? "inversión activa" : "inversiones activas"
+        }`}
+        emptyDescription="No hay inversiones activas"
+        hasData={summary.hasActiveInvestments}
+        checked={visibleCards.invested}
+        onCheckedChange={() => toggleCard("invested")}
+        icon={Wallet}
+        iconClassName={
+          summary.hasActiveInvestments
+            ? "h-4 w-4 text-sky-600 dark:text-sky-400"
+            : "h-4 w-4 text-muted-foreground/50"
+        }
+        valueClassName="text-sky-600 dark:text-sky-400"
+      />
 
-      {/* Total Ganancias */}
-      <Card className="border-0">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Ganancias</CardTitle>
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={visibleCards.earnings}
-              onCheckedChange={() => toggleCard("earnings")}
-              aria-label="Toggle Earnings Card"
-              className="scale-75"
-            />
-            <TrendingUp
-              className={`h-4 w-4 ${
-                summary.hasActiveInvestments
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-muted-foreground/50"
-              }`}
-            />
-          </div>
-        </CardHeader>
-        {visibleCards.earnings && (
-          <CardContent>
-            {summary.hasActiveInvestments ? (
-              <>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {formatCurrency(summary.totalYield)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Rendimiento acumulado
-                </p>
-              </>
-            ) : (
-              <div className="py-4">
-                <div className="text-2xl font-bold text-muted-foreground/50">
-                  {formatCurrency(0)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Sin rendimientos
-                </p>
-              </div>
-            )}
-          </CardContent>
+      <SummaryCard
+        title="Ganancias"
+        value={formatCurrency(
+          summary.hasActiveInvestments ? summary.totalYield : 0,
         )}
-      </Card>
+        description="Rendimiento acumulado"
+        emptyDescription="Sin rendimientos activos"
+        hasData={summary.hasActiveInvestments}
+        checked={visibleCards.earnings}
+        onCheckedChange={() => toggleCard("earnings")}
+        icon={TrendingUp}
+        iconClassName={
+          summary.hasActiveInvestments
+            ? "h-4 w-4 text-green-600 dark:text-green-400"
+            : "h-4 w-4 text-muted-foreground/50"
+        }
+        valueClassName="text-green-600 dark:text-green-400"
+      />
 
-      {/* Total Acumulado */}
-      <Card className="border-0">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total</CardTitle>
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={visibleCards.total}
-              onCheckedChange={() => toggleCard("total")}
-              aria-label="Toggle Total Card"
-              className="scale-75"
-            />
-            <DollarSign
-              className={`h-4 w-4 ${
-                summary.hasActiveInvestments
-                  ? "text-purple-600 dark:text-purple-400"
-                  : "text-muted-foreground/50"
-              }`}
-            />
-          </div>
-        </CardHeader>
-        {visibleCards.total && (
-          <CardContent>
-            {summary.hasActiveInvestments ? (
-              <>
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {formatCurrency(summary.totalAmount)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Principal + ganancias
-                </p>
-              </>
-            ) : (
-              <div className="py-4">
-                <div className="text-2xl font-bold text-muted-foreground/50">
-                  {formatCurrency(0)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Sin inversiones
-                </p>
-              </div>
-            )}
-          </CardContent>
+      <SummaryCard
+        title="Total"
+        value={formatCurrency(
+          summary.hasActiveInvestments ? summary.totalAmount : 0,
         )}
-      </Card>
+        description="Principal más ganancias"
+        emptyDescription="Sin saldo invertido"
+        hasData={summary.hasActiveInvestments}
+        checked={visibleCards.total}
+        onCheckedChange={() => toggleCard("total")}
+        icon={DollarSign}
+        iconClassName={
+          summary.hasActiveInvestments
+            ? "h-4 w-4 text-amber-600 dark:text-amber-400"
+            : "h-4 w-4 text-muted-foreground/50"
+        }
+        valueClassName="text-amber-600 dark:text-amber-400"
+      />
     </div>
   );
 }

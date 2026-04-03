@@ -10,6 +10,7 @@ import {
 import { useMonthNavigation } from "@/shared/lib/hooks/useMonthNavigation";
 import { MonthSelector } from "@/shared/ui/month-selector";
 import { ErrorState } from "@/shared/ui/error-state";
+import { PageHeader } from "@/shared/ui/page-header";
 
 /**
  * Página del Dashboard
@@ -47,24 +48,28 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Panel Principal</h1>
-
-        {/* Selector de mes */}
-        <MonthSelector
-          currentMonth={currentMonth}
-          monthLabel={formatMonth()}
-          isCurrentMonth={isCurrentMonth()}
-          onPreviousMonth={goToPreviousMonth}
-          onNextMonth={goToNextMonth}
-          onCurrentMonth={goToCurrentMonth}
-        />
-      </div>
+      <PageHeader
+        title="Panel Principal"
+        description="Resumen mensual de ingresos, egresos y balance para el periodo seleccionado."
+        action={
+          <MonthSelector
+            currentMonth={currentMonth}
+            monthLabel={formatMonth()}
+            isCurrentMonth={isCurrentMonth()}
+            onPreviousMonth={goToPreviousMonth}
+            onNextMonth={goToNextMonth}
+            onCurrentMonth={goToCurrentMonth}
+          />
+        }
+      />
 
       {/* Mensaje de error */}
       {error && !isLoading && (
-        <ErrorState message={error.message} showReloadButton />
+        <ErrorState
+          message={error.message}
+          showReloadButton
+          className="max-w-3xl"
+        />
       )}
 
       {/* Dashboard Content - Siempre visible */}

@@ -8,40 +8,35 @@ import {
   type ChangeEvent,
 } from "react";
 import {
-  getCoreRowModel,
-  useReactTable,
   flexRender,
+  getCoreRowModel,
   type ColumnDef,
   type SortingState,
+  useReactTable,
 } from "@tanstack/react-table";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Calendar,
+  CreditCard,
   Pencil,
+  Search,
   Trash2,
   TrendingUp,
-  Calendar,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Search,
 } from "lucide-react";
+
+import type { CreateInvestmentInput } from "@/entities/investment/model/investment.schema";
+import {
+  useAllLiveRates,
+  type YieldRate,
+} from "@/features/market-data/hooks/useLatestYield";
+import { useCurrency } from "@/shared/lib/hooks";
+import { useSearchDebounce } from "@/shared/lib/hooks/useSearchDebounce";
+import { formatPercentageValue } from "@/shared/lib/utils/percentage";
+import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/ui/table";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import {
   Card,
   CardContent,
@@ -50,20 +45,50 @@ import {
   CardTitle,
 } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { Input } from "@/shared/ui/input";
 import { Pagination } from "@/shared/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/ui/table";
 import { TableLoadingOverlay } from "@/shared/ui/table-loading-overlay";
+
+import { useInvestmentMutations } from "../hooks/useInvestments";
 import type {
   InvestmentDTO,
   InvestmentQueryParams,
 } from "../model/investment.dto";
-import { InvestmentForm } from "./investment-form";
 import { DeleteInvestmentDialog } from "./delete-investment-dialog";
-import { InvestmentListSkeleton } from "./investment-list-skeleton";
-import { useInvestmentMutations } from "../hooks/useInvestments";
-import type { CreateInvestmentInput } from "@/entities/investment/model/investment.schema";
-import { useCurrency } from "@/shared/lib/hooks";
-import { useSearchDebounce } from "@/shared/lib/hooks/useSearchDebounce";
-import { useAllLiveRates } from "@/features/market-data/hooks/useLatestYield";
+import { InvestmentForm } from "./investment-form";
+
+const MOBILE_SORT_OPTIONS: Array<{
+  value: `${NonNullable<InvestmentQueryParams["sortBy"]>}:${NonNullable<InvestmentQueryParams["sortOrder"]>}`;
+  label: string;
+}> = [
+  { value: "startedOn:desc", label: "Inicio: más recientes" },
+  { value: "startedOn:asc", label: "Inicio: más antiguas" },
+  { value: "principal:desc", label: "Monto: mayor a menor" },
+  { value: "principal:asc", label: "Monto: menor a mayor" },
+  { value: "tna:desc", label: "TNA: mayor a menor" },
+  { value: "tna:asc", label: "TNA: menor a mayor" },
+  { value: "days:desc", label: "Duración: mayor a menor" },
+  { value: "days:asc", label: "Duración: menor a mayor" },
+  { value: "platform:asc", label: "Plataforma: A-Z" },
+  { value: "platform:desc", label: "Plataforma: Z-A" },
+  { value: "title:asc", label: "Título: A-Z" },
+  { value: "title:desc", label: "Título: Z-A" },
+];
 
 interface InvestmentListProps {
   investments: InvestmentDTO[];
@@ -90,6 +115,62 @@ interface InvestmentListProps {
   showCreateButton?: boolean;
 }
 
+function formatInvestmentDate(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year}`;
+}
+
+function getDisplayMetrics(investment: InvestmentDTO, liveRates?: YieldRate[]) {
+  const liveRate = liveRates?.find(
+    (rate) => rate.providerId === investment.yieldProviderId,
+  );
+  const liveRateValue =
+    typeof liveRate?.rate === "number" ? liveRate.rate : null;
+  const hasLiveRate = liveRateValue !== null;
+  const displayTna = hasLiveRate ? liveRateValue : investment.tna;
+  const isLive = hasLiveRate && liveRateValue !== investment.tna;
+
+  let currentYield = investment.yield;
+  let currentTotal = investment.total;
+
+  if (hasLiveRate && liveRateValue !== investment.tna && !investment.hasEnded) {
+    const start = new Date(investment.startedOn);
+    const now = new Date();
+    const timeDiff = now.getTime() - start.getTime();
+    const daysElapsed = Math.max(
+      0,
+      Math.floor(timeDiff / (1000 * 60 * 60 * 24)),
+    );
+
+    const rate = liveRateValue / 100;
+    const dailyRate = rate / 365;
+
+    if (investment.isCompound) {
+      currentTotal =
+        investment.principal * Math.pow(1 + dailyRate, daysElapsed);
+    } else {
+      currentTotal = investment.principal * (1 + dailyRate * daysElapsed);
+    }
+    currentYield = currentTotal - investment.principal;
+  }
+
+  return {
+    currentYield,
+    currentTotal,
+    displayTna,
+    isLive,
+    liveRateDate: liveRate?.date ?? null,
+  };
+}
+
 export function InvestmentList({
   investments,
   meta,
@@ -108,8 +189,8 @@ export function InvestmentList({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedInvestment, setSelectedInvestment] =
     useState<InvestmentDTO | null>(null);
-  // Búsqueda robusta con debounce genérico
   const [searchValue, setSearchValue] = useState(filters.q ?? "");
+
   useSearchDebounce({
     value: searchValue,
     delay: 300,
@@ -121,6 +202,10 @@ export function InvestmentList({
       }
     },
   });
+
+  useEffect(() => {
+    setSearchValue(filters.q ?? "");
+  }, [filters.q]);
 
   const { create, update, delete: deleteInvestment } = useInvestmentMutations();
   const { formatCurrency } = useCurrency();
@@ -139,13 +224,17 @@ export function InvestmentList({
       pageSize,
       totalPages: totalPages > 0 ? totalPages : 1,
     };
-  }, [meta, investments.length]);
+  }, [investments.length, meta]);
 
   const sorting: SortingState = useMemo(
     () =>
       sortBy && sortOrder ? [{ id: sortBy, desc: sortOrder === "desc" }] : [],
     [sortBy, sortOrder],
   );
+
+  const activeSort = sorting[0] ?? { id: "startedOn", desc: true };
+  const mobileSortValue =
+    `${activeSort.id}:${activeSort.desc ? "desc" : "asc"}` as const;
 
   const handleCreate = useCallback(() => {
     setSelectedInvestment(null);
@@ -170,20 +259,22 @@ export function InvestmentList({
         await create.mutateAsync(data);
       }
     },
-    [create, update, selectedInvestment],
+    [create, selectedInvestment, update],
   );
 
   const handleConfirmDelete = useCallback(async () => {
-    if (selectedInvestment) {
-      await deleteInvestment.mutateAsync(selectedInvestment.id);
-      setDeleteDialogOpen(false);
-      setSelectedInvestment(null);
+    if (!selectedInvestment) {
+      return;
     }
+
+    await deleteInvestment.mutateAsync(selectedInvestment.id);
+    setDeleteDialogOpen(false);
+    setSelectedInvestment(null);
   }, [deleteInvestment, selectedInvestment]);
 
   const handleSort = useCallback(
     (columnId: NonNullable<InvestmentQueryParams["sortBy"]>) => {
-      const current = sorting.find((s) => s.id === columnId);
+      const current = sorting.find((sort) => sort.id === columnId);
       const nextOrder = current ? (current.desc ? "asc" : "desc") : "desc";
       onSortChange(columnId, nextOrder);
     },
@@ -192,8 +283,11 @@ export function InvestmentList({
 
   const renderSortIcon = useCallback(
     (columnId: string) => {
-      const current = sorting.find((s) => s.id === columnId);
-      if (!current) return <ArrowUpDown className="ml-2 h-4 w-4" />;
+      const current = sorting.find((sort) => sort.id === columnId);
+      if (!current) {
+        return <ArrowUpDown className="ml-2 h-4 w-4" />;
+      }
+
       return current.desc ? (
         <ArrowDown className="ml-2 h-4 w-4" />
       ) : (
@@ -241,11 +335,7 @@ export function InvestmentList({
           </Button>
         ),
         cell: ({ row }) => {
-          const liveRate = liveRates?.find(
-            (r) => r.providerId === row.original.yieldProviderId,
-          );
-          const displayTna = liveRate ? liveRate.rate : row.original.tna;
-          const isLive = !!liveRate && liveRate.rate !== row.original.tna;
+          const metrics = getDisplayMetrics(row.original, liveRates);
 
           return (
             <div className="text-right">
@@ -253,9 +343,15 @@ export function InvestmentList({
                 {formatCurrency(row.original.principal)}
               </div>
               <div
-                className={`text-xs ${isLive ? "text-blue-600 font-medium" : "text-muted-foreground"}`}
+                className={cn(
+                  "text-xs",
+                  metrics.isLive
+                    ? "font-medium text-blue-600 dark:text-blue-400"
+                    : "text-muted-foreground",
+                )}
               >
-                TNA: {displayTna.toFixed(2)}% {isLive && "(Live)"}
+                TNA: {formatPercentageValue(metrics.displayTna)}%
+                {metrics.isLive && " (Live)"}
               </div>
             </div>
           );
@@ -265,48 +361,15 @@ export function InvestmentList({
         id: "yield",
         header: "Rendimiento",
         cell: ({ row }) => {
-          const liveRate = liveRates?.find(
-            (r) => r.providerId === row.original.yieldProviderId,
-          );
-
-          let currentYield = row.original.yield;
-          let currentTotal = row.original.total;
-
-          // Recalcular solo si hay live rate válido y si la inversión NO ha terminado
-          // Si ya terminó, el rendimiento es histórico fijo.
-          if (
-            liveRate &&
-            liveRate.rate !== row.original.tna &&
-            !row.original.hasEnded
-          ) {
-            const start = new Date(row.original.startedOn);
-            const now = new Date();
-            const timeDiff = now.getTime() - start.getTime();
-            const daysElapsed = Math.max(
-              0,
-              Math.floor(timeDiff / (1000 * 60 * 60 * 24)),
-            );
-
-            const rate = liveRate.rate / 100;
-            const dailyRate = rate / 365;
-
-            if (row.original.isCompound) {
-              currentTotal =
-                row.original.principal * Math.pow(1 + dailyRate, daysElapsed);
-            } else {
-              currentTotal =
-                row.original.principal * (1 + dailyRate * daysElapsed);
-            }
-            currentYield = currentTotal - row.original.principal;
-          }
+          const metrics = getDisplayMetrics(row.original, liveRates);
 
           return (
             <div className="text-right">
               <div className="font-semibold text-green-600 dark:text-green-400">
-                +{formatCurrency(currentYield)}
+                +{formatCurrency(metrics.currentYield)}
               </div>
               <div className="text-xs text-muted-foreground">
-                Total: {formatCurrency(currentTotal)}
+                Total: {formatCurrency(metrics.currentTotal)}
               </div>
             </div>
           );
@@ -329,10 +392,15 @@ export function InvestmentList({
           <div>
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3 text-muted-foreground" />
-              <span>{row.original.days} días</span>
+              <span>
+                {row.original.days
+                  ? `${row.original.days} días`
+                  : "Sin vencimiento"}
+              </span>
             </div>
             <div className="text-xs text-muted-foreground">
-              {row.original.startedOn} → {row.original.endDate}
+              {formatInvestmentDate(row.original.startedOn)} →{" "}
+              {formatInvestmentDate(row.original.endDate)}
             </div>
           </div>
         ),
@@ -352,9 +420,11 @@ export function InvestmentList({
         ),
         cell: ({ row }) => (
           <div className="text-sm">
-            <div className="font-medium">{row.original.startedOn}</div>
+            <div className="font-medium">
+              {formatInvestmentDate(row.original.startedOn)}
+            </div>
             <div className="text-xs text-muted-foreground">
-              Fin: {row.original.endDate ?? "-"}
+              Fin: {formatInvestmentDate(row.original.endDate)}
             </div>
           </div>
         ),
@@ -365,7 +435,7 @@ export function InvestmentList({
         cell: ({ row }) => {
           if (row.original.hasEnded) {
             return (
-              <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800">
+              <Badge variant="outline" className="bg-muted/60">
                 Finalizada
               </Badge>
             );
@@ -373,11 +443,11 @@ export function InvestmentList({
 
           return (
             <div className="flex flex-col gap-1">
-              <Badge variant="default" className="bg-green-600">
-                Activa
-              </Badge>
+              <Badge className="bg-green-600 hover:bg-green-600">Activa</Badge>
               <span className="text-xs text-muted-foreground">
-                {row.original.daysRemaining} días restantes
+                {row.original.daysRemaining !== null
+                  ? `${row.original.daysRemaining} días restantes`
+                  : "Sin fecha de cierre"}
               </span>
             </div>
           );
@@ -407,7 +477,14 @@ export function InvestmentList({
         ),
       },
     ],
-    [handleDelete, handleEdit, handleSort, formatCurrency, renderSortIcon],
+    [
+      formatCurrency,
+      handleDelete,
+      handleEdit,
+      handleSort,
+      liveRates,
+      renderSortIcon,
+    ],
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -423,13 +500,8 @@ export function InvestmentList({
 
   const activeFiltersCount = useMemo(
     () => [filters.q, filters.active].filter(Boolean).length,
-    [filters.q, filters.active],
+    [filters.active, filters.q],
   );
-
-  // Mantener el valor local de búsqueda sincronizado con el que viene de la URL
-  useEffect(() => {
-    setSearchValue(filters.q ?? "");
-  }, [filters.q]);
 
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
@@ -452,120 +524,319 @@ export function InvestmentList({
       : filters.active === "false"
         ? "ended"
         : "all";
-  const isInitialLoading = isLoading && !hasData;
 
   return (
     <>
-      <Card className="border-0">
+      <Card className="border shadow-none">
         <CardHeader className="space-y-4">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
               <CardTitle>Inversiones</CardTitle>
               <CardDescription>
-                Gestiona tus inversiones y rendimientos
+                Gestiona tus inversiones, compara rendimientos y revisa su
+                evolución.
               </CardDescription>
             </div>
+
             {showCreateButton && (
-              <Button onClick={handleCreate} size="sm">
+              <Button onClick={handleCreate} className="w-full sm:w-auto">
                 Nueva inversión
               </Button>
             )}
           </div>
 
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por título o plataforma"
-                  value={searchValue}
-                  onChange={handleSearchChange}
-                  className="pl-9"
-                />
-              </div>
-
-              <Select
-                value={activeFilterValue}
-                onValueChange={handleActiveChange}
-              >
-                <SelectTrigger className="sm:w-48">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="active">Activas</SelectItem>
-                  <SelectItem value="ended">Finalizadas</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por título o plataforma"
+                value={searchValue}
+                onChange={handleSearchChange}
+                className="h-11 pl-9"
+              />
             </div>
 
-            <div className="flex items-center gap-2">
+            <Select
+              value={activeFilterValue}
+              onValueChange={handleActiveChange}
+            >
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="active">Activas</SelectItem>
+                <SelectItem value="ended">Finalizadas</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
               {activeFiltersCount > 0 && (
-                <Button variant="outline" size="sm" onClick={onResetFilters}>
+                <Button
+                  variant="outline"
+                  onClick={onResetFilters}
+                  className="h-11 w-full sm:w-auto"
+                >
                   Limpiar filtros ({activeFiltersCount})
                 </Button>
               )}
+
               {!showCreateButton && (
-                <Button onClick={handleCreate} size="sm">
+                <Button
+                  onClick={handleCreate}
+                  className="h-11 w-full sm:w-auto"
+                >
                   Nueva inversión
                 </Button>
               )}
             </div>
           </div>
+
+          <div className="md:hidden">
+            <Select
+              value={mobileSortValue}
+              onValueChange={(value) => {
+                const [nextSortBy, nextSortOrder] = value.split(":");
+                if (
+                  nextSortBy &&
+                  (nextSortOrder === "asc" || nextSortOrder === "desc")
+                ) {
+                  onSortChange(
+                    nextSortBy as NonNullable<InvestmentQueryParams["sortBy"]>,
+                    nextSortOrder,
+                  );
+                }
+              }}
+            >
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="Ordenar inversiones" />
+              </SelectTrigger>
+              <SelectContent>
+                {MOBILE_SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
 
         <CardContent>
-          {isInitialLoading ? (
-            <InvestmentListSkeleton />
-          ) : !hasData ? (
+          {!hasData ? (
             <EmptyState
               icon={TrendingUp}
               title="Sin inversiones"
               description="No hay inversiones registradas. Crea una para hacer seguimiento de rendimientos."
             />
           ) : (
-            <>
-              <div className="rounded-md border relative">
-                <TableLoadingOverlay show={isLoading} />
-                <Table>
-                  <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <TableHead
-                            key={header.id}
-                            className="whitespace-nowrap"
+            <div className="space-y-4">
+              <div className="relative md:hidden">
+                <TableLoadingOverlay show={isLoading} className="rounded-xl" />
+                <div className="space-y-3">
+                  {investments.map((investment) => {
+                    const metrics = getDisplayMetrics(investment, liveRates);
+
+                    return (
+                      <div
+                        key={investment.id}
+                        className="rounded-xl border bg-card p-4 shadow-sm"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 space-y-2">
+                            <div>
+                              <p className="truncate text-sm font-semibold sm:text-base">
+                                {investment.title}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {investment.platform}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <Badge
+                                variant={
+                                  investment.hasEnded ? "outline" : "default"
+                                }
+                                className={
+                                  investment.hasEnded
+                                    ? "bg-muted/60"
+                                    : "bg-green-600 hover:bg-green-600"
+                                }
+                              >
+                                {investment.hasEnded ? "Finalizada" : "Activa"}
+                              </Badge>
+                              {investment.yieldProviderId && (
+                                <Badge variant="secondary">
+                                  Tasa vinculada
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 text-right">
+                            <p className="text-lg font-semibold">
+                              {formatCurrency(investment.principal)}
+                            </p>
+                            <p
+                              className={cn(
+                                "text-xs",
+                                metrics.isLive
+                                  ? "font-medium text-blue-600 dark:text-blue-400"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              TNA {formatPercentageValue(metrics.displayTna)}%
+                              {metrics.isLive && " live"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-lg border bg-background/60 p-3">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                              Rendimiento
+                            </p>
+                            <p className="mt-1 text-base font-semibold text-green-600 dark:text-green-400">
+                              +{formatCurrency(metrics.currentYield)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Total: {formatCurrency(metrics.currentTotal)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border bg-background/60 p-3">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                              Duración
+                            </p>
+                            <p className="mt-1 text-sm font-medium">
+                              {investment.days
+                                ? `${investment.days} días`
+                                : "Sin vencimiento"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {investment.hasEnded
+                                ? "Cerrada"
+                                : investment.daysRemaining !== null
+                                  ? `${investment.daysRemaining} días restantes`
+                                  : "Activa sin fecha de cierre"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 text-sm">
+                          <div className="flex items-start gap-2">
+                            <Calendar className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                            <div className="space-y-1">
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                Vigencia
+                              </p>
+                              <p className="font-medium">
+                                {formatInvestmentDate(investment.startedOn)} →{" "}
+                                {formatInvestmentDate(investment.endDate)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-2">
+                            <CreditCard className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                            <div className="space-y-1">
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                Tipo de interés
+                              </p>
+                              <p className="font-medium">
+                                {investment.isCompound ? "Compuesto" : "Simple"}
+                              </p>
+                              {metrics.isLive && metrics.liveRateDate && (
+                                <p className="text-xs text-muted-foreground">
+                                  Actualizado el{" "}
+                                  {metrics.liveRateDate.toLocaleDateString(
+                                    "es-AR",
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {investment.notes && (
+                          <div className="mt-4 rounded-lg border bg-muted/20 p-3">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                              Notas
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {investment.notes}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                          <Button
+                            variant="outline"
+                            className="h-11 flex-1"
+                            onClick={() => handleEdit(investment)}
                           >
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )}
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className="align-top">
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                            <Pencil className="h-4 w-4" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="h-11 flex-1 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(investment)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Eliminar
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="relative hidden rounded-md border md:block">
+                <TableLoadingOverlay show={isLoading} />
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id}>
+                          {headerGroup.headers.map((header) => (
+                            <TableHead
+                              key={header.id}
+                              className="whitespace-nowrap"
+                            >
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {table.getRowModel().rows.map((row) => (
+                        <TableRow key={row.id}>
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="align-top">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
 
               {metaInfo.totalPages > 1 && (
-                <div className="mt-4">
+                <div className="rounded-lg border bg-card p-4">
                   <Pagination
                     currentPage={metaInfo.page}
                     totalPages={metaInfo.totalPages}
@@ -576,7 +847,7 @@ export function InvestmentList({
                   />
                 </div>
               )}
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -593,6 +864,7 @@ export function InvestmentList({
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleConfirmDelete}
         investment={selectedInvestment}
+        isLoading={deleteInvestment.isPending}
       />
     </>
   );

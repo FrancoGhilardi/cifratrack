@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/shared/ui/button";
+import { Checkbox } from "@/shared/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -43,10 +44,14 @@ export function PaymentMethodForm({
       paymentMethod
         ? { name: paymentMethod.name, isActive: paymentMethod.isActive }
         : { name: "", isActive: true },
-    [paymentMethod]
+    [paymentMethod],
   );
 
-  const form = useForm<PaymentMethodFormValues, undefined, CreatePaymentMethodInput>({
+  const form = useForm<
+    PaymentMethodFormValues,
+    undefined,
+    CreatePaymentMethodInput
+  >({
     resolver: zodResolver(createPaymentMethodSchema),
     mode: "onChange",
     defaultValues: getDefaultValues(),
@@ -55,7 +60,7 @@ export function PaymentMethodForm({
   const { apiError, setApiError, clearError } = useDialogForm(
     form,
     open,
-    getDefaultValues
+    getDefaultValues,
   );
 
   // Limpiar error cuando se abre el modal
@@ -84,7 +89,7 @@ export function PaymentMethodForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             {paymentMethod ? "Editar" : "Nueva"} forma de pago
@@ -105,6 +110,7 @@ export function PaymentMethodForm({
             <Input
               id="name"
               placeholder="Ej: Efectivo, Transferencia, Débito..."
+              className="h-11"
               {...form.register("name")}
             />
             {form.formState.errors.name && (
@@ -114,20 +120,34 @@ export function PaymentMethodForm({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="isActive"
-              {...form.register("isActive")}
-              className="h-4 w-4"
+          <div className="flex items-start gap-3 rounded-lg border border-border/70 px-3 py-3">
+            <Controller
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <Checkbox
+                  id="isActive"
+                  checked={Boolean(field.value)}
+                  onCheckedChange={(checked) =>
+                    field.onChange(Boolean(checked))
+                  }
+                  className="mt-0.5"
+                />
+              )}
             />
-            <Label htmlFor="isActive" className="!mt-0">
-              Activa
-            </Label>
+            <div className="space-y-1">
+              <Label htmlFor="isActive" className="cursor-pointer !mt-0">
+                Activa
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Si la desactivas, no se ofrecerá como opción para nuevos
+                movimientos.
+              </p>
+            </div>
           </div>
 
           {apiError && (
-            <div className="text-sm text-red-600 dark:text-red-400">
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-400">
               {apiError}
             </div>
           )}
@@ -138,6 +158,7 @@ export function PaymentMethodForm({
               variant="outline"
               onClick={handleClose}
               disabled={form.formState.isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
@@ -145,6 +166,7 @@ export function PaymentMethodForm({
               type="submit"
               disabled={form.formState.isSubmitting}
               isLoading={form.formState.isSubmitting}
+              className="w-full sm:w-auto"
             >
               {form.formState.isSubmitting
                 ? "Guardando..."

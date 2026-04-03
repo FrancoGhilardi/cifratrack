@@ -25,7 +25,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {/* Total Ingresos */}
-      <Card className="border-0">
+      <Card className="h-full border border-border/70 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Ingresos</CardTitle>
           <ArrowUpCircle
@@ -39,7 +39,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
         <CardContent>
           {hasIncome ? (
             <>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              <div className="text-xl font-bold text-green-600 dark:text-green-400 sm:text-2xl">
                 {formatCurrency(summary.totalIncome)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -48,7 +48,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
             </>
           ) : (
             <div className="py-4">
-              <div className="text-2xl font-bold text-muted-foreground/50">
+              <div className="text-xl font-bold text-muted-foreground/50 sm:text-2xl">
                 {formatCurrency(0)}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
@@ -60,7 +60,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
       </Card>
 
       {/* Total Egresos */}
-      <Card className="border-0">
+      <Card className="h-full border border-border/70 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Egresos</CardTitle>
           <ArrowDownCircle
@@ -74,7 +74,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
         <CardContent>
           {hasExpenses ? (
             <>
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+              <div className="text-xl font-bold text-red-600 dark:text-red-400 sm:text-2xl">
                 {formatCurrency(summary.totalExpenses)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -83,7 +83,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
             </>
           ) : (
             <div className="py-4">
-              <div className="text-2xl font-bold text-muted-foreground/50">
+              <div className="text-xl font-bold text-muted-foreground/50 sm:text-2xl">
                 {formatCurrency(0)}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
@@ -95,7 +95,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
       </Card>
 
       {/* Balance */}
-      <Card className="border-0">
+      <Card className="h-full border border-border/70 shadow-none md:col-span-2 lg:col-span-1">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Balance</CardTitle>
           {!hasData ? (
@@ -110,7 +110,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
           {hasData ? (
             <>
               <div
-                className={`text-2xl font-bold ${
+                className={`text-xl font-bold sm:text-2xl ${
                   summary.balance >= 0
                     ? "text-blue-600 dark:text-blue-400"
                     : "text-orange-600 dark:text-orange-400"
@@ -126,7 +126,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
             </>
           ) : (
             <div className="py-4">
-              <div className="text-2xl font-bold text-muted-foreground/50">
+              <div className="text-xl font-bold text-muted-foreground/50 sm:text-2xl">
                 {formatCurrency(0)}
               </div>
               <p className="text-xs text-muted-foreground mt-2">

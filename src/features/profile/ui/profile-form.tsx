@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
-import { Button } from '@/shared/ui/button';
-import { useDialogForm } from '@/shared/lib/hooks/useDialogForm';
-import type { UpdateProfileInput } from '@/entities/user/model/user.schema';
-import { updateProfileSchema } from '@/entities/user/model/user.schema';
-import type { ProfileDTO } from '../model/profile.dto';
+import { useCallback, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Button } from "@/shared/ui/button";
+import { useDialogForm } from "@/shared/lib/hooks/useDialogForm";
+import type { UpdateProfileInput } from "@/entities/user/model/user.schema";
+import { updateProfileSchema } from "@/entities/user/model/user.schema";
+import type { ProfileDTO } from "../model/profile.dto";
 
 interface ProfileFormProps {
   profile: ProfileDTO;
@@ -19,19 +19,23 @@ interface ProfileFormProps {
 export function ProfileForm({ profile, onSubmit }: ProfileFormProps) {
   const getDefaultValues = useCallback(
     (): UpdateProfileInput => ({
-      name: profile.name ?? '',
+      name: profile.name ?? "",
       email: profile.email,
     }),
-    [profile.name, profile.email]
+    [profile.name, profile.email],
   );
 
   const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
-    mode: 'onChange',
+    mode: "onChange",
     defaultValues: getDefaultValues(),
   });
 
-  const { apiError, setApiError, clearError } = useDialogForm(form, true, getDefaultValues);
+  const { apiError, setApiError, clearError } = useDialogForm(
+    form,
+    true,
+    getDefaultValues,
+  );
 
   useEffect(() => {
     clearError();
@@ -50,9 +54,17 @@ export function ProfileForm({ profile, onSubmit }: ProfileFormProps) {
     <form className="space-y-4" onSubmit={handleSubmit}>
       <div className="space-y-2">
         <Label htmlFor="name">Nombre</Label>
-        <Input id="name" {...form.register('name')} placeholder="Tu nombre" />
+        <Input
+          id="name"
+          {...form.register("name")}
+          placeholder="Tu nombre"
+          autoComplete="name"
+          className="h-11"
+        />
         {form.formState.errors.name && (
-          <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
+          <p className="text-sm text-red-500">
+            {form.formState.errors.name.message}
+          </p>
         )}
       </div>
 
@@ -61,12 +73,16 @@ export function ProfileForm({ profile, onSubmit }: ProfileFormProps) {
         <Input
           id="email"
           type="email"
-          {...form.register('email')}
+          {...form.register("email")}
           placeholder="tu@email.com"
           disabled
+          autoComplete="email"
+          className="h-11 bg-muted/40"
         />
         {form.formState.errors.email && (
-          <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+          <p className="text-sm text-red-500">
+            {form.formState.errors.email.message}
+          </p>
         )}
       </div>
 
@@ -76,8 +92,13 @@ export function ProfileForm({ profile, onSubmit }: ProfileFormProps) {
         </div>
       )}
 
-      <Button type="submit" disabled={form.formState.isSubmitting} isLoading={form.formState.isSubmitting}>
-        {form.formState.isSubmitting ? 'Guardando...' : 'Guardar cambios'}
+      <Button
+        type="submit"
+        disabled={form.formState.isSubmitting}
+        isLoading={form.formState.isSubmitting}
+        className="w-full sm:w-auto"
+      >
+        {form.formState.isSubmitting ? "Guardando..." : "Guardar cambios"}
       </Button>
     </form>
   );

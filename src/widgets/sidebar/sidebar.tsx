@@ -2,21 +2,36 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { X } from "lucide-react";
 import iconPng from "../../../public/icon.png";
 import { useActiveRoute } from "@/shared/lib/hooks/useActiveRoute";
 import { cn } from "@/shared/lib/utils";
+import { Button } from "@/shared/ui/button";
 import { appNavigation } from "@/widgets/navigation/nav-items";
 
 interface SidebarProps {
   onNavigate?: () => void;
+  onClose?: () => void;
+  className?: string;
+  showCloseButton?: boolean;
 }
 
-export function Sidebar({ onNavigate }: SidebarProps) {
+export function Sidebar({
+  onNavigate,
+  onClose,
+  className,
+  showCloseButton = false,
+}: SidebarProps) {
   const { isActive } = useActiveRoute();
 
   return (
-    <aside className="flex h-screen min-h-screen w-64 flex-col border-r border-border">
-      <div className="flex h-16 items-center border-b border-border px-6">
+    <aside
+      className={cn(
+        "flex w-64 flex-col border-r border-border bg-background",
+        className,
+      )}
+    >
+      <div className="flex h-16 items-center justify-between border-b border-border px-4 sm:px-6">
         <Link
           href="/dashboard"
           onClick={onNavigate}
@@ -32,9 +47,24 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           />
           CifraTrack
         </Link>
+
+        {showCloseButton && onClose && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            aria-label="Cerrar menu"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      <nav
+        className="flex-1 space-y-1 px-2 py-4"
+        aria-label="Navegacion principal"
+      >
         {appNavigation.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -44,10 +74,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                 active
                   ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
               )}
             >
               <Icon className="h-4 w-4" />

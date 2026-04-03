@@ -1,14 +1,15 @@
-'use client';
+"use client";
 
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import type { InvestmentDTO } from '../model/investment.dto';
-import { useCurrency } from '@/shared/lib/hooks';
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import type { InvestmentDTO } from "../model/investment.dto";
+import { useCurrency } from "@/shared/lib/hooks";
 
 interface DeleteInvestmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => Promise<void>;
   investment: InvestmentDTO | null;
+  isLoading?: boolean;
 }
 
 export function DeleteInvestmentDialog({
@@ -16,6 +17,7 @@ export function DeleteInvestmentDialog({
   onOpenChange,
   onConfirm,
   investment,
+  isLoading,
 }: DeleteInvestmentDialogProps) {
   const { formatCurrency } = useCurrency();
 
@@ -30,6 +32,7 @@ export function DeleteInvestmentDialog({
       description={`Estás por eliminar la inversión "${investment.title}" en ${investment.platform}. Monto: ${formatCurrency(investment.principal)}, Rendimiento: +${formatCurrency(investment.yield)}. Esta acción no se puede deshacer.`}
       confirmText="Eliminar"
       cancelText="Cancelar"
+      isLoading={isLoading}
     />
   );
 }

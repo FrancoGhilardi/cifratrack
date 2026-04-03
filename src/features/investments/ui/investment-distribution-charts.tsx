@@ -1,232 +1,227 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+
+import { useCurrency } from "@/shared/lib/hooks/useCurrency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Switch } from "@/shared/ui/switch";
-import { useCurrency } from "@/shared/lib/hooks/useCurrency";
+
 import type { InvestmentDTO } from "../model/investment.dto";
 
 interface InvestmentDistributionChartsProps {
   investments: InvestmentDTO[];
 }
 
+type ChartKey = "principal" | "yield" | "total";
+
+type ChartDatum = {
+  name: string;
+  platform: string;
+  principal: number;
+  yield: number;
+  total: number;
+  color: string;
+};
+
+type TooltipPayloadItem = {
+  payload: ChartDatum;
+  value: number;
+};
+
 const COLORS = [
-  "#0ea5e9", // sky-500
-  "#22c55e", // green-500
-  "#eab308", // yellow-500
-  "#f97316", // orange-500
-  "#ef4444", // red-500
-  "#a855f7", // purple-500
-  "#ec4899", // pink-500
-  "#6366f1", // indigo-500
-  "#14b8a6", // teal-500
-  "#f43f5e", // rose-500
+  "#0ea5e9",
+  "#22c55e",
+  "#eab308",
+  "#f97316",
+  "#ef4444",
+  "#06b6d4",
+  "#14b8a6",
+  "#f43f5e",
+  "#6366f1",
+  "#84cc16",
 ];
+
+function ChartTooltip({
+  active,
+  payload,
+  formatCurrency,
+}: {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  formatCurrency: (value: number) => string;
+}) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  const item = payload[0];
+  return (
+    <div className="rounded-lg border bg-popover p-3 text-popover-foreground shadow-sm">
+      <p className="font-medium">{item.payload.name}</p>
+      <p className="text-xs text-muted-foreground">{item.payload.platform}</p>
+      <p className="mt-1 font-semibold">{formatCurrency(item.value)}</p>
+    </div>
+  );
+}
+
+function ChartCard({
+  title,
+  description,
+  chartKey,
+  checked,
+  onCheckedChange,
+  data,
+  formatCurrency,
+}: {
+  title: string;
+  description: string;
+  chartKey: ChartKey;
+  checked: boolean;
+  onCheckedChange: () => void;
+  data: ChartDatum[];
+  formatCurrency: (value: number) => string;
+}) {
+  return (
+    <Card className="border shadow-none">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-3">
+        <div className="space-y-1">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <Switch
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          aria-label={`Mostrar gráfico ${title}`}
+          className="mt-0.5 scale-75"
+        />
+      </CardHeader>
+
+      {checked && (
+        <CardContent className="space-y-4">
+          <div className="h-[220px] sm:h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={28}
+                  outerRadius={82}
+                  dataKey={chartKey}
+                  strokeWidth={0}
+                >
+                  {data.map((entry) => (
+                    <Cell
+                      key={`${chartKey}-${entry.name}`}
+                      fill={entry.color}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  content={<ChartTooltip formatCurrency={formatCurrency} />}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="max-h-40 space-y-2 overflow-auto pr-1">
+            {data.map((entry) => (
+              <div
+                key={`${chartKey}-legend-${entry.name}`}
+                className="flex items-start justify-between gap-3 rounded-lg border bg-background/60 px-3 py-2"
+              >
+                <div className="min-w-0 flex items-start gap-2">
+                  <span
+                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{entry.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {entry.platform}
+                    </p>
+                  </div>
+                </div>
+                <p className="shrink-0 text-sm font-semibold">
+                  {formatCurrency(entry[chartKey])}
+                </p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
 
 export function InvestmentDistributionCharts({
   investments,
 }: InvestmentDistributionChartsProps) {
+  const { formatCurrency } = useCurrency();
   const [visibleCharts, setVisibleCharts] = useState({
-    principal: false,
+    principal: true,
     yield: false,
     total: false,
   });
 
-  const toggleChart = (key: keyof typeof visibleCharts) => {
-    setVisibleCharts((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-  const { formatCurrency } = useCurrency();
-
-  // Filtramos solo las inversiones activas para ser consistentes con las Summary Cards
   const activeInvestments = useMemo(
-    () => investments.filter((inv) => !inv.hasEnded),
+    () => investments.filter((investment) => !investment.hasEnded),
     [investments],
   );
 
-  const data = useMemo(() => {
-    return activeInvestments.map((inv) => ({
-      name: inv.title,
-      platform: inv.platform,
-      principal: inv.principal,
-      yield: inv.yield,
-      total: inv.total,
-    }));
-  }, [activeInvestments]);
+  const data = useMemo<ChartDatum[]>(
+    () =>
+      activeInvestments.map((investment, index) => ({
+        name: investment.title,
+        platform: investment.platform,
+        principal: investment.principal,
+        yield: investment.yield,
+        total: investment.total,
+        color: COLORS[index % COLORS.length],
+      })),
+    [activeInvestments],
+  );
 
-  // Si no hay inversiones activas, no mostramos nada
   if (activeInvestments.length === 0) {
     return null;
   }
-  const renderTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: any;
-  }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      const value = payload[0].value;
-      return (
-        <div className="bg-popover text-popover-foreground rounded-lg border p-2 shadow-sm">
-          <div className="font-medium">{data.name}</div>
-          <div className="text-xs text-muted-foreground mb-1">
-            {data.platform}
-          </div>
-          <div className="font-bold">{formatCurrency(value)}</div>
-        </div>
-      );
-    }
-    return null;
+
+  const toggleChart = (key: keyof typeof visibleCharts) => {
+    setVisibleCharts((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {/* Gráfico 1: Invertido (Principal) */}
-      <Card className="border-0">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">
-            Distribución de Capital
-          </CardTitle>
-          <Switch
-            checked={visibleCharts.principal}
-            onCheckedChange={() => toggleChart("principal")}
-            aria-label="Toggle Capital Chart"
-            className="scale-75 origin-right"
-          />
-        </CardHeader>
-        {visibleCharts.principal && (
-          <CardContent className="h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={20}
-                  outerRadius={80}
-                  dataKey="principal"
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                      strokeWidth={0}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={renderTooltip} />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        )}
-      </Card>
+    <div className="grid gap-4 lg:grid-cols-3">
+      <ChartCard
+        title="Distribución de capital"
+        description="Solo inversiones activas"
+        chartKey="principal"
+        checked={visibleCharts.principal}
+        onCheckedChange={() => toggleChart("principal")}
+        data={data}
+        formatCurrency={formatCurrency}
+      />
 
-      {/* Gráfico 2: Ganancias (Yield) */}
-      <Card className="border-0">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">
-            Distribución de Ganancias
-          </CardTitle>
-          <Switch
-            checked={visibleCharts.yield}
-            onCheckedChange={() => toggleChart("yield")}
-            aria-label="Toggle Yield Chart"
-            className="scale-75 origin-right"
-          />
-        </CardHeader>
-        {visibleCharts.yield && (
-          <CardContent className="h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={20}
-                  outerRadius={80}
-                  dataKey="yield"
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                      strokeWidth={0}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={renderTooltip} />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        )}
-      </Card>
+      <ChartCard
+        title="Distribución de ganancias"
+        description="Rendimiento acumulado por inversión"
+        chartKey="yield"
+        checked={visibleCharts.yield}
+        onCheckedChange={() => toggleChart("yield")}
+        data={data}
+        formatCurrency={formatCurrency}
+      />
 
-      {/* Gráfico 3: Total (Principal + Yield) */}
-      <Card className="border-0">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">
-            Distribución Total
-          </CardTitle>
-          <Switch
-            checked={visibleCharts.total}
-            onCheckedChange={() => toggleChart("total")}
-            aria-label="Toggle Total Chart"
-            className="scale-75 origin-right"
-          />
-        </CardHeader>
-        {visibleCharts.total && (
-          <CardContent className="h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={20}
-                  outerRadius={80}
-                  dataKey="total"
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                      strokeWidth={0}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={renderTooltip} />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        )}
-      </Card>
+      <ChartCard
+        title="Distribución total"
+        description="Capital más rendimiento"
+        chartKey="total"
+        checked={visibleCharts.total}
+        onCheckedChange={() => toggleChart("total")}
+        data={data}
+        formatCurrency={formatCurrency}
+      />
     </div>
   );
 }

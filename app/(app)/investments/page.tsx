@@ -65,6 +65,7 @@ export default function InvestmentsPage() {
         action={
           <Button
             variant="outline"
+            className="w-full sm:w-auto"
             onClick={() => window.open("https://comparatasas.ar/", "_blank")}
           >
             <ExternalLink className="mr-2 h-4 w-4" />

@@ -1,3 +1,5 @@
+import { YIELD_PROVIDER_LIVE_SOURCES } from "@/features/market-data/config/live-provider-sources";
+
 export const YIELD_PROVIDERS: Record<string, { name: string; color: string }> =
   {
     mercadopago: { name: "Mercado Pago", color: "#009EE3" },
@@ -23,9 +25,17 @@ export const YIELD_PROVIDERS: Record<string, { name: string; color: string }> =
     balanz: { name: "Balanz", color: "#1D324F" },
   };
 
+export const LIVE_SUPPORTED_YIELD_PROVIDERS = new Set<string>(
+  Object.keys(YIELD_PROVIDER_LIVE_SOURCES),
+);
+
 export function getProviderName(id: string): string {
   return (
     YIELD_PROVIDERS[id]?.name ||
     id.replace(/[_-]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
   );
+}
+
+export function supportsLiveYieldProvider(id: string | null | undefined) {
+  return !!id && LIVE_SUPPORTED_YIELD_PROVIDERS.has(id);
 }

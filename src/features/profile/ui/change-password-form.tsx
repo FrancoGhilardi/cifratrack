@@ -1,13 +1,16 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
-import { Button } from '@/shared/ui/button';
-import { useDialogForm } from '@/shared/lib/hooks/useDialogForm';
-import { changePasswordSchema, type ChangePasswordInput } from '@/entities/user/model/user.schema';
+import { useCallback, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Button } from "@/shared/ui/button";
+import { useDialogForm } from "@/shared/lib/hooks/useDialogForm";
+import {
+  changePasswordSchema,
+  type ChangePasswordInput,
+} from "@/entities/user/model/user.schema";
 
 interface ChangePasswordFormProps {
   onSubmit: (data: ChangePasswordInput) => Promise<void>;
@@ -16,20 +19,24 @@ interface ChangePasswordFormProps {
 export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
   const getDefaultValues = useCallback(
     (): ChangePasswordInput => ({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     }),
-    []
+    [],
   );
 
   const form = useForm<ChangePasswordInput>({
     resolver: zodResolver(changePasswordSchema),
-    mode: 'onChange',
+    mode: "onChange",
     defaultValues: getDefaultValues(),
   });
 
-  const { apiError, setApiError, clearError } = useDialogForm(form, true, getDefaultValues);
+  const { apiError, setApiError, clearError } = useDialogForm(
+    form,
+    true,
+    getDefaultValues,
+  );
 
   useEffect(() => {
     clearError();
@@ -49,25 +56,49 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
     <form className="space-y-4" onSubmit={handleSubmit}>
       <div className="space-y-2">
         <Label htmlFor="currentPassword">Contraseña actual</Label>
-        <Input id="currentPassword" type="password" {...form.register('currentPassword')} />
+        <Input
+          id="currentPassword"
+          type="password"
+          autoComplete="current-password"
+          className="h-11"
+          {...form.register("currentPassword")}
+        />
         {form.formState.errors.currentPassword && (
-          <p className="text-sm text-red-500">{form.formState.errors.currentPassword.message}</p>
+          <p className="text-sm text-red-500">
+            {form.formState.errors.currentPassword.message}
+          </p>
         )}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="newPassword">Nueva contraseña</Label>
-        <Input id="newPassword" type="password" {...form.register('newPassword')} />
+        <Input
+          id="newPassword"
+          type="password"
+          autoComplete="new-password"
+          className="h-11"
+          {...form.register("newPassword")}
+        />
         {form.formState.errors.newPassword && (
-          <p className="text-sm text-red-500">{form.formState.errors.newPassword.message}</p>
+          <p className="text-sm text-red-500">
+            {form.formState.errors.newPassword.message}
+          </p>
         )}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
-        <Input id="confirmPassword" type="password" {...form.register('confirmPassword')} />
+        <Input
+          id="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          className="h-11"
+          {...form.register("confirmPassword")}
+        />
         {form.formState.errors.confirmPassword && (
-          <p className="text-sm text-red-500">{form.formState.errors.confirmPassword.message}</p>
+          <p className="text-sm text-red-500">
+            {form.formState.errors.confirmPassword.message}
+          </p>
         )}
       </div>
 
@@ -77,8 +108,13 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
         </div>
       )}
 
-      <Button type="submit" disabled={form.formState.isSubmitting} isLoading={form.formState.isSubmitting}>
-        {form.formState.isSubmitting ? 'Guardando...' : 'Cambiar contraseña'}
+      <Button
+        type="submit"
+        disabled={form.formState.isSubmitting}
+        isLoading={form.formState.isSubmitting}
+        className="w-full sm:w-auto"
+      >
+        {form.formState.isSubmitting ? "Guardando..." : "Cambiar contraseña"}
       </Button>
     </form>
   );
