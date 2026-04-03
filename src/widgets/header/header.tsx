@@ -31,14 +31,14 @@ export function Header({
     >
       <div className="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-3">
-          {showNavigationTrigger && (
+          {showNavigationTrigger && onOpenNavigation && (
             <Button
               type="button"
               variant="ghost"
               size="icon"
               className="shrink-0 lg:hidden"
               onClick={onOpenNavigation}
-              aria-label="Abrir menu"
+              aria-label="Abrir menú"
             >
               <Menu className="h-5 w-5" />
             </Button>

@@ -6,23 +6,43 @@
  * Convierte un objeto Date a ISO string
  * Maneja casos de undefined/null
  */
-export function dateToISOString(date: Date | undefined | null): string | undefined {
+export function dateToISOString(
+  date: Date | undefined | null,
+): string | undefined {
   return date?.toISOString();
 }
 
 /**
  * Convierte una fecha ISO string a formato de input date (YYYY-MM-DD)
  */
-export function isoStringToDateInput(isoString: string | undefined | null): string | undefined {
+export function isoStringToDateInput(
+  isoString: string | undefined | null,
+): string | undefined {
   if (!isoString) return undefined;
-  return new Date(isoString).toISOString().split('T')[0];
+  return new Date(isoString).toISOString().split("T")[0];
+}
+
+/**
+ * Convierte un valor de input date (YYYY-MM-DD) a un Date UTC estable.
+ * Evita corrimientos cuando luego se serializa nuevamente con toISOString().
+ */
+export function dateInputToUTCDate(
+  dateInput: string | undefined | null,
+): Date | undefined {
+  if (!dateInput) return undefined;
+  return new Date(`${dateInput}T00:00:00.000Z`);
 }
 
 /**
  * Obtiene la fecha actual en formato de input date (YYYY-MM-DD)
  */
 export function getCurrentDateInput(): string {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -37,16 +57,18 @@ export function nullToUndefined<T>(value: T | null | undefined): T | undefined {
  * Normaliza un objeto completo, convirtiendo todos los valores null a undefined
  * Útil para preparar datos de formularios antes de enviarlos a la API
  */
-export function normalizeNullValues<T extends Record<string, unknown>>(obj: T): T {
+export function normalizeNullValues<T extends Record<string, unknown>>(
+  obj: T,
+): T {
   const result = {} as T;
-  
+
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const value = obj[key];
       result[key] = (value === null ? undefined : value) as T[typeof key];
     }
   }
-  
+
   return result;
 }
 
@@ -55,10 +77,10 @@ export function normalizeNullValues<T extends Record<string, unknown>>(obj: T): 
  * Útil para preparar datos antes de enviarlos a APIs REST
  */
 export function convertDatesToISO<T extends Record<string, unknown>>(
-  obj: T
+  obj: T,
 ): Record<string, unknown> {
   const result = {} as Record<string, unknown>;
-  
+
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const value = obj[key] as unknown;
@@ -69,7 +91,7 @@ export function convertDatesToISO<T extends Record<string, unknown>>(
       }
     }
   }
-  
+
   return result;
 }
 
@@ -81,10 +103,10 @@ export function convertDatesToISO<T extends Record<string, unknown>>(
  */
 export function prepareFormDataForAPI<T extends Record<string, unknown>>(
   data: T,
-  options: { removeUndefined?: boolean } = {}
+  options: { removeUndefined?: boolean } = {},
 ): T {
   let result = { ...data };
-  
+
   // Convertir Dates a ISO strings
   for (const key in result) {
     const value = result[key] as unknown;
@@ -94,13 +116,13 @@ export function prepareFormDataForAPI<T extends Record<string, unknown>>(
       result[key] = undefined as T[typeof key];
     }
   }
-  
+
   // Remover undefined si se solicita
   if (options.removeUndefined) {
     result = Object.fromEntries(
-      Object.entries(result).filter(([, value]) => value !== undefined)
+      Object.entries(result).filter(([, value]) => value !== undefined),
     ) as T;
   }
-  
+
   return result;
 }

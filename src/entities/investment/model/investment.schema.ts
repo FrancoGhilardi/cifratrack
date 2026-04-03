@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+const requiredNumberSchema = (
+  requiredMessage: string,
+  invalidMessage: string,
+) =>
+  z.number({
+    error: (issue) => {
+      if (
+        issue.input === undefined ||
+        (typeof issue.input === "number" && Number.isNaN(issue.input))
+      ) {
+        return requiredMessage;
+      }
+
+      return invalidMessage;
+    },
+  });
+
 /**
  * Schema base de inversión (sin refinements)
  */
@@ -18,8 +35,10 @@ const investmentBaseSchema = z.object({
 
   yieldProviderId: z.string().optional().nullable(),
 
-  principal: z
-    .number()
+  principal: requiredNumberSchema(
+    "El monto principal es requerido",
+    "Ingresa un monto principal válido",
+  )
     .positive("El monto principal debe ser mayor a cero")
     .max(999999999999.99, "El monto principal excede el límite permitido")
     .refine(
@@ -31,8 +50,7 @@ const investmentBaseSchema = z.object({
       { message: "El monto principal solo puede tener hasta 2 decimales" },
     ),
 
-  tna: z
-    .number()
+  tna: requiredNumberSchema("La TNA es requerida", "Ingresa una TNA válida")
     .min(0, "La TNA no puede ser negativa")
     .max(999.99, "La TNA excede el límite permitido (999.99%)")
     .refine(

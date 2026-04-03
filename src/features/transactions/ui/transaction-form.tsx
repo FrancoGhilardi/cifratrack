@@ -7,7 +7,6 @@ import { z } from "zod";
 
 import { type CreateTransactionInput } from "@/entities/transaction/model/transaction.schema";
 import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
-import { Month } from "@/shared/lib/date";
 import { cn } from "@/shared/lib/utils";
 import {
   centsToPesos,
@@ -15,6 +14,7 @@ import {
   validateSplitsSum,
 } from "@/shared/lib/utils/money-conversion";
 import {
+  dateInputToUTCDate,
   getCurrentDateInput,
   isoStringToDateInput,
 } from "@/shared/lib/utils/form-data";
@@ -180,20 +180,28 @@ export function TransactionForm({
 
     const normalizedDueOn =
       showStatusAndDue && values.status === "pending"
-        ? new Date(values.dueOn || values.occurredOn)
+        ? (dateInputToUTCDate(values.dueOn || values.occurredOn) ?? null)
         : values.dueOn
-          ? new Date(values.dueOn)
+          ? (dateInputToUTCDate(values.dueOn) ?? null)
           : null;
 
     const normalizedPaidOn =
       showStatusAndDue && values.status === "pending"
         ? null
         : values.paidOn
-          ? new Date(values.paidOn)
+          ? (dateInputToUTCDate(values.paidOn) ?? null)
           : null;
 
-    const occurredDate = new Date(values.occurredOn);
-    const occurredMonth = Month.fromDate(occurredDate).toString();
+    const occurredDate = dateInputToUTCDate(values.occurredOn);
+    if (!occurredDate) {
+      form.setError("occurredOn", {
+        type: "manual",
+        message: "La fecha de ocurrencia es requerida",
+      });
+      return;
+    }
+
+    const occurredMonth = values.occurredOn.slice(0, 7);
 
     const payload: CreateTransactionInput = {
       kind: values.kind,
@@ -402,7 +410,7 @@ export function TransactionForm({
                 <FormItem>
                   <FormLabel>Fecha de ocurrencia</FormLabel>
                   <FormControl>
-                    <Input type="date" className="h-11" {...field} />
+                    <Input type="date" className="h-11 min-w-0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -444,7 +452,7 @@ export function TransactionForm({
                   <FormItem>
                     <FormLabel>Fecha de vencimiento</FormLabel>
                     <FormControl>
-                      <Input type="date" className="h-11" {...field} />
+                      <Input type="date" className="h-11 min-w-0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -460,7 +468,7 @@ export function TransactionForm({
                   <FormItem>
                     <FormLabel>Fecha de pago (opcional)</FormLabel>
                     <FormControl>
-                      <Input type="date" className="h-11" {...field} />
+                      <Input type="date" className="h-11 min-w-0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

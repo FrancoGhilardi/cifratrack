@@ -174,14 +174,14 @@ export function TransactionFilters({
   const renderMainFilters = (showMonth: boolean) => (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       {showMonth && (
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <Label htmlFor="transactions-month">Mes</Label>
           <Input
             id="transactions-month"
             type="month"
             value={month || Month.current().toString()}
             onChange={(e) => handleMonthChange(e.target.value)}
-            className="h-11 w-full"
+            className="h-11 w-full min-w-0"
           />
         </div>
       )}
@@ -263,17 +263,16 @@ export function TransactionFilters({
       </div>
 
       <div className="grid gap-3 md:hidden">
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <Label htmlFor="transactions-month-mobile">Mes</Label>
           <Input
             id="transactions-month-mobile"
             type="month"
             value={month || Month.current().toString()}
             onChange={(e) => handleMonthChange(e.target.value)}
-            className="h-11 w-full"
+            className="h-11 w-full min-w-0"
           />
         </div>
-
         <Button
           type="button"
           variant="outline"

@@ -48,16 +48,16 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      title="Inicia sesion"
+      title="Inicia sesión"
       description="Accede a tu cuenta para revisar tu dashboard, registrar movimientos y seguir tu portafolio desde cualquier dispositivo."
       footer={
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          No tienes cuenta?{" "}
+          ¿No tienes cuenta?{" "}
           <Link
             href="/register"
             className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
           >
-            Registrate
+            Regístrate
           </Link>
         </p>
       }
@@ -73,7 +73,7 @@ export default function LoginPage() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Correo electronico</FormLabel>
+                <FormLabel>Correo electrónico</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
@@ -95,7 +95,7 @@ export default function LoginPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contrasena</FormLabel>
+                <FormLabel>Contraseña</FormLabel>
                 <FormControl>
                   <Input
                     type="password"
@@ -122,7 +122,7 @@ export default function LoginPage() {
 
           <Button type="submit" className="h-11 w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Iniciar sesion
+            Iniciar sesión
           </Button>
         </form>
       </Form>

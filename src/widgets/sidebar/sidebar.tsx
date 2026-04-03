@@ -54,7 +54,7 @@ export function Sidebar({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            aria-label="Cerrar menu"
+            aria-label="Cerrar menú"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -63,7 +63,7 @@ export function Sidebar({
 
       <nav
         className="flex-1 space-y-1 px-2 py-4"
-        aria-label="Navegacion principal"
+        aria-label="Navegación principal"
       >
         {appNavigation.map((item) => {
           const Icon = item.icon;
