@@ -377,14 +377,14 @@ export function RecurringRuleForm({
                   control={form.control}
                   name="activeFromMonth"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="min-w-0">
                       <FormLabel>Activo desde</FormLabel>
                       <FormControl>
                         <Input
                           type="month"
                           value={field.value}
                           onChange={(e) => field.onChange(e.target.value)}
-                          className="h-11"
+                          className="h-11 min-w-0"
                         />
                       </FormControl>
                       <FormMessage />
@@ -396,7 +396,7 @@ export function RecurringRuleForm({
                   control={form.control}
                   name="activeToMonth"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="min-w-0">
                       <FormLabel>Activo hasta (opcional)</FormLabel>
                       <FormControl>
                         <Input
@@ -405,7 +405,7 @@ export function RecurringRuleForm({
                           onChange={(e) =>
                             field.onChange(e.target.value || null)
                           }
-                          className="h-11"
+                          className="h-11 min-w-0"
                         />
                       </FormControl>
                       <FormMessage />

@@ -54,12 +54,12 @@ export default function RegisterPage() {
       description="Empieza con tu espacio de trabajo financiero y deja listo el flujo para dashboard, movimientos, recurrentes e inversiones."
       footer={
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Ya tienes cuenta?{" "}
+          ¿Ya tienes cuenta?{" "}
           <Link
             href="/login"
             className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
           >
-            Inicia sesion
+            Inicia sesión
           </Link>
         </p>
       }
@@ -75,7 +75,7 @@ export default function RegisterPage() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Correo electronico</FormLabel>
+                <FormLabel>Correo electrónico</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
@@ -118,7 +118,7 @@ export default function RegisterPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contrasena</FormLabel>
+                <FormLabel>Contraseña</FormLabel>
                 <FormControl>
                   <Input
                     type="password"
@@ -139,7 +139,7 @@ export default function RegisterPage() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirmar contrasena</FormLabel>
+                <FormLabel>Confirmar contraseña</FormLabel>
                 <FormControl>
                   <Input
                     type="password"

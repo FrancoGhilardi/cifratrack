@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/shared/ui/dialog";
 import { Sidebar } from "@/widgets/sidebar/sidebar";
 import { Header } from "@/widgets/header/header";
 import { Toaster } from "sonner";
@@ -35,19 +41,17 @@ export function AppShell({ children, userName, userEmail }: AppShellProps) {
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
         closeMobileNavigation();
       }
     };
 
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
+    mediaQuery.addEventListener("change", handleChange);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
+      mediaQuery.removeEventListener("change", handleChange);
     };
   }, [closeMobileNavigation, isMobileNavigationOpen]);
 
@@ -70,27 +74,26 @@ export function AppShell({ children, userName, userEmail }: AppShellProps) {
           </div>
         </div>
 
-        {isMobileNavigationOpen && (
-          <div
-            className="fixed inset-0 z-40 lg:hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navegacion principal"
+        <Dialog
+          open={isMobileNavigationOpen}
+          onOpenChange={setIsMobileNavigationOpen}
+        >
+          <DialogContent
+            showCloseButton={false}
+            className="left-0 top-0 h-full max-h-screen w-[min(20rem,calc(100vw-3rem))] max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-0 p-0 shadow-xl data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
           >
-            <button
-              type="button"
-              className="absolute inset-0 bg-black/50"
-              aria-label="Cerrar navegacion"
-              onClick={closeMobileNavigation}
-            />
+            <DialogTitle className="sr-only">Navegación principal</DialogTitle>
+            <DialogDescription className="sr-only">
+              Menú principal para navegar por las secciones de la aplicación.
+            </DialogDescription>
             <Sidebar
               onNavigate={closeMobileNavigation}
               onClose={closeMobileNavigation}
               showCloseButton
-              className="relative z-10 h-full w-[min(20rem,calc(100vw-3rem))] shadow-xl"
+              className="h-full w-full shadow-none"
             />
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Toaster

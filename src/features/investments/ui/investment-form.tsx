@@ -15,6 +15,10 @@ import {
 } from "@/features/market-data/config/providers";
 import { useLatestYield } from "@/features/market-data/hooks/useLatestYield";
 import { useDialogForm } from "@/shared/lib/hooks";
+import {
+  dateInputToUTCDate,
+  getCurrentDateInput,
+} from "@/shared/lib/utils/form-data";
 import { formatPercentageValue } from "@/shared/lib/utils/percentage";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
@@ -68,7 +72,9 @@ export function InvestmentForm({
             tna: investment.tna,
             days: investment.days,
             isCompound: investment.isCompound,
-            startedOn: new Date(investment.startedOn),
+            startedOn:
+              dateInputToUTCDate(investment.startedOn) ??
+              new Date(investment.startedOn),
             notes: investment.notes ?? "",
           }
         : {
@@ -79,7 +85,8 @@ export function InvestmentForm({
             tna: 0,
             days: 30,
             isCompound: false,
-            startedOn: new Date(),
+            startedOn:
+              dateInputToUTCDate(getCurrentDateInput()) ?? new Date(),
             notes: "",
           },
     [investment],
@@ -434,7 +441,7 @@ export function InvestmentForm({
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <Label htmlFor="startedOn">
                   Fecha de inicio <span className="text-red-500">*</span>
                 </Label>
@@ -445,14 +452,14 @@ export function InvestmentForm({
                     <Input
                       id="startedOn"
                       type="date"
-                      className="h-11"
+                      className="h-11 min-w-0"
                       value={
                         field.value instanceof Date
                           ? field.value.toISOString().split("T")[0]
                           : ""
                       }
                       onChange={(e) => {
-                        const date = e.target.valueAsDate;
+                        const date = dateInputToUTCDate(e.target.value);
                         if (date) {
                           field.onChange(date);
                         }

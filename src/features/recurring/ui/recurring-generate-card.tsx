@@ -43,14 +43,14 @@ export function RecurringGenerateCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-[180px_auto] md:items-end">
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label htmlFor="recurring-target-month">Mes a generar</Label>
             <Input
               id="recurring-target-month"
               type="month"
               value={month}
               onChange={(e) => onMonthChange(e.target.value)}
-              className="h-11 w-full"
+              className="h-11 w-full min-w-0"
             />
           </div>
 
