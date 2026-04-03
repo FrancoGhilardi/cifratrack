@@ -19,6 +19,14 @@ export class UpsertInvestmentUseCase {
     this.yieldCalculator = new InvestmentYieldCalculator();
   }
 
+  private normalizeDays(days: number | null | undefined, isCompound?: boolean) {
+    if (isCompound && (!days || days <= 0)) {
+      return null;
+    }
+
+    return days ?? null;
+  }
+
   /**
    * Crear nueva inversión
    */
@@ -35,7 +43,7 @@ export class UpsertInvestmentUseCase {
       yieldProviderId: data.yieldProviderId ?? null,
       principal: data.principal,
       tna: data.tna,
-      days: data.days ?? null,
+      days: this.normalizeDays(data.days, data.isCompound),
       isCompound: data.isCompound,
       startedOn: data.startedOn,
       notes: data.notes ?? null,
@@ -63,7 +71,9 @@ export class UpsertInvestmentUseCase {
       updateData.yieldProviderId = data.yieldProviderId;
     if (data.principal !== undefined) updateData.principal = data.principal;
     if (data.tna !== undefined) updateData.tna = data.tna;
-    if (data.days !== undefined) updateData.days = data.days;
+    if (data.days !== undefined) {
+      updateData.days = this.normalizeDays(data.days, data.isCompound);
+    }
     if (data.isCompound !== undefined) updateData.isCompound = data.isCompound;
     if (data.startedOn !== undefined) updateData.startedOn = data.startedOn;
     if (data.notes !== undefined) updateData.notes = data.notes;

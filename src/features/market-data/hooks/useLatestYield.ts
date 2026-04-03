@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 // Tipo simple para las tasas en vivo (solo para UI)
 export interface YieldRate {
   providerId: string;
-  rate: number;
+  rate: number | null;
   currency: string;
-  date: Date;
+  date: Date | null;
   providerName?: string;
+  available?: boolean;
 }
 
 async function fetchLive(
@@ -26,12 +27,15 @@ async function fetchLive(
   const raw = await res.json();
 
   if (Array.isArray(raw)) {
-    return raw.map((r) => ({ ...r, date: new Date(r.date) }));
+    return raw.map((r) => ({
+      ...r,
+      date: r.date ? new Date(r.date) : null,
+    }));
   }
 
   return {
     ...raw,
-    date: new Date(raw.date),
+    date: raw.date ? new Date(raw.date) : null,
   };
 }
 

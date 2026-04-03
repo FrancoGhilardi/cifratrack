@@ -37,7 +37,7 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
         activeToMonth: row.activeToMonth,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
-      })
+      }),
     );
   }
 
@@ -69,7 +69,7 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
 
   async create(
     userId: string,
-    data: CreateRecurringRuleInput
+    data: CreateRecurringRuleInput,
   ): Promise<RecurringRule> {
     const now = new Date();
     const [row] = await db
@@ -110,7 +110,7 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
   async update(
     id: string,
     userId: string,
-    data: UpdateRecurringRuleInput
+    data: UpdateRecurringRuleInput,
   ): Promise<RecurringRule> {
     const existing = await this.findById(id, userId);
     if (!existing) {
@@ -122,17 +122,25 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
       .update(recurringRules)
       .set({
         title: data.title ?? existing.title,
-        description: data.description ?? existing.description,
+        description:
+          data.description !== undefined
+            ? data.description
+            : existing.description,
         amount:
           data.amount !== undefined ? Math.trunc(data.amount) : existing.amount,
         kind: data.kind ?? existing.kind,
         dayOfMonth: data.dayOfMonth ?? existing.dayOfMonth,
         status: data.status ?? existing.status,
-        paymentMethodId: data.paymentMethodId ?? existing.paymentMethodId,
+        paymentMethodId:
+          data.paymentMethodId !== undefined
+            ? data.paymentMethodId
+            : existing.paymentMethodId,
         activeFromMonth:
           data.activeFromMonth ?? existing.activeFromMonth.toString(),
         activeToMonth:
-          data.activeToMonth ?? existing.activeToMonth?.toString() ?? null,
+          data.activeToMonth !== undefined
+            ? data.activeToMonth
+            : (existing.activeToMonth?.toString() ?? null),
         updatedAt: now,
       })
       .where(and(eq(recurringRules.id, id), eq(recurringRules.userId, userId)))
@@ -162,14 +170,14 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
   }
 
   async findCategories(
-    ruleId: string
+    ruleId: string,
   ): Promise<Array<{ categoryId: string; allocatedAmount: number }>> {
     const categoriesByRule = await this.findCategoriesByRuleIds([ruleId]);
     return categoriesByRule[ruleId] ?? [];
   }
 
   async findCategoriesByRuleIds(
-    ruleIds: string[]
+    ruleIds: string[],
   ): Promise<
     Record<string, Array<{ categoryId: string; allocatedAmount: number }>>
   > {
@@ -201,7 +209,7 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
 
   async setCategories(
     ruleId: string,
-    categories: Array<{ categoryId: string; allocatedAmount: number }>
+    categories: Array<{ categoryId: string; allocatedAmount: number }>,
   ): Promise<void> {
     await db
       .delete(recurringRuleCategories)
@@ -212,7 +220,7 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
         recurringRuleId: ruleId,
         categoryId: cat.categoryId,
         allocatedAmount: Math.trunc(cat.allocatedAmount),
-      }))
+      })),
     );
   }
 
@@ -224,8 +232,8 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
         and(
           eq(transactions.userId, userId),
           eq(transactions.sourceRecurringRuleId, ruleId),
-          eq(transactions.occurredMonth, month)
-        )
+          eq(transactions.occurredMonth, month),
+        ),
       )
       .limit(1);
     return row?.id ?? null;
@@ -234,7 +242,7 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
   async createTransactionFromRule(
     rule: RecurringRule,
     month: Month,
-    splits: Array<{ categoryId: string; allocatedAmount: number }>
+    splits: Array<{ categoryId: string; allocatedAmount: number }>,
   ) {
     const occurredOn = `${month.toString()}-${rule.dayOfMonth
       .toString()
@@ -269,7 +277,7 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
           transactionId: tx.id,
           categoryId: s.categoryId,
           allocatedAmount: Math.trunc(s.allocatedAmount),
-        }))
+        })),
       );
     }
   }

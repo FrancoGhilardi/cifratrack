@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Pencil, Trash2, Repeat } from 'lucide-react';
-import type { DataTableColumn } from '@/shared/ui/data-table';
-import { DataTable } from '@/shared/ui/data-table';
-import { Badge } from '@/shared/ui/badge';
-import { formatCurrency } from '@/shared/lib/money';
-import type { RecurringRuleDTO } from '../model/recurring-rule.dto';
-import { RecurringRuleForm } from './recurring-rule-form';
-import { useRecurringRuleMutations } from '../hooks/useRecurringRuleMutations';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { useConfirmDialog } from '@/shared/lib/hooks';
-import type { CreateRecurringRuleInput } from '@/entities/recurring-rule/model/recurring-rule.schema';
-import { useCategoryNameMap } from '@/features/categories/hooks/useCategoryNameMap';
-import { usePaymentMethodNameMap } from '@/features/payment-methods/hooks/usePaymentMethodNameMap';
+import { useState } from "react";
+import { Pencil, Trash2, Repeat } from "lucide-react";
+import type { DataTableColumn } from "@/shared/ui/data-table";
+import { DataTable } from "@/shared/ui/data-table";
+import { Badge } from "@/shared/ui/badge";
+import { formatCurrency } from "@/shared/lib/money";
+import type { RecurringRuleDTO } from "../model/recurring-rule.dto";
+import { RecurringRuleForm } from "./recurring-rule-form";
+import { useRecurringRuleMutations } from "../hooks/useRecurringRuleMutations";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { useConfirmDialog } from "@/shared/lib/hooks";
+import type { CreateRecurringRuleInput } from "@/entities/recurring-rule/model/recurring-rule.schema";
+import { useCategoryNameMap } from "@/features/categories/hooks/useCategoryNameMap";
+import { usePaymentMethodNameMap } from "@/features/payment-methods/hooks/usePaymentMethodNameMap";
 
 interface RecurringRulesListProps {
   rules: RecurringRuleDTO[];
@@ -21,10 +21,13 @@ interface RecurringRulesListProps {
 
 export function RecurringRulesList({ rules }: RecurringRulesListProps) {
   const [formOpen, setFormOpen] = useState(false);
-  const [selectedRule, setSelectedRule] = useState<RecurringRuleDTO | null>(null);
+  const [selectedRule, setSelectedRule] = useState<RecurringRuleDTO | null>(
+    null,
+  );
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const { createRecurringRule, updateRecurringRule, deleteRecurringRule } = useRecurringRuleMutations();
+  const { createRecurringRule, updateRecurringRule, deleteRecurringRule } =
+    useRecurringRuleMutations();
   const { error, handleConfirm, clearError } = useConfirmDialog();
 
   const { map: categoryNames } = useCategoryNameMap();
@@ -63,56 +66,79 @@ export function RecurringRulesList({ rules }: RecurringRulesListProps) {
       },
       () => {
         setDeleteOpen(false);
-      }
+      },
     );
   };
 
   const columns: DataTableColumn<RecurringRuleDTO>[] = [
     {
-      header: 'Título',
-      accessorKey: 'title',
-      className: 'font-medium',
+      header: "Título",
+      cell: (rule) => (
+        <div className="space-y-1">
+          <p className="font-medium">{rule.title}</p>
+          {rule.description && (
+            <p className="text-sm text-muted-foreground">{rule.description}</p>
+          )}
+        </div>
+      ),
     },
     {
-      header: 'Tipo',
+      header: "Tipo",
       cell: (rule) => (
-        <Badge variant={rule.kind === 'income' ? 'default' : 'secondary'}>
-          {rule.kind === 'income' ? 'Ingreso' : 'Egreso'}
+        <Badge variant={rule.kind === "income" ? "default" : "secondary"}>
+          {rule.kind === "income" ? "Ingreso" : "Egreso"}
         </Badge>
       ),
     },
     {
-      header: 'Monto',
-      cell: (rule) => formatCurrency(rule.amount, 'ARS'),
+      header: "Monto",
+      cell: (rule) => (
+        <span className="font-medium">
+          {formatCurrency(rule.amount, "ARS")}
+        </span>
+      ),
     },
     {
-      header: 'Día',
+      header: "Día",
       cell: (rule) => `Día ${rule.dayOfMonth}`,
     },
     {
-      header: 'Estado',
+      header: "Estado",
       cell: (rule) => (
-        <Badge variant={rule.status === 'paid' ? 'default' : 'outline'}>
-          {rule.status === 'paid' ? 'Pagado' : 'Pendiente'}
+        <Badge variant={rule.status === "paid" ? "default" : "outline"}>
+          {rule.status === "paid" ? "Pagado" : "Pendiente"}
         </Badge>
       ),
     },
     {
-      header: 'Vigencia',
-      cell: (rule) => `${rule.activeFromMonth} → ${rule.activeToMonth ?? 'Actual'}`,
+      header: "Vigencia",
+      cell: (rule) => (
+        <div className="space-y-1 text-sm">
+          <p>Desde {rule.activeFromMonth}</p>
+          <p className="text-muted-foreground">
+            Hasta {rule.activeToMonth ?? "Actual"}
+          </p>
+        </div>
+      ),
     },
     {
-      header: 'Forma de pago',
-      cell: (rule) => paymentMethodNames.get(rule.paymentMethodId ?? '') ?? '—',
+      header: "Forma de pago",
+      cell: (rule) => paymentMethodNames.get(rule.paymentMethodId ?? "") ?? "—",
     },
     {
-      header: 'Categorías',
+      header: "Categorías",
       cell: (rule) =>
-        rule.categories.length === 0
-          ? '—'
-          : rule.categories
-              .map((cat) => categoryNames.get(cat.categoryId) ?? 'Categoría')
-              .join(', '),
+        rule.categories.length === 0 ? (
+          "—"
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {rule.categories.map((cat) => (
+              <Badge key={cat.categoryId} variant="outline">
+                {categoryNames.get(cat.categoryId) ?? "Categoría"}
+              </Badge>
+            ))}
+          </div>
+        ),
     },
   ];
 
@@ -125,16 +151,16 @@ export function RecurringRulesList({ rules }: RecurringRulesListProps) {
         columns={columns}
         actions={[
           {
-            label: 'Editar',
+            label: "Editar",
             icon: Pencil,
             onClick: handleEdit,
-            variant: 'ghost',
+            variant: "ghost",
           },
           {
-            label: 'Eliminar',
+            label: "Eliminar",
             icon: Trash2,
             onClick: handleDelete,
-            variant: 'ghost',
+            variant: "ghost",
           },
         ]}
         onCreate={handleCreate}
@@ -168,7 +194,7 @@ export function RecurringRulesList({ rules }: RecurringRulesListProps) {
         }}
         onConfirm={handleConfirmDelete}
         title="¿Eliminar regla recurrente?"
-        description={`Esta acción eliminará "${selectedRule?.title ?? ''}". Si la regla está activa se cerrará a partir del mes anterior.`}
+        description={`Esta acción eliminará "${selectedRule?.title ?? ""}". Si la regla está activa se cerrará a partir del mes anterior.`}
         confirmText="Eliminar"
         isLoading={deleteRecurringRule.isPending}
         loadingText="Eliminando..."

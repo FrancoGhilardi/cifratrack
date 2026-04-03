@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchDebounce } from "@/shared/lib/hooks/useSearchDebounce";
-import { Search, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -17,6 +23,7 @@ import { Badge } from "@/shared/ui/badge";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
 import { Month } from "@/shared/lib/date";
+import { cn } from "@/shared/lib/utils";
 
 export interface TransactionFiltersProps {
   month?: string;
@@ -110,6 +117,10 @@ export function TransactionFilters({
 
   // Búsqueda robusta con debounce genérico
   const [searchValue, setSearchValue] = useState(q ?? "");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(
+    categoryIds.length > 0 || !!kind || !!status || !!paymentMethodId,
+  );
+
   useSearchDebounce({
     value: searchValue,
     delay: 300,
@@ -127,6 +138,7 @@ export function TransactionFilters({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearchValue(q ?? "");
   }, [q]);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
   };
@@ -150,119 +162,178 @@ export function TransactionFilters({
     categoryIds.length > 0,
     q,
   ].filter(Boolean).length;
+  const advancedFiltersCount = [
+    kind,
+    status,
+    paymentMethodId,
+    categoryIds.length > 0,
+  ].filter(Boolean).length;
+  const advancedFiltersVisible =
+    showAdvancedFilters || advancedFiltersCount > 0;
+
+  const renderMainFilters = (showMonth: boolean) => (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {showMonth && (
+        <div className="space-y-2">
+          <Label htmlFor="transactions-month">Mes</Label>
+          <Input
+            id="transactions-month"
+            type="month"
+            value={month || Month.current().toString()}
+            onChange={(e) => handleMonthChange(e.target.value)}
+            className="h-11 w-full"
+          />
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label>Tipo</Label>
+        <Select value={kind || "all"} onValueChange={handleKindChange}>
+          <SelectTrigger className="h-11">
+            <SelectValue placeholder="Todos los tipos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los tipos</SelectItem>
+            <SelectItem value="income">Ingresos</SelectItem>
+            <SelectItem value="expense">Egresos</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Estado</Label>
+        <Select value={status || "all"} onValueChange={handleStatusChange}>
+          <SelectTrigger className="h-11">
+            <SelectValue placeholder="Todos los estados" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los estados</SelectItem>
+            <SelectItem value="pending">Pendiente</SelectItem>
+            <SelectItem value="paid">Pagado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Forma de pago</Label>
+        <Select
+          value={paymentMethodId || "all"}
+          onValueChange={handlePaymentMethodChange}
+        >
+          <SelectTrigger className="h-11">
+            <SelectValue placeholder="Todas las formas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las formas</SelectItem>
+            {paymentMethods?.map((pm) => (
+              <SelectItem key={pm.id} value={pm.id}>
+                {pm.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
       {/* Barra de búsqueda y reset */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por título o descripción..."
             value={searchValue}
             onChange={handleSearchChange}
-            className="pl-9"
+            className="h-11 pl-9"
           />
         </div>
         {activeFiltersCount > 0 && (
-          <Button variant="outline" size="sm" onClick={onReset}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onReset}
+            className="h-11 w-full sm:w-auto"
+          >
             <X className="h-4 w-4 mr-1" />
             Limpiar ({activeFiltersCount})
           </Button>
         )}
       </div>
 
-      {/* Filtros principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Mes */}
+      <div className="grid gap-3 md:hidden">
         <div className="space-y-2">
-          <Label>Mes</Label>
+          <Label htmlFor="transactions-month-mobile">Mes</Label>
           <Input
+            id="transactions-month-mobile"
             type="month"
             value={month || Month.current().toString()}
             onChange={(e) => handleMonthChange(e.target.value)}
-            className="w-full"
+            className="h-11 w-full"
           />
         </div>
 
-        {/* Tipo */}
-        <div className="space-y-2">
-          <Label>Tipo</Label>
-          <Select value={kind || "all"} onValueChange={handleKindChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todos los tipos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los tipos</SelectItem>
-              <SelectItem value="income">Ingresos</SelectItem>
-              <SelectItem value="expense">Egresos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Estado */}
-        <div className="space-y-2">
-          <Label>Estado</Label>
-          <Select value={status || "all"} onValueChange={handleStatusChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todos los estados" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los estados</SelectItem>
-              <SelectItem value="pending">Pendiente</SelectItem>
-              <SelectItem value="paid">Pagado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Forma de pago */}
-        <div className="space-y-2">
-          <Label>Forma de pago</Label>
-          <Select
-            value={paymentMethodId || "all"}
-            onValueChange={handlePaymentMethodChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Todas las formas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las formas</SelectItem>
-              {paymentMethods?.map((pm) => (
-                <SelectItem key={pm.id} value={pm.id}>
-                  {pm.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowAdvancedFilters((current) => !current)}
+          className="flex h-11 w-full items-center justify-between px-3"
+        >
+          <span className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4" />
+            Filtros avanzados
+            {advancedFiltersCount > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {advancedFiltersCount}
+              </Badge>
+            )}
+          </span>
+          {advancedFiltersVisible ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
-      {/* Filtro de categorías (multi-select con badges) */}
-      {availableCategories.length > 0 && (
-        <div className="space-y-2">
-          <Label>Categorías</Label>
-          <div className="flex flex-wrap gap-2">
-            {availableCategories.map((category) => {
-              const isSelected = categoryIds.includes(category.id);
-              return (
-                <Badge
-                  key={category.id}
-                  variant={isSelected ? "default" : "outline"}
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => handleCategoryToggle(category.id)}
-                >
-                  {category.name}
-                  {isSelected && <X className="h-3 w-3 ml-1" />}
-                </Badge>
-              );
-            })}
+      <div className="hidden md:block">{renderMainFilters(true)}</div>
+
+      <div
+        className={cn(
+          "space-y-4 border-t pt-4 md:border-0 md:pt-0",
+          !advancedFiltersVisible && "hidden md:block",
+        )}
+      >
+        <div className="md:hidden">{renderMainFilters(false)}</div>
+
+        {/* Filtro de categorías (multi-select con badges) */}
+        {availableCategories.length > 0 && (
+          <div className="space-y-2">
+            <Label>Categorías</Label>
+            <div className="flex flex-wrap gap-2">
+              {availableCategories.map((category) => {
+                const isSelected = categoryIds.includes(category.id);
+                return (
+                  <Badge
+                    key={category.id}
+                    variant={isSelected ? "default" : "outline"}
+                    className="cursor-pointer px-3 py-1 hover:opacity-80 transition-opacity"
+                    onClick={() => handleCategoryToggle(category.id)}
+                  >
+                    {category.name}
+                    {isSelected && <X className="h-3 w-3 ml-1" />}
+                  </Badge>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Chips de filtros activos */}
       {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t">
+        <div className="flex flex-wrap gap-2 border-t pt-3">
           {kind && (
             <Badge variant="secondary">
               {kind === "income" ? "Ingresos" : "Egresos"}

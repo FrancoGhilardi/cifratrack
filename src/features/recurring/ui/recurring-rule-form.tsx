@@ -4,6 +4,19 @@ import { useCallback, useEffect } from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+
+import type { CreateRecurringRuleInput } from "@/entities/recurring-rule/model/recurring-rule.schema";
+import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
+import { CategorySplitInput } from "@/features/transactions/ui/category-split-input";
+import { Month } from "@/shared/lib/date";
+import { useDialogForm } from "@/shared/lib/hooks";
+import { formatErrorMessage } from "@/shared/lib/utils/error-messages";
+import {
+  centsToPesos,
+  pesosTocents,
+  validateSplitsSum,
+} from "@/shared/lib/utils/money-conversion";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,15 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import {
   Form,
   FormControl,
@@ -29,18 +33,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/ui/form";
-import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
+import { Input } from "@/shared/ui/input";
 import {
-  centsToPesos,
-  pesosTocents,
-  validateSplitsSum,
-} from "@/shared/lib/utils/money-conversion";
-import { CategorySplitInput } from "@/features/transactions/ui/category-split-input";
-import { Month } from "@/shared/lib/date";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/select";
+
 import type { RecurringRuleDTO } from "../model/recurring-rule.dto";
-import type { CreateRecurringRuleInput } from "@/entities/recurring-rule/model/recurring-rule.schema";
-import { useDialogForm } from "@/shared/lib/hooks";
-import { formatErrorMessage } from "@/shared/lib/utils/error-messages";
 
 const formSchema = z.object({
   title: z
@@ -120,10 +122,11 @@ export function RecurringRuleForm({
     if (open) {
       clearError();
     }
-  }, [open, clearError]);
+  }, [clearError, open]);
 
   const handleSubmit = async (values: FormValues) => {
     const amount = pesosTocents(values.amount);
+
     if (
       values.categories &&
       values.categories.length > 0 &&
@@ -161,31 +164,87 @@ export function RecurringRuleForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-4xl overflow-y-auto sm:max-h-[90vh] sm:max-w-3xl">
+        <DialogHeader className="pr-8">
           <DialogTitle>
             {rule ? "Editar regla" : "Nueva regla recurrente"}
           </DialogTitle>
           <DialogDescription>
-            Define los datos de la regla recurrente. Las actualizaciones generan
-            una nueva versión a partir del mes actual.
+            Define los datos de la regla recurrente y actualiza la misma regla
+            cuando necesites cambiarla.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4"
+            className="space-y-5"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <section className="space-y-4 rounded-xl border bg-card/60 p-4 sm:p-5">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold">Datos básicos</h3>
+                <p className="text-sm text-muted-foreground">
+                  Define qué movimiento se generará y con qué importe.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+                <FormField
+                  control={form.control}
+                  name="kind"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Selecciona el tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="income">Ingreso</SelectItem>
+                            <SelectItem value="expense">Egreso</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Título</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ej: Alquiler"
+                          className="h-11"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="title"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Título</FormLabel>
+                    <FormLabel>Descripción (opcional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: Alquiler" {...field} />
+                      <Input
+                        placeholder="Notas internas o contexto adicional"
+                        className="h-11"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -199,182 +258,205 @@ export function RecurringRuleForm({
                   <FormItem>
                     <FormLabel>Monto (ARS)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" min="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="kind"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona el tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="income">Ingreso</SelectItem>
-                          <SelectItem value="expense">Egreso</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="dayOfMonth"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Día del mes</FormLabel>
-                    <FormControl>
                       <Input
                         type="number"
-                        min={1}
-                        max={31}
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                        className="h-11"
                         {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </section>
+
+            <section className="space-y-4 rounded-xl border bg-card/60 p-4 sm:p-5">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold">Programación</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configura cuándo se genera la regla y cómo se registra.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="dayOfMonth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Día del mes</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={31}
+                          className="h-11"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value))
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Selecciona el estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pendiente</SelectItem>
+                            <SelectItem value="paid">Pagado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="paymentMethodId"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Forma de pago (opcional)</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Selecciona forma de pago" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paymentMethods?.map((paymentMethod) => (
+                              <SelectItem
+                                key={paymentMethod.id}
+                                value={paymentMethod.id}
+                              >
+                                {paymentMethod.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </section>
+
+            <section className="space-y-4 rounded-xl border bg-card/60 p-4 sm:p-5">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold">Vigencia</h3>
+                <p className="text-sm text-muted-foreground">
+                  Define desde cuándo corre la regla y, si hace falta, hasta qué
+                  mes permanece activa.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="activeFromMonth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Activo desde</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="month"
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="activeToMonth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Activo hasta (opcional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="month"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value || null)
+                          }
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </section>
+
+            <section className="space-y-4 rounded-xl border bg-card/60 p-4 sm:p-5">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold">Categorías</h3>
+                <p className="text-sm text-muted-foreground">
+                  Puedes dejar una sola categoría o dividir el monto en varias.
+                </p>
+              </div>
 
               <FormField
                 control={form.control}
-                name="status"
+                name="categories"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Estado</FormLabel>
                     <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona el estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pendiente</SelectItem>
-                          <SelectItem value="paid">Pagado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="paymentMethodId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Forma de pago (opcional)</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona forma de pago" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {paymentMethods?.map((pm) => (
-                            <SelectItem key={pm.id} value={pm.id}>
-                              {pm.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="activeFromMonth"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Activo desde</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="month"
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
+                      <CategorySplitInput
+                        kind={watchKind}
+                        totalAmount={amountInCents}
+                        value={field.value ?? []}
+                        onChange={(splits) => field.onChange(splits)}
+                        error={
+                          form.formState.errors.categories?.message as string
+                        }
                       />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
+            </section>
 
-              <FormField
-                control={form.control}
-                name="activeToMonth"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Activo hasta (opcional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="month"
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value || null)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="categories"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categorías (opcional)</FormLabel>
-                  <FormControl>
-                    <CategorySplitInput
-                      kind={watchKind}
-                      totalAmount={amountInCents}
-                      value={field.value ?? []}
-                      onChange={(splits) => field.onChange(splits)}
-                      error={
-                        form.formState.errors.categories?.message as string
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-2">
-              {apiError && (
+            {apiError && (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
                 <p className="text-sm text-destructive">{apiError}</p>
-              )}
-            </div>
+              </div>
+            )}
 
-            <DialogFooter>
+            <DialogFooter className="pt-1">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={form.formState.isSubmitting}
+                className="h-11 w-full sm:w-auto"
               >
                 Cancelar
               </Button>
@@ -382,6 +464,7 @@ export function RecurringRuleForm({
                 type="submit"
                 disabled={form.formState.isSubmitting}
                 isLoading={form.formState.isSubmitting}
+                className="h-11 w-full sm:w-auto"
               >
                 {form.formState.isSubmitting
                   ? "Guardando..."

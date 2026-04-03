@@ -71,8 +71,8 @@ export function TransactionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-4xl overflow-y-auto sm:max-h-[90vh] sm:max-w-3xl">
+        <DialogHeader className="pr-8">
           <DialogTitle>
             {isEditing ? "Editar Movimiento" : "Nuevo Movimiento"}
           </DialogTitle>

@@ -4,19 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Switch } from "@/shared/ui/switch";
 import { ArrowUpCircle, ArrowDownCircle, type LucideIcon } from "lucide-react";
 import { useCurrency } from "@/shared/lib/hooks/useCurrency";
+import { cn } from "@/shared/lib/utils";
 import {
   calculatePercentage,
   getPercentageValue,
 } from "@/shared/lib/utils/percentage";
 import { EmptyState } from "@/shared/ui/empty-state";
-import {
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 // --- Tipos ---
 
@@ -28,6 +22,14 @@ interface ChartDataPoint {
   name: string;
   value: number;
   color: string;
+}
+
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: ChartDataPoint;
+  }>;
+  formatCurrency: (val: number) => string;
 }
 
 // --- Constantes ---
@@ -45,6 +47,20 @@ const COLORS = [
   "#f43f5e", // rose-500
 ];
 
+function ChartTooltip({ active, payload, formatCurrency }: ChartTooltipProps) {
+  if (active && payload && payload.length) {
+    const { name, value } = payload[0].payload;
+    return (
+      <div className="bg-popover text-popover-foreground rounded-lg border p-2 shadow-sm">
+        <div className="font-medium">{name}</div>
+        <div className="font-bold">{formatCurrency(value)}</div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 // --- Sub-Componentes Puros (SRP & Performance) ---
 
 /**
@@ -59,71 +75,84 @@ const CategoryPieChart = memo(function CategoryPieChart({
   formatCurrency: (val: number) => string;
 }) {
   const [activeName, setActiveName] = useState<string | null>(null);
+  const total = data.reduce((sum, item) => sum + item.value, 0);
 
   // Callbacks estables
-  const onPieEnter = (d: any) => setActiveName(d.name);
-  const onLegendEnter = (d: any) => setActiveName(d.value);
+  const onPieEnter = (d: { name?: string }) => setActiveName(d.name ?? null);
+  const onLegendEnter = (d: { value?: string }) =>
+    setActiveName(d.value ?? null);
   const onPieLeave = () => setActiveName(null);
 
-  // Tooltip extraído para evitar recreación en render
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const { name, value } = payload[0].payload;
-      return (
-        <div className="bg-popover text-popover-foreground rounded-lg border p-2 shadow-sm">
-          <div className="font-medium">{name}</div>
-          <div className="font-bold">{formatCurrency(value)}</div>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
-    <div className="h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={20}
-            outerRadius={80}
-            dataKey="value"
-            nameKey="name"
-            onMouseEnter={onPieEnter}
+    <div className="space-y-4">
+      <div className="h-[220px] sm:h-[250px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={20}
+              outerRadius={80}
+              dataKey="value"
+              nameKey="name"
+              onMouseEnter={onPieEnter}
+              onMouseLeave={onPieLeave}
+            >
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.color}
+                  strokeWidth={0}
+                  opacity={
+                    activeName === null || activeName === entry.name ? 1 : 0.3
+                  }
+                  style={{
+                    transition: "opacity 0.3s ease",
+                    outline: "none",
+                  }}
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              content={<ChartTooltip formatCurrency={formatCurrency} />}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        {data.map((entry) => (
+          <button
+            key={entry.name}
+            type="button"
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-lg border border-border/70 px-3 py-2 text-left transition-colors",
+              activeName !== null && activeName !== entry.name && "opacity-50",
+            )}
+            onMouseEnter={() => onLegendEnter({ value: entry.name })}
             onMouseLeave={onPieLeave}
+            onFocus={() => onLegendEnter({ value: entry.name })}
+            onBlur={onPieLeave}
           >
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.color}
-                strokeWidth={0}
-                opacity={
-                  activeName === null || activeName === entry.name ? 1 : 0.3
-                }
-                style={{
-                  transition: "opacity 0.3s ease",
-                  outline: "none",
-                }}
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: entry.color }}
               />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            verticalAlign="bottom"
-            height={36}
-            iconType="circle"
-            wrapperStyle={{
-              fontSize: "12px",
-              paddingTop: "10px",
-              cursor: "pointer",
-            }}
-            onMouseEnter={onLegendEnter}
-            onMouseLeave={onPieLeave}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+              <span className="truncate text-sm font-medium">{entry.name}</span>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-xs font-medium text-foreground">
+                {calculatePercentage(entry.value, total)}%
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {formatCurrency(entry.value)}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 });
@@ -148,15 +177,20 @@ const CategoryList = memo(function CategoryList({
   return (
     <div className="space-y-3">
       {items.map((item) => (
-        <div key={item.categoryId} className="space-y-1">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">{item.categoryName}</span>
-            <span className="text-muted-foreground">
+        <div
+          key={item.categoryId}
+          className="space-y-2 rounded-lg border border-border/70 p-3"
+        >
+          <div className="flex items-start justify-between gap-3 text-sm">
+            <span className="min-w-0 flex-1 break-words font-medium">
+              {item.categoryName}
+            </span>
+            <span className="shrink-0 text-muted-foreground">
               {calculatePercentage(item.total, totalReference)}%
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="h-2 flex-1 rounded-full bg-secondary overflow-hidden">
               <div
                 className={`h-full ${progressBarColorClass}`}
                 style={{
@@ -164,7 +198,7 @@ const CategoryList = memo(function CategoryList({
                 }}
               />
             </div>
-            <span className="text-sm font-medium">
+            <span className="text-sm font-medium sm:min-w-[7rem] sm:text-right">
               {formatCurrency(item.total)}
             </span>
           </div>
@@ -198,17 +232,27 @@ function DashboardChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="border-0">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle>{title}</CardTitle>
-        <Switch
-          checked={showChart}
-          onCheckedChange={onToggle}
-          aria-label={`Toggle ${title} View`}
-          className="scale-75 origin-right"
-        />
+    <Card className="h-full border border-border/70 shadow-none">
+      <CardHeader className="flex flex-col gap-3 space-y-0 pb-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            {showChart ? "Vista grafica" : "Vista en lista"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-full border border-border/70 px-2.5 py-1.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            Grafico
+          </span>
+          <Switch
+            checked={showChart}
+            onCheckedChange={onToggle}
+            aria-label={`Toggle ${title} View`}
+            className="scale-75 origin-right"
+          />
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-2">
         {isEmpty ? (
           <EmptyState
             icon={emptyIcon}

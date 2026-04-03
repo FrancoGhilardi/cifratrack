@@ -1,14 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { PageContainer } from '@/shared/ui/page-container';
-import { getFriendlyErrorMessage } from '@/shared/lib/utils/error-messages';
-import { useRecurringRules } from '@/features/recurring/hooks/useRecurringRules';
-import { RecurringRulesList } from '@/features/recurring/ui/recurring-rules-list';
-import { RecurringRulesSkeleton } from '@/features/recurring/ui/recurring-rules-skeleton';
-import { useRecurringRuleMutations } from '@/features/recurring/hooks/useRecurringRuleMutations';
-import { Month } from '@/shared/lib/date';
-import { RecurringGenerateCard } from '@/features/recurring/ui/recurring-generate-card';
+import { useState } from "react";
+import { PageContainer } from "@/shared/ui/page-container";
+import { PageHeader } from "@/shared/ui/page-header";
+import { getFriendlyErrorMessage } from "@/shared/lib/utils/error-messages";
+import { useRecurringRules } from "@/features/recurring/hooks/useRecurringRules";
+import { RecurringRulesList } from "@/features/recurring/ui/recurring-rules-list";
+import { RecurringRulesSkeleton } from "@/features/recurring/ui/recurring-rules-skeleton";
+import { useRecurringRuleMutations } from "@/features/recurring/hooks/useRecurringRuleMutations";
+import { Month } from "@/shared/lib/date";
+import { RecurringGenerateCard } from "@/features/recurring/ui/recurring-generate-card";
 
 export default function RecurringPage() {
   const { data: rules, isLoading, error } = useRecurringRules();
@@ -16,7 +17,9 @@ export default function RecurringPage() {
   const [targetMonth, setTargetMonth] = useState(Month.current().toString());
 
   const friendlyError = getFriendlyErrorMessage(error);
-  const generateError = getFriendlyErrorMessage(generateRecurringTransactions.error);
+  const generateError = getFriendlyErrorMessage(
+    generateRecurringTransactions.error,
+  );
 
   const handleGenerate = () => {
     if (targetMonth) {
@@ -25,7 +28,12 @@ export default function RecurringPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Recurrentes"
+        description="Administra reglas mensuales y genera automáticamente los movimientos de cada período."
+      />
+
       <RecurringGenerateCard
         month={targetMonth}
         onMonthChange={setTargetMonth}
