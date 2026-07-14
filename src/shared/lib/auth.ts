@@ -13,6 +13,7 @@ import { loginSchema } from "@/entities/user/model/user.schema";
  * - Google OAuth (futuro)
  */
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
