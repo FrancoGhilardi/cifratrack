@@ -113,7 +113,10 @@ export function normalizeError(error: unknown): {
   if (error instanceof Error) {
     return {
       code: "INTERNAL_ERROR",
-      message: error.message,
+      message:
+        process.env.NODE_ENV === "production"
+          ? "Ha ocurrido un error inesperado"
+          : error.message,
     };
   }
 
