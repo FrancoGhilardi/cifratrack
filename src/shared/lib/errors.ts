@@ -11,7 +11,7 @@ export class AppError extends Error {
     message: string,
     public readonly code: string,
     public readonly statusCode: number = 500,
-    public readonly details?: unknown
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -25,7 +25,7 @@ export class AppError extends Error {
  */
 export class DomainError extends AppError {
   constructor(message: string, details?: unknown) {
-    super(message, 'DOMAIN_ERROR', 400, details);
+    super(message, "DOMAIN_ERROR", 400, details);
   }
 }
 
@@ -35,7 +35,7 @@ export class DomainError extends AppError {
  */
 export class ValidationError extends AppError {
   constructor(message: string, details?: unknown) {
-    super(message, 'VALIDATION_ERROR', 400, details);
+    super(message, "VALIDATION_ERROR", 400, details);
   }
 }
 
@@ -43,8 +43,8 @@ export class ValidationError extends AppError {
  * Error de autenticación - usuario no autenticado
  */
 export class AuthenticationError extends AppError {
-  constructor(message: string = 'No autenticado') {
-    super(message, 'AUTHENTICATION_ERROR', 401);
+  constructor(message: string = "No autenticado") {
+    super(message, "AUTHENTICATION_ERROR", 401);
   }
 }
 
@@ -52,8 +52,8 @@ export class AuthenticationError extends AppError {
  * Error de autorización - usuario sin permisos
  */
 export class AuthorizationError extends AppError {
-  constructor(message: string = 'No autorizado') {
-    super(message, 'AUTHORIZATION_ERROR', 403);
+  constructor(message: string = "No autorizado") {
+    super(message, "AUTHORIZATION_ERROR", 403);
   }
 }
 
@@ -62,8 +62,10 @@ export class AuthorizationError extends AppError {
  */
 export class NotFoundError extends AppError {
   constructor(resource: string, id?: string | number) {
-    const message = id ? `${resource} con id ${id} no encontrado` : `${resource} no encontrado`;
-    super(message, 'NOT_FOUND', 404);
+    const message = id
+      ? `${resource} con id ${id} no encontrado`
+      : `${resource} no encontrado`;
+    super(message, "NOT_FOUND", 404);
   }
 }
 
@@ -72,7 +74,16 @@ export class NotFoundError extends AppError {
  */
 export class ConflictError extends AppError {
   constructor(message: string, details?: unknown) {
-    super(message, 'CONFLICT', 409, details);
+    super(message, "CONFLICT", 409, details);
+  }
+}
+
+/**
+ * Error de rate limiting - demasiados intentos
+ */
+export class RateLimitError extends AppError {
+  constructor(message: string = "Demasiados intentos, esperá un momento") {
+    super(message, "RATE_LIMITED", 429);
   }
 }
 
@@ -86,7 +97,11 @@ export function isAppError(error: unknown): error is AppError {
 /**
  * Helper para convertir un error desconocido en formato estándar
  */
-export function normalizeError(error: unknown): { code: string; message: string; details?: unknown } {
+export function normalizeError(error: unknown): {
+  code: string;
+  message: string;
+  details?: unknown;
+} {
   if (isAppError(error)) {
     return {
       code: error.code,
@@ -97,13 +112,13 @@ export function normalizeError(error: unknown): { code: string; message: string;
 
   if (error instanceof Error) {
     return {
-      code: 'INTERNAL_ERROR',
+      code: "INTERNAL_ERROR",
       message: error.message,
     };
   }
 
   return {
-    code: 'UNKNOWN_ERROR',
-    message: 'Ha ocurrido un error inesperado',
+    code: "UNKNOWN_ERROR",
+    message: "Ha ocurrido un error inesperado",
   };
 }

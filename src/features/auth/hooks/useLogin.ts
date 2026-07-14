@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import type { LoginInput } from '@/entities/user/model/user.schema';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import type { LoginInput } from "@/entities/user/model/user.schema";
 
 export function useLogin() {
   const router = useRouter();
@@ -15,21 +15,25 @@ export function useLogin() {
     setError(null);
 
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
       if (result?.error) {
-        throw new Error('Credenciales incorrectas');
+        const message =
+          result.code === "rate-limited"
+            ? "Demasiados intentos. Probá de nuevo en un minuto."
+            : "Credenciales incorrectas";
+        throw new Error(message);
       }
 
       // Redirigir al dashboard
-      router.push('/dashboard');
+      router.push("/dashboard");
       router.refresh();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error desconocido';
+      const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
       throw err;
     } finally {
