@@ -29,6 +29,7 @@ import type {
   TransactionWithNames,
 } from "@/entities/transaction/repo";
 import type { TransactionSummaryDTO } from "@/entities/transaction/model/transaction-summary.dto";
+import { Transaction as TransactionEntity } from "@/entities/transaction/model/transaction.entity";
 import type { Transaction } from "@/entities/transaction/model/transaction.entity";
 import { NotFoundError, ValidationError } from "@/shared/lib/errors";
 import { TransactionMapper } from "./mappers/transaction.mapper";
@@ -678,13 +679,57 @@ export class TransactionRepository implements ITransactionRepository {
    * Obtener transacciones de un mes específico
    */
   async getByMonth(userId: string, month: string): Promise<Transaction[]> {
-    const result = await this.list({
-      userId,
-      month,
-      pageSize: 1000, // suficiente para un mes
-    });
+    const rows = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.occurredMonth, month),
+        ),
+      )
+      .orderBy(asc(transactions.occurredOn), asc(transactions.id));
 
-    return result.data.map((item) => item.transaction);
+    const transactionIds = rows.map((t) => t.id);
+    const splitsData =
+      transactionIds.length > 0
+        ? await db
+            .select({
+              transactionId: transactionCategories.transactionId,
+              categoryId: transactionCategories.categoryId,
+              allocatedAmount: transactionCategories.allocatedAmount,
+            })
+            .from(transactionCategories)
+            .where(inArray(transactionCategories.transactionId, transactionIds))
+        : [];
+
+    return rows.map((row) =>
+      TransactionEntity.fromPersistence({
+        id: row.id,
+        userId: row.userId,
+        kind: row.kind,
+        title: row.title,
+        description: row.description,
+        amount: row.amount,
+        currency: row.currency,
+        paymentMethodId: row.paymentMethodId,
+        isFixed: row.isFixed,
+        status: row.status,
+        occurredOn: new Date(row.occurredOn),
+        dueOn: row.dueOn ? new Date(row.dueOn) : null,
+        paidOn: row.paidOn ? new Date(row.paidOn) : null,
+        occurredMonth: row.occurredMonth,
+        sourceRecurringRuleId: row.sourceRecurringRuleId,
+        split: splitsData
+          .filter((s) => s.transactionId === row.id)
+          .map((s) => ({
+            categoryId: s.categoryId,
+            allocatedAmount: s.allocatedAmount,
+          })),
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      }),
+    );
   }
 
   /**

@@ -43,6 +43,13 @@
       "when": 1775065635366,
       "tag": "0005_secure_public_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784055477268,
+      "tag": "0006_military_may_parker",
+      "breakpoints": true
     }
   ]
 }

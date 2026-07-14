@@ -90,7 +90,7 @@ export class Money {
    * Multiplicar por un factor
    */
   multiply(factor: number): Money {
-    return Money.fromPesos(this.toPesos() * factor);
+    return Money.fromCents(Math.round(this.cents * factor));
   }
 
   /**
@@ -100,7 +100,7 @@ export class Money {
     if (divisor === 0) {
       throw new ValidationError('No se puede dividir por cero');
     }
-    return Money.fromPesos(this.toPesos() / divisor);
+    return Money.fromCents(Math.round(this.cents / divisor));
   }
 
   /**

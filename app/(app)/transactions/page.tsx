@@ -15,10 +15,6 @@ import { PageHeader } from "@/shared/ui/page-header";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Plus } from "lucide-react";
 import { useCrudDialogState } from "@/shared/lib/hooks/useCrudDialogState";
-import {
-  handleMutationError,
-  logMutationSuccess,
-} from "@/shared/lib/utils/mutation-handlers";
 import type { SortingState } from "@tanstack/react-table";
 
 export default function TransactionsPage() {
@@ -46,18 +42,10 @@ export default function TransactionsPage() {
 
     try {
       await mutations.delete.mutateAsync(dialogState.deleteId);
-      logMutationSuccess("delete", "Movimiento");
       dialogActions.closeDelete();
-    } catch (error) {
-      handleMutationError("delete", "movimiento", error);
+    } catch {
+      // El error se muestra vía toast (useTransactionMutations); el dialog queda abierto
     }
-  };
-
-  const handleFormSuccess = () => {
-    logMutationSuccess(
-      dialogState.editingId ? "update" : "create",
-      "Movimiento"
-    );
   };
 
   const handleSortChange = (sortBy: string, sortOrder: "asc" | "desc") => {
@@ -155,7 +143,6 @@ export default function TransactionsPage() {
         open={dialogState.isFormOpen}
         onOpenChange={(open) => !open && dialogActions.closeForm()}
         transactionId={dialogState.editingId}
-        onSuccess={handleFormSuccess}
       />
 
       {/* Dialog de confirmación para eliminar */}

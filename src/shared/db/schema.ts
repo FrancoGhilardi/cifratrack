@@ -235,18 +235,18 @@ export const transactions = pgTable(
   (table) => [
     index("idx_tx_user_date").using(
       "btree",
-      table.userId.asc().nullsLast().op("uuid_ops"),
-      table.occurredOn.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast(),
+      table.occurredOn.asc().nullsLast(),
     ),
     index("idx_tx_user_kind").using(
       "btree",
-      table.userId.asc().nullsLast().op("enum_ops"),
-      table.kind.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast(),
+      table.kind.asc().nullsLast(),
     ),
     index("idx_tx_user_month").using(
       "btree",
-      table.userId.asc().nullsLast().op("uuid_ops"),
-      table.occurredMonth.asc().nullsLast().op("date_ops"),
+      table.userId.asc().nullsLast(),
+      table.occurredMonth.asc().nullsLast(),
     ),
     index("idx_tx_user_status").using(
       "btree",

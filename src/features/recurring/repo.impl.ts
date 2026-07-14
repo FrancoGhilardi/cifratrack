@@ -244,9 +244,9 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
     month: Month,
     splits: Array<{ categoryId: string; allocatedAmount: number }>,
   ) {
-    const occurredOn = `${month.toString()}-${rule.dayOfMonth
-      .toString()
-      .padStart(2, "0")}`;
+    const lastDayOfMonth = new Date(month.getYear(), month.getMonth(), 0).getDate();
+    const day = Math.min(rule.dayOfMonth, lastDayOfMonth);
+    const occurredOn = `${month.toString()}-${day.toString().padStart(2, "0")}`;
     const dueOn = rule.status === "pending" ? occurredOn : null;
     const paidOn = rule.status === "paid" ? occurredOn : null;
     const [tx] = await db
