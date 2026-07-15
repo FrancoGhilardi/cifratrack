@@ -59,6 +59,15 @@ export const users = pgTable(
   (table) => [unique("users_email_key").on(table.email)],
 );
 
+/**
+ * SIN USO: tablas del adapter de NextAuth (OAuth accounts, sesiones en DB,
+ * verification tokens). El proveedor activo es Credentials con sesión JWT
+ * (ver src/shared/lib/auth.ts), que no pasa por estas tablas.
+ *
+ * Se mantienen documentadas porque agregar un provider OAuth (Google, etc.)
+ * es roadmap real — si se descarta definitivamente, se pueden quitar del
+ * schema y generar la migración de DROP correspondiente.
+ */
 export const accounts = pgTable(
   "accounts",
   {
@@ -348,6 +357,7 @@ export const investments = pgTable(
   ],
 );
 
+// SIN USO: ver nota de `accounts` más arriba — pertenece al adapter de NextAuth.
 export const verificationTokens = pgTable(
   "verification_tokens",
   {

@@ -7,13 +7,14 @@ import type {
 } from "../model/investment.dto";
 import type { ApiOk } from "@/shared/lib/types";
 import { apiFetch } from "@/shared/lib/api-client";
+import { formatDateToISO } from "@/shared/lib/date";
 import { buildQueryParams } from "@/shared/lib/utils/query-params";
 
 /**
  * Fetcher para listar inversiones
  */
 export async function fetchInvestments(
-  params: InvestmentQueryParams
+  params: InvestmentQueryParams,
 ): Promise<PaginatedInvestmentsResponse> {
   const searchParams = buildQueryParams({
     page: params.page,
@@ -27,7 +28,7 @@ export async function fetchInvestments(
   });
 
   const result = await apiFetch<ApiOk<PaginatedInvestmentsResponse>>(
-    `/api/investments?${searchParams.toString()}`
+    `/api/investments?${searchParams.toString()}`,
   );
   return result.data;
 }
@@ -44,14 +45,14 @@ export async function fetchInvestmentById(id: string): Promise<InvestmentDTO> {
  * Fetcher para crear inversión
  */
 export async function createInvestment(
-  data: CreateInvestmentInput
+  data: CreateInvestmentInput,
 ): Promise<InvestmentDTO> {
   const result = await apiFetch<ApiOk<InvestmentDTO>>("/api/investments", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...data,
-      startedOn: data.startedOn.toISOString().split("T")[0],
+      startedOn: formatDateToISO(data.startedOn),
     }),
   });
   return result.data;
@@ -62,7 +63,7 @@ export async function createInvestment(
  */
 export async function updateInvestment(
   id: string,
-  data: UpdateInvestmentInput
+  data: UpdateInvestmentInput,
 ): Promise<InvestmentDTO> {
   const result = await apiFetch<ApiOk<InvestmentDTO>>(
     `/api/investments/${id}`,
@@ -71,11 +72,9 @@ export async function updateInvestment(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...data,
-        startedOn: data.startedOn
-          ? data.startedOn.toISOString().split("T")[0]
-          : undefined,
+        startedOn: data.startedOn ? formatDateToISO(data.startedOn) : undefined,
       }),
-    }
+    },
   );
   return result.data;
 }

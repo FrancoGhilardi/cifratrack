@@ -1,13 +1,14 @@
-import type { entryKind, transactionStatus } from '@/shared/db/schema';
-import { TransactionSplit } from './transaction-split.vo';
-import { ValidationError } from '@/shared/lib/errors';
+import type { entryKind, transactionStatus } from "@/shared/db/schema";
+import { TransactionSplit } from "./transaction-split.vo";
+import { ValidationError } from "@/shared/lib/errors";
+import { formatDateToISO } from "@/shared/lib/date";
 
-type EntryKind = typeof entryKind.enumValues[number];
-type TransactionStatus = typeof transactionStatus.enumValues[number];
+type EntryKind = (typeof entryKind.enumValues)[number];
+type TransactionStatus = (typeof transactionStatus.enumValues)[number];
 
 /**
  * Entidad Transaction (dominio)
- * 
+ *
  * Representa una transacción (ingreso o egreso)
  */
 export class Transaction {
@@ -30,7 +31,7 @@ export class Transaction {
     public readonly split: TransactionSplit | null,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
-    skipValidation = false // Flag para saltar validación (datos de DB)
+    skipValidation = false, // Flag para saltar validación (datos de DB)
   ) {
     if (!skipValidation) {
       this.validate();
@@ -42,20 +43,24 @@ export class Transaction {
    */
   private validate(): void {
     if (this.amount <= 0) {
-      throw new ValidationError('El monto debe ser mayor a cero');
+      throw new ValidationError("El monto debe ser mayor a cero");
     }
 
-    if (this.status === 'pending' && !this.dueOn) {
-      throw new ValidationError('Una transacción pendiente debe tener fecha de vencimiento');
+    if (this.status === "pending" && !this.dueOn) {
+      throw new ValidationError(
+        "Una transacción pendiente debe tener fecha de vencimiento",
+      );
     }
 
     if (this.split && !this.split.matchesAmount(this.amount)) {
-      throw new ValidationError('La suma del split debe coincidir con el monto total');
+      throw new ValidationError(
+        "La suma del split debe coincidir con el monto total",
+      );
     }
 
     // Validar formato de occurredMonth
     if (!/^\d{4}-\d{2}$/.test(this.occurredMonth)) {
-      throw new ValidationError('El mes debe estar en formato YYYY-MM');
+      throw new ValidationError("El mes debe estar en formato YYYY-MM");
     }
   }
 
@@ -64,14 +69,14 @@ export class Transaction {
    */
   static create(data: {
     userId: string;
-    kind: 'income' | 'expense';
+    kind: "income" | "expense";
     title: string;
     description?: string | null;
     amount: number;
     currency?: string;
     paymentMethodId?: string | null;
     isFixed?: boolean;
-    status?: 'pending' | 'paid';
+    status?: "pending" | "paid";
     occurredOn: Date;
     dueOn?: Date | null;
     paidOn?: Date | null;
@@ -88,10 +93,10 @@ export class Transaction {
       data.title,
       data.description ?? null,
       data.amount,
-      data.currency ?? 'ARS',
+      data.currency ?? "ARS",
       data.paymentMethodId ?? null,
       data.isFixed ?? false,
-      data.status ?? 'paid',
+      data.status ?? "paid",
       data.occurredOn,
       data.dueOn ?? null,
       data.paidOn ?? null,
@@ -99,7 +104,7 @@ export class Transaction {
       data.sourceRecurringRuleId ?? null,
       splitVO,
       new Date(),
-      new Date()
+      new Date(),
     );
   }
 
@@ -109,14 +114,14 @@ export class Transaction {
   static fromPersistence(data: {
     id: string;
     userId: string;
-    kind: 'income' | 'expense';
+    kind: "income" | "expense";
     title: string;
     description: string | null;
     amount: number;
     currency: string;
     paymentMethodId: string | null;
     isFixed: boolean;
-    status: 'pending' | 'paid';
+    status: "pending" | "paid";
     occurredOn: Date;
     dueOn: Date | null;
     paidOn: Date | null;
@@ -126,7 +131,9 @@ export class Transaction {
     createdAt: Date;
     updatedAt: Date;
   }): Transaction {
-    const splitVO = data.split ? TransactionSplit.fromPersistence(data.split) : null;
+    const splitVO = data.split
+      ? TransactionSplit.fromPersistence(data.split)
+      : null;
 
     return new Transaction(
       data.id,
@@ -147,7 +154,7 @@ export class Transaction {
       splitVO,
       data.createdAt,
       data.updatedAt,
-      true // skipValidation = true para datos de DB
+      true, // skipValidation = true para datos de DB
     );
   }
 
@@ -166,9 +173,9 @@ export class Transaction {
       paymentMethodId: this.paymentMethodId,
       isFixed: this.isFixed,
       status: this.status,
-      occurredOn: this.occurredOn.toISOString().split('T')[0],
-      dueOn: this.dueOn?.toISOString().split('T')[0] ?? null,
-      paidOn: this.paidOn?.toISOString().split('T')[0] ?? null,
+      occurredOn: formatDateToISO(this.occurredOn),
+      dueOn: this.dueOn ? formatDateToISO(this.dueOn) : null,
+      paidOn: this.paidOn ? formatDateToISO(this.paidOn) : null,
       occurredMonth: this.occurredMonth,
       sourceRecurringRuleId: this.sourceRecurringRuleId,
       split: this.split?.toPersistence() ?? null,
@@ -180,11 +187,15 @@ export class Transaction {
   /**
    * Actualizar con split de categorías
    */
-  withSplit(split: Array<{ categoryId: string; allocatedAmount: number }>): Transaction {
+  withSplit(
+    split: Array<{ categoryId: string; allocatedAmount: number }>,
+  ): Transaction {
     const splitVO = new TransactionSplit(split);
 
     if (!splitVO.matchesAmount(this.amount)) {
-      throw new ValidationError('La suma del split debe coincidir con el monto total');
+      throw new ValidationError(
+        "La suma del split debe coincidir con el monto total",
+      );
     }
 
     return new Transaction(
@@ -205,7 +216,7 @@ export class Transaction {
       this.sourceRecurringRuleId,
       splitVO,
       this.createdAt,
-      this.updatedAt
+      this.updatedAt,
     );
   }
 
@@ -223,7 +234,7 @@ export class Transaction {
       this.currency,
       this.paymentMethodId,
       this.isFixed,
-      'paid',
+      "paid",
       this.occurredOn,
       this.dueOn,
       paidOn,
@@ -231,7 +242,7 @@ export class Transaction {
       this.sourceRecurringRuleId,
       this.split,
       this.createdAt,
-      new Date()
+      new Date(),
     );
   }
 
@@ -240,7 +251,7 @@ export class Transaction {
    */
   private static formatMonth(date: Date): string {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
     return `${year}-${month}`;
   }
 
@@ -248,29 +259,29 @@ export class Transaction {
    * Verificar si es ingreso
    */
   isIncome(): boolean {
-    return this.kind === 'income';
+    return this.kind === "income";
   }
 
   /**
    * Verificar si es egreso
    */
   isExpense(): boolean {
-    return this.kind === 'expense';
+    return this.kind === "expense";
   }
 
   /**
    * Verificar si está pendiente
    */
   isPending(): boolean {
-    return this.status === 'pending';
+    return this.status === "pending";
   }
 
   /**
    * Verificar si está pagada
    */
   isPaid(): boolean {
-    return this.status === 'paid';
+    return this.status === "paid";
   }
 }
 
-export type TransactionDTO = ReturnType<Transaction['toDTO']>;
+export type TransactionDTO = ReturnType<Transaction["toDTO"]>;

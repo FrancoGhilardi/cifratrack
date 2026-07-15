@@ -2,6 +2,8 @@
  * Utilidades para conversión y normalización de datos de formularios a API
  */
 
+import { formatDateToISO } from "@/shared/lib/date";
+
 /**
  * Convierte un objeto Date a ISO string
  * Maneja casos de undefined/null
@@ -19,7 +21,7 @@ export function isoStringToDateInput(
   isoString: string | undefined | null,
 ): string | undefined {
   if (!isoString) return undefined;
-  return new Date(isoString).toISOString().split("T")[0];
+  return formatDateToISO(new Date(isoString));
 }
 
 /**

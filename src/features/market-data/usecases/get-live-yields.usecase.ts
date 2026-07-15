@@ -4,6 +4,8 @@ import {
   YIELD_PROVIDERS,
 } from "@/features/market-data/config/providers";
 import { YIELD_PROVIDER_LIVE_SOURCES } from "@/features/market-data/config/live-provider-sources";
+import { normalizeText as stripAccents } from "@/shared/lib/utils/text";
+import { formatDateToISO } from "@/shared/lib/date";
 
 const CACHE_REVALIDATE_SECONDS = 300;
 
@@ -435,10 +437,7 @@ export class GetLiveYieldsUseCase {
   }
 
   private normalizeText(value: string) {
-    return value
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+    return stripAccents(value)
       .replace(/[^a-z0-9$]+/g, " ")
       .trim();
   }
@@ -484,7 +483,7 @@ export class GetLiveYieldsUseCase {
   }
 
   private formatDateKey(value: Date) {
-    return value.toISOString().split("T")[0] ?? "";
+    return formatDateToISO(value);
   }
 
   private roundRate(value: number) {

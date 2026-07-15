@@ -32,6 +32,8 @@ import type { TransactionSummaryDTO } from "@/entities/transaction/model/transac
 import { Transaction as TransactionEntity } from "@/entities/transaction/model/transaction.entity";
 import type { Transaction } from "@/entities/transaction/model/transaction.entity";
 import { NotFoundError, ValidationError } from "@/shared/lib/errors";
+import { formatDateToISO } from "@/shared/lib/date";
+import { normalizeText } from "@/shared/lib/utils/text";
 import { TransactionMapper } from "./mappers/transaction.mapper";
 
 export interface TransactionWithRelations {
@@ -97,12 +99,7 @@ export class TransactionRepository implements ITransactionRepository {
 
     if (q) {
       // Normalizar query para quitar acentos y pasar a minúsculas (Búsqueda Case Insensitive + Accent Insensitive)
-      const normalize = (str: string) =>
-        str
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "");
-      const searchPattern = `%${normalize(q)}%`;
+      const searchPattern = `%${normalizeText(q)}%`;
 
       // Mapeo de caracteres en DB: pasar a minúsculas y luego quitar tildes
       const translateSql = (
@@ -267,7 +264,7 @@ export class TransactionRepository implements ITransactionRepository {
           return item.transaction.createdAt.toISOString();
         case "occurred_on":
         default:
-          return item.transaction.occurredOn.toISOString().split("T")[0];
+          return formatDateToISO(item.transaction.occurredOn);
       }
     };
 
@@ -351,16 +348,16 @@ export class TransactionRepository implements ITransactionRepository {
     data: CreateTransactionInput,
   ): Promise<TransactionWithNames> {
     return await db.transaction(async (tx) => {
-      const occurredOn = data.occurredOn.toISOString().split("T")[0];
+      const occurredOn = formatDateToISO(data.occurredOn);
       const dueOn =
         data.status === "pending"
           ? data.dueOn
-            ? data.dueOn.toISOString().split("T")[0]
+            ? formatDateToISO(data.dueOn)
             : data.isFixed && data.kind === "expense"
               ? occurredOn
               : null
           : data.dueOn
-            ? data.dueOn.toISOString().split("T")[0]
+            ? formatDateToISO(data.dueOn)
             : null;
 
       if (data.status === "pending" && !dueOn) {
@@ -388,7 +385,7 @@ export class TransactionRepository implements ITransactionRepository {
             data.status === "pending"
               ? null
               : data.paidOn
-                ? data.paidOn.toISOString().split("T")[0]
+                ? formatDateToISO(data.paidOn)
                 : null,
           occurredMonth: occurredOn.substring(0, 7),
           sourceRecurringRuleId: data.sourceRecurringRuleId ?? null,
@@ -474,11 +471,12 @@ export class TransactionRepository implements ITransactionRepository {
         {};
 
       const existingTransaction = existing.transaction;
-      const existingOccurredOn = existingTransaction.occurredOn
-        .toISOString()
-        .split("T")[0];
-      const existingDueOn =
-        existingTransaction.dueOn?.toISOString().split("T")[0] ?? null;
+      const existingOccurredOn = formatDateToISO(
+        existingTransaction.occurredOn,
+      );
+      const existingDueOn = existingTransaction.dueOn
+        ? formatDateToISO(existingTransaction.dueOn)
+        : null;
 
       if (data.title !== undefined) updateData.title = data.title;
       if (data.description !== undefined)
@@ -489,16 +487,14 @@ export class TransactionRepository implements ITransactionRepository {
         // Verificar tipo y convertir si es necesario
         let dateStr: string;
         if (data.occurredOn instanceof Date) {
-          dateStr = data.occurredOn.toISOString().split("T")[0];
+          dateStr = formatDateToISO(data.occurredOn);
         } else if (typeof data.occurredOn === "string") {
-          dateStr = new Date(data.occurredOn).toISOString().split("T")[0];
+          dateStr = formatDateToISO(new Date(data.occurredOn));
         } else {
           // Fallback: convertir cualquier otro tipo a Date primero
-          dateStr = new Date(
-            data.occurredOn as unknown as string | number | Date,
-          )
-            .toISOString()
-            .split("T")[0];
+          dateStr = formatDateToISO(
+            new Date(data.occurredOn as unknown as string | number | Date),
+          );
         }
         updateData.occurredOn = dateStr;
         // Actualizar occurredMonth en formato YYYY-MM
@@ -509,9 +505,9 @@ export class TransactionRepository implements ITransactionRepository {
         if (data.dueOn === null) {
           updateData.dueOn = null;
         } else if (data.dueOn instanceof Date) {
-          updateData.dueOn = data.dueOn.toISOString().split("T")[0];
+          updateData.dueOn = formatDateToISO(data.dueOn);
         } else if (typeof data.dueOn === "string") {
-          updateData.dueOn = new Date(data.dueOn).toISOString().split("T")[0];
+          updateData.dueOn = formatDateToISO(new Date(data.dueOn));
         }
       }
       if (data.paidOn !== undefined) {
@@ -519,9 +515,9 @@ export class TransactionRepository implements ITransactionRepository {
         if (data.paidOn === null) {
           updateData.paidOn = null;
         } else if (data.paidOn instanceof Date) {
-          updateData.paidOn = data.paidOn.toISOString().split("T")[0];
+          updateData.paidOn = formatDateToISO(data.paidOn);
         } else if (typeof data.paidOn === "string") {
-          updateData.paidOn = new Date(data.paidOn).toISOString().split("T")[0];
+          updateData.paidOn = formatDateToISO(new Date(data.paidOn));
         }
       }
       if (data.paymentMethodId !== undefined)
