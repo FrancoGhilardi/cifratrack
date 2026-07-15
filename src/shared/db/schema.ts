@@ -253,6 +253,17 @@ export const transactions = pgTable(
       table.userId.asc().nullsLast().op("uuid_ops"),
       table.status.asc().nullsLast().op("enum_ops"),
     ),
+    // Índices trigram sobre la expresión normalizada (translate+lower) que usa
+    // el filtro de búsqueda `q` en repo.impl.ts — un índice sobre la columna
+    // cruda no serviría porque no matchea la expresión de la query.
+    index("idx_tx_title_search_trgm").using(
+      "gin",
+      sql`translate(lower(${table.title}), 'áéíóúäëïöüñ', 'aeiouaeioun') gin_trgm_ops`,
+    ),
+    index("idx_tx_description_search_trgm").using(
+      "gin",
+      sql`translate(lower(${table.description}), 'áéíóúäëïöüñ', 'aeiouaeioun') gin_trgm_ops`,
+    ),
     foreignKey({
       columns: [table.sourceRecurringRuleId],
       foreignColumns: [recurringRules.id],
