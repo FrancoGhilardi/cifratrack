@@ -176,17 +176,9 @@ export class TransactionRepository implements ITransactionRepository {
       }
     }
 
-    // Contar total
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(transactions)
-      .where(and(...baseConditions));
-
-    const total = countResult?.count ?? 0;
-    const totalPages = Math.ceil(total / pageSize);
+    // Contar total y obtener transacciones en paralelo (independientes)
     const offset = (page - 1) * pageSize;
 
-    // Obtener transacciones
     const transactionQuery = db
       .select()
       .from(transactions)
@@ -194,15 +186,27 @@ export class TransactionRepository implements ITransactionRepository {
       .orderBy(orderFn(orderColumn), orderFn(transactions.id))
       .limit(pageSize);
 
-    const transactionRows = await (useKeyset
-      ? transactionQuery
-      : transactionQuery.offset(offset));
+    const [countResult, transactionRows] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(transactions)
+        .where(and(...baseConditions))
+        .then((rows) => rows[0]),
+      useKeyset ? transactionQuery : transactionQuery.offset(offset),
+    ]);
 
-    // Obtener categorías asociadas
+    const total = countResult?.count ?? 0;
+    const totalPages = Math.ceil(total / pageSize);
+
+    // Obtener categorías asociadas y payment methods en paralelo (independientes)
     const transactionIds = transactionRows.map((t) => t.id);
-    const categoriesData =
+    const paymentMethodIds = transactionRows
+      .filter((t) => t.paymentMethodId)
+      .map((t) => t.paymentMethodId!);
+
+    const [categoriesData, paymentMethodsData] = await Promise.all([
       transactionIds.length > 0
-        ? await db
+        ? db
             .select({
               transactionId: transactionCategories.transactionId,
               categoryId: transactionCategories.categoryId,
@@ -215,20 +219,14 @@ export class TransactionRepository implements ITransactionRepository {
               eq(transactionCategories.categoryId, categories.id),
             )
             .where(inArray(transactionCategories.transactionId, transactionIds))
-        : [];
-
-    // Obtener payment methods
-    const paymentMethodIds = transactionRows
-      .filter((t) => t.paymentMethodId)
-      .map((t) => t.paymentMethodId!);
-
-    const paymentMethodsData =
+        : Promise.resolve([]),
       paymentMethodIds.length > 0
-        ? await db
+        ? db
             .select({ id: paymentMethods.id, name: paymentMethods.name })
             .from(paymentMethods)
             .where(inArray(paymentMethods.id, paymentMethodIds))
-        : [];
+        : Promise.resolve([]),
+    ]);
 
     // Mapear resultados a entidades de dominio
     const transactionsWithRelations: TransactionWithRelations[] =
@@ -306,30 +304,30 @@ export class TransactionRepository implements ITransactionRepository {
       return null;
     }
 
-    // Obtener categorías
-    const categoriesData = await db
-      .select({
-        categoryId: transactionCategories.categoryId,
-        categoryName: categories.name,
-        allocatedAmount: transactionCategories.allocatedAmount,
-      })
-      .from(transactionCategories)
-      .innerJoin(
-        categories,
-        eq(transactionCategories.categoryId, categories.id),
-      )
-      .where(eq(transactionCategories.transactionId, id));
+    // Obtener categorías y payment method en paralelo (independientes)
+    const [categoriesData, paymentMethodRows] = await Promise.all([
+      db
+        .select({
+          categoryId: transactionCategories.categoryId,
+          categoryName: categories.name,
+          allocatedAmount: transactionCategories.allocatedAmount,
+        })
+        .from(transactionCategories)
+        .innerJoin(
+          categories,
+          eq(transactionCategories.categoryId, categories.id),
+        )
+        .where(eq(transactionCategories.transactionId, id)),
+      transaction.paymentMethodId
+        ? db
+            .select({ id: paymentMethods.id, name: paymentMethods.name })
+            .from(paymentMethods)
+            .where(eq(paymentMethods.id, transaction.paymentMethodId))
+            .limit(1)
+        : Promise.resolve([]),
+    ]);
 
-    // Obtener payment method
-    let paymentMethod = null;
-    if (transaction.paymentMethodId) {
-      const [pm] = await db
-        .select({ id: paymentMethods.id, name: paymentMethods.name })
-        .from(paymentMethods)
-        .where(eq(paymentMethods.id, transaction.paymentMethodId))
-        .limit(1);
-      paymentMethod = pm ?? null;
-    }
+    const paymentMethod = paymentMethodRows[0] ?? null;
 
     const transactionWithRelations: TransactionWithRelations = {
       transaction,
