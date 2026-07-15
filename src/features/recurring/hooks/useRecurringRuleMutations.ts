@@ -1,61 +1,54 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { recurringApi } from '../api/recurring.api';
-import { recurringKeys } from '../model/query-keys';
-import { transactionKeys } from '@/features/transactions/model/query-keys';
-import { dashboardKeys } from '@/features/dashboard/model/query-keys';
-import { toast } from '@/shared/lib/toast';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createCrudMutations } from "@/shared/lib/create-crud-mutations";
+import { recurringApi } from "../api/recurring.api";
+import { recurringKeys } from "../model/query-keys";
+import { transactionKeys } from "@/features/transactions/model/query-keys";
+import { dashboardKeys } from "@/features/dashboard/model/query-keys";
+import { toast } from "@/shared/lib/toast";
+import type {
+  CreateRecurringRuleInput,
+  UpdateRecurringRuleInput,
+} from "@/entities/recurring-rule/model/recurring-rule.schema";
+
+const useRecurringRuleCrudMutations = createCrudMutations<
+  CreateRecurringRuleInput,
+  UpdateRecurringRuleInput
+>({
+  entityLabel: "Regla recurrente",
+  api: recurringApi,
+  queryKeys: recurringKeys,
+});
 
 export function useRecurringRuleMutations() {
   const queryClient = useQueryClient();
-
-  const invalidateRecurring = () => {
-    queryClient.invalidateQueries({ queryKey: recurringKeys.all });
-  };
-
-  const createRecurringRule = useMutation({
-    mutationFn: recurringApi.create,
-    onSuccess: () => {
-      invalidateRecurring();
-      toast.success('Regla recurrente creada');
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al crear regla'),
-  });
-
-  const updateRecurringRule = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof recurringApi.update>[1] }) =>
-      recurringApi.update(id, data),
-    onSuccess: (_, variables) => {
-      invalidateRecurring();
-      queryClient.invalidateQueries({ queryKey: recurringKeys.detail(variables.id) });
-      toast.success('Regla recurrente actualizada');
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al actualizar regla'),
-  });
-
-  const deleteRecurringRule = useMutation({
-    mutationFn: recurringApi.delete,
-    onSuccess: () => {
-      invalidateRecurring();
-      toast.success('Regla recurrente eliminada');
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al eliminar regla'),
-  });
+  const {
+    create,
+    update,
+    delete: deleteMutation,
+    isLoading,
+  } = useRecurringRuleCrudMutations();
 
   const generateRecurringTransactions = useMutation({
     mutationFn: (month: string) => recurringApi.generate(month),
     onSuccess: (_result, month) => {
-      invalidateRecurring();
+      queryClient.invalidateQueries({ queryKey: recurringKeys.lists() });
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: dashboardKeys.summary(month) });
-      toast.success('Transacciones recurrentes generadas');
+      toast.success("Transacciones recurrentes generadas");
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al generar transacciones'),
+    onError: (error) =>
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error al generar transacciones",
+      ),
   });
 
   return {
-    createRecurringRule,
-    updateRecurringRule,
-    deleteRecurringRule,
+    createRecurringRule: create,
+    updateRecurringRule: update,
+    deleteRecurringRule: deleteMutation,
     generateRecurringTransactions,
+    isLoading,
   };
 }
