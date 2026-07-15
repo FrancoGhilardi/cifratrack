@@ -27,13 +27,7 @@ import { formatDateToLocal } from "@/shared/lib/utils/date-format";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
+import { MobileSortSelect } from "@/shared/ui/mobile-sort-select";
 import {
   Table,
   TableBody,
@@ -270,26 +264,14 @@ export function TransactionsTable({
       <div className="rounded-xl border bg-card p-4 md:hidden">
         <div className="space-y-2">
           <p className="text-sm font-medium">Orden</p>
-          <Select
+          <MobileSortSelect
+            options={MOBILE_SORT_OPTIONS}
             value={mobileSortValue}
-            onValueChange={(value) => {
-              const [sortBy, sortOrder] = value.split(":");
-              if (sortBy && (sortOrder === "asc" || sortOrder === "desc")) {
-                onSortingChange?.(sortBy, sortOrder);
-              }
-            }}
-          >
-            <SelectTrigger className="h-11">
-              <SelectValue placeholder="Ordenar movimientos" />
-            </SelectTrigger>
-            <SelectContent>
-              {MOBILE_SORT_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onSortChange={(sortBy, sortOrder) =>
+              onSortingChange?.(sortBy, sortOrder)
+            }
+            placeholder="Ordenar movimientos"
+          />
         </div>
       </div>
 

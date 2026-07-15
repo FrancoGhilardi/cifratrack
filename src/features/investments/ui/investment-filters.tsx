@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
+import { MobileSortSelect } from "@/shared/ui/mobile-sort-select";
 import {
   Select,
   SelectContent,
@@ -65,14 +66,14 @@ export function InvestmentFilters({
     onSearchChange(e.target.value);
   };
 
-  const handleMobileSortChange = (value: string) => {
-    const [nextSortBy, nextSortOrder] = value.split(":");
-    if (nextSortBy && (nextSortOrder === "asc" || nextSortOrder === "desc")) {
-      onSortChange(
-        nextSortBy as NonNullable<InvestmentQueryParams["sortBy"]>,
-        nextSortOrder,
-      );
-    }
+  const handleMobileSortChange = (
+    sortBy: string,
+    sortOrder: "asc" | "desc",
+  ) => {
+    onSortChange(
+      sortBy as NonNullable<InvestmentQueryParams["sortBy"]>,
+      sortOrder,
+    );
   };
 
   return (
@@ -119,18 +120,12 @@ export function InvestmentFilters({
       </div>
 
       <div className="md:hidden">
-        <Select value={mobileSortValue} onValueChange={handleMobileSortChange}>
-          <SelectTrigger className="h-11">
-            <SelectValue placeholder="Ordenar inversiones" />
-          </SelectTrigger>
-          <SelectContent>
-            {MOBILE_SORT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MobileSortSelect
+          options={MOBILE_SORT_OPTIONS}
+          value={mobileSortValue}
+          onSortChange={handleMobileSortChange}
+          placeholder="Ordenar inversiones"
+        />
       </div>
     </>
   );
