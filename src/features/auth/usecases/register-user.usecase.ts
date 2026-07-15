@@ -1,21 +1,21 @@
-import bcrypt from 'bcryptjs';
-import { db, type DbTransaction } from '@/shared/db/client';
-import { categories, paymentMethods, users } from '@/shared/db/schema';
-import type { IUserRepository } from '@/entities/user/repo';
-import type { RegisterInput } from '@/entities/user/model/user.schema';
-import { User } from '@/entities/user/model/user.entity';
-import { ConflictError } from '@/shared/lib/errors';
-import { DEFAULT_CATEGORIES } from '../seeds/default-categories';
-import { DEFAULT_PAYMENT_METHODS } from '../seeds/default-payment-methods';
+import { db, type DbTransaction } from "@/shared/db/client";
+import { categories, paymentMethods, users } from "@/shared/db/schema";
+import type { IUserRepository } from "@/entities/user/repo";
+import type { RegisterInput } from "@/entities/user/model/user.schema";
+import { User } from "@/entities/user/model/user.entity";
+import { ConflictError } from "@/shared/lib/errors";
+import { hashPassword } from "@/shared/lib/password";
+import { DEFAULT_CATEGORIES } from "../seeds/default-categories";
+import { DEFAULT_PAYMENT_METHODS } from "../seeds/default-payment-methods";
 
 /** Código SQLSTATE de Postgres para violación de constraint único */
-const UNIQUE_VIOLATION_CODE = '23505';
+const UNIQUE_VIOLATION_CODE = "23505";
 
 function isUniqueViolation(error: unknown): boolean {
   return (
-    typeof error === 'object' &&
+    typeof error === "object" &&
     error !== null &&
-    'code' in error &&
+    "code" in error &&
     (error as { code?: unknown }).code === UNIQUE_VIOLATION_CODE
   );
 }
@@ -39,11 +39,11 @@ export class RegisterUserUseCase {
     // Validar que el email no exista
     const emailExists = await this.userRepository.emailExists(input.email);
     if (emailExists) {
-      throw new ConflictError('El email ya está registrado');
+      throw new ConflictError("El email ya está registrado");
     }
 
     // Hashear password
-    const hashedPassword = await this.hashPassword(input.password);
+    const hashedPassword = await hashPassword(input.password);
 
     try {
       return await db.transaction(async (tx) => {
@@ -63,7 +63,7 @@ export class RegisterUserUseCase {
     } catch (error) {
       // Red de seguridad ante race condition en el check emailExists
       if (isUniqueViolation(error)) {
-        throw new ConflictError('El email ya está registrado');
+        throw new ConflictError("El email ya está registrado");
       }
       throw error;
     }
@@ -74,7 +74,7 @@ export class RegisterUserUseCase {
    */
   private async createUser(
     tx: DbTransaction,
-    data: { email: string; hashedPassword: string; name?: string | null }
+    data: { email: string; hashedPassword: string; name?: string | null },
   ): Promise<User> {
     const now = new Date();
 
@@ -100,17 +100,12 @@ export class RegisterUserUseCase {
   }
 
   /**
-   * Hashear password con bcrypt
-   */
-  private async hashPassword(password: string): Promise<string> {
-    const saltRounds = 10;
-    return await bcrypt.hash(password, saltRounds);
-  }
-
-  /**
    * Insertar categorías por defecto para el usuario
    */
-  private async insertDefaultCategories(tx: DbTransaction, userId: string): Promise<void> {
+  private async insertDefaultCategories(
+    tx: DbTransaction,
+    userId: string,
+  ): Promise<void> {
     const now = new Date();
 
     await tx.insert(categories).values(
@@ -121,14 +116,17 @@ export class RegisterUserUseCase {
         isDefault: category.isDefault,
         createdAt: now,
         updatedAt: now,
-      }))
+      })),
     );
   }
 
   /**
    * Insertar formas de pago por defecto para el usuario
    */
-  private async insertDefaultPaymentMethods(tx: DbTransaction, userId: string): Promise<void> {
+  private async insertDefaultPaymentMethods(
+    tx: DbTransaction,
+    userId: string,
+  ): Promise<void> {
     const now = new Date();
 
     await tx.insert(paymentMethods).values(
@@ -138,7 +136,7 @@ export class RegisterUserUseCase {
         isDefault: method.isDefault,
         createdAt: now,
         updatedAt: now,
-      }))
+      })),
     );
   }
 }
