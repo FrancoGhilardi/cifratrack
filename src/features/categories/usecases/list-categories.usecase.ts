@@ -1,16 +1,11 @@
-import type { ICategoryRepository } from '@/entities/category/repo';
-import type { Category } from '@/entities/category/model/category.entity';
+import { ListUseCase } from "@/shared/lib/usecases/list.usecase";
+import type { Category } from "@/entities/category/model/category.entity";
+import type { ListCategoriesInput } from "@/entities/category/model/category.schema";
 
 /**
- * Caso de uso: Listar categorías
+ * Caso de uso: Listar categorías (passthrough al repo, sin reglas propias)
  */
-export class ListCategoriesUseCase {
-  constructor(private readonly categoryRepo: ICategoryRepository) {}
-
-  async execute(
-    userId: string,
-    filters?: { kind?: 'income' | 'expense'; isActive?: boolean }
-  ): Promise<Category[]> {
-    return this.categoryRepo.list(userId, filters);
-  }
-}
+export class ListCategoriesUseCase extends ListUseCase<
+  Category[],
+  ListCategoriesInput
+> {}

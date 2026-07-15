@@ -1,19 +1,12 @@
 import type { IInvestmentRepository } from "@/entities/investment/repo";
 import type { Investment } from "@/entities/investment/model/investment.entity";
-import { NotFoundError } from "@/shared/lib/errors";
+import { GetByIdUseCase } from "@/shared/lib/usecases/get-by-id.usecase";
 
 /**
- * Caso de uso: Obtener inversion por ID
+ * Caso de uso: Obtener inversion por ID (passthrough al repo, sin reglas propias)
  */
-export class GetInvestmentByIdUseCase {
-  constructor(private readonly investmentRepo: IInvestmentRepository) {}
-
-  async execute(id: string, userId: string): Promise<Investment> {
-    const investment = await this.investmentRepo.findById(id, userId);
-    if (!investment) {
-      throw new NotFoundError("Inversion", id);
-    }
-
-    return investment;
+export class GetInvestmentByIdUseCase extends GetByIdUseCase<Investment> {
+  constructor(investmentRepo: IInvestmentRepository) {
+    super(investmentRepo, "Inversion");
   }
 }
