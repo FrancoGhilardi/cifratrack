@@ -1,123 +1,65 @@
-import { NextRequest } from "next/server";
-import { auth } from "@/shared/lib/auth";
-import { ok, err } from "@/shared/lib/response";
+import { withApiHandler } from "@/shared/lib/api-handler";
+import { ok } from "@/shared/lib/response";
 import { PaymentMethodRepository } from "@/features/payment-methods/repo.impl";
 import { UpsertPaymentMethodUseCase } from "@/features/payment-methods/usecases/upsert-payment-method.usecase";
 import { DeletePaymentMethodUseCase } from "@/features/payment-methods/usecases/delete-payment-method.usecase";
 import { GetPaymentMethodByIdUseCase } from "@/features/payment-methods/usecases/get-payment-method-by-id.usecase";
-import { updatePaymentMethodSchema } from "@/entities/payment-method/model/payment-method.schema";
 import {
-  AuthenticationError,
-  DomainError,
-  NotFoundError,
-  ValidationError,
-} from "@/shared/lib/errors";
+  updatePaymentMethodSchema,
+  type UpdatePaymentMethodInput,
+} from "@/entities/payment-method/model/payment-method.schema";
 
 const paymentMethodRepo = new PaymentMethodRepository();
 const getPaymentMethodByIdUseCase = new GetPaymentMethodByIdUseCase(
-  paymentMethodRepo
+  paymentMethodRepo,
+);
+const upsertPaymentMethodUseCase = new UpsertPaymentMethodUseCase(
+  paymentMethodRepo,
+);
+const deletePaymentMethodUseCase = new DeletePaymentMethodUseCase(
+  paymentMethodRepo,
 );
 
 /**
  * GET /api/payment-methods/[id]
  * Obtiene una forma de pago por ID
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return err(new AuthenticationError("No autenticado"), 401);
-    }
-
-    const { id } = await context.params;
+export const GET = withApiHandler<undefined, undefined, { id: string }>({
+  handler: async ({ userId, params }) => {
     const paymentMethod = await getPaymentMethodByIdUseCase.execute(
-      id,
-      session.user.id
+      params.id,
+      userId,
     );
-
     return ok(paymentMethod.toDTO());
-  } catch (error) {
-    console.error("Error fetching payment method:", error);
-
-    if (error instanceof NotFoundError) {
-      return err(error, 404);
-    }
-
-    return err(error);
-  }
-}
+  },
+});
 
 /**
  * PUT /api/payment-methods/[id]
  * Actualiza una forma de pago existente
  */
-export async function PUT(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return err(new AuthenticationError("No autenticado"), 401);
-    }
-
-    const { id } = await context.params;
-    const body = await request.json();
-
-    // Validar con schema zod
-    const parsed = updatePaymentMethodSchema.safeParse(body);
-    if (!parsed.success) {
-      return err(new ValidationError("Datos inválidos", parsed.error.issues));
-    }
-
-    const useCase = new UpsertPaymentMethodUseCase(paymentMethodRepo);
-    const paymentMethod = await useCase.execute(session.user.id, {
-      ...parsed.data,
-      id,
+export const PUT = withApiHandler<
+  undefined,
+  UpdatePaymentMethodInput,
+  { id: string }
+>({
+  bodySchema: updatePaymentMethodSchema,
+  handler: async ({ userId, body, params }) => {
+    const paymentMethod = await upsertPaymentMethodUseCase.execute(userId, {
+      ...body,
+      id: params.id,
     });
-
     return ok(paymentMethod.toDTO());
-  } catch (error) {
-    console.error("Error updating payment method:", error);
-
-    if (error instanceof DomainError || error instanceof ValidationError) {
-      return err(error);
-    }
-
-    return err(error);
-  }
-}
+  },
+});
 
 /**
  * DELETE /api/payment-methods/[id]
  * Elimina una forma de pago
  */
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return err(new AuthenticationError("No autenticado"), 401);
-    }
-
-    const { id } = await context.params;
-
-    const useCase = new DeletePaymentMethodUseCase(paymentMethodRepo);
-    await useCase.execute(id, session.user.id);
-
+export const DELETE = withApiHandler<undefined, undefined, { id: string }>({
+  handler: async ({ userId, params }) => {
+    await deletePaymentMethodUseCase.execute(params.id, userId);
     return ok({ success: true });
-  } catch (error) {
-    console.error("Error deleting payment method:", error);
-
-    if (error instanceof DomainError || error instanceof ValidationError) {
-      return err(error);
-    }
-
-    return err(error);
-  }
-}
+  },
+});
