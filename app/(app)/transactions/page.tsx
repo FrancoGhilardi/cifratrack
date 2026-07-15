@@ -10,6 +10,7 @@ import { TransactionDialog } from "@/features/transactions/ui/transaction-dialog
 import { TransactionSummaryCards } from "@/features/transactions/ui/transaction-summary-cards";
 import { useTransactionMutations } from "@/features/transactions/hooks/useTransactionMutations";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { TableLoadingOverlay } from "@/shared/ui/table-loading-overlay";
 import { Pagination } from "@/shared/ui/pagination";
 import { PageHeader } from "@/shared/ui/page-header";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
@@ -22,6 +23,7 @@ export default function TransactionsPage() {
     transactions,
     meta,
     isLoading,
+    isFetching,
     isError,
     error,
     params,
@@ -112,13 +114,16 @@ export default function TransactionsPage() {
         </div>
       ) : (
         <>
-          <TransactionsTable
-            transactions={transactions}
-            sorting={sorting}
-            onSortingChange={handleSortChange}
-            onEdit={dialogActions.openEdit}
-            onDelete={dialogActions.openDelete}
-          />
+          <div className="relative">
+            <TableLoadingOverlay show={isFetching} className="rounded-lg" />
+            <TransactionsTable
+              transactions={transactions}
+              sorting={sorting}
+              onSortingChange={handleSortChange}
+              onEdit={dialogActions.openEdit}
+              onDelete={dialogActions.openDelete}
+            />
+          </div>
 
           {/* Paginación */}
           {meta && meta.totalPages > 1 && (

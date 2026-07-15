@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { fetchTransactions } from "../api/transactions.api";
@@ -64,7 +64,7 @@ export function useTransactionsTable() {
       ...baseParams,
       ...extraParams,
     }),
-    [baseParams, extraParams]
+    [baseParams, extraParams],
   );
 
   const [cursorBySignature, setCursorBySignature] = useState<
@@ -94,13 +94,12 @@ export function useTransactionsTable() {
       baseParams.sortBy,
       baseParams.sortOrder,
       baseParams.pageSize,
-    ]
+    ],
   );
 
   const cursorMap = cursorBySignature[cursorSignature] ?? {};
   const currentPage = params.page ?? 1;
-  const cursorForPage =
-    currentPage > 1 ? cursorMap[currentPage] : undefined;
+  const cursorForPage = currentPage > 1 ? cursorMap[currentPage] : undefined;
 
   const paramsWithCursor: TransactionListParams = useMemo(
     () => ({
@@ -108,13 +107,14 @@ export function useTransactionsTable() {
       cursor: cursorForPage?.cursor,
       cursorId: cursorForPage?.cursorId,
     }),
-    [params, cursorForPage]
+    [params, cursorForPage],
   );
 
   // Query de transacciones
   const query = useQuery({
     queryKey: transactionKeys.list(paramsWithCursor),
     queryFn: () => fetchTransactions(paramsWithCursor),
+    placeholderData: keepPreviousData,
   });
 
   const storeNextCursor = useCallback(() => {
@@ -159,7 +159,7 @@ export function useTransactionsTable() {
       }
       goToPage(page);
     },
-    [currentPage, goToPage, storeNextCursor]
+    [currentPage, goToPage, storeNextCursor],
   );
 
   const meta = query.data
@@ -178,6 +178,7 @@ export function useTransactionsTable() {
 
     // Estado de la query
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
 
