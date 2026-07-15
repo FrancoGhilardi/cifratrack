@@ -16,6 +16,7 @@ import { PageHeader } from "@/shared/ui/page-header";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Plus } from "lucide-react";
 import { useCrudDialogState } from "@/shared/lib/hooks/useCrudDialogState";
+import { useMemo } from "react";
 import type { SortingState } from "@tanstack/react-table";
 
 export default function TransactionsPage() {
@@ -55,12 +56,15 @@ export default function TransactionsPage() {
   };
 
   // Convertir params a SortingState para TanStack Table
-  const sorting: SortingState = [
-    {
-      id: params.sortBy || "occurredOn",
-      desc: params.sortOrder === "desc",
-    },
-  ];
+  const sorting: SortingState = useMemo(
+    () => [
+      {
+        id: params.sortBy || "occurredOn",
+        desc: params.sortOrder === "desc",
+      },
+    ],
+    [params.sortBy, params.sortOrder],
+  );
 
   if (isError) {
     return (
