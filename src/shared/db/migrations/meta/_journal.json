@@ -57,6 +57,13 @@
       "when": 1784122309724,
       "tag": "0007_salty_nicolaos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784123112754,
+      "tag": "0008_dark_piledriver",
+      "breakpoints": true
     }
   ]
 }
