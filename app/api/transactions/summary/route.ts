@@ -28,16 +28,18 @@ export async function GET(request: Request) {
     const parsed = monthSchema.safeParse(monthParam);
     if (!parsed.success) {
       return err(
-        new ValidationError('Parametro "month" invalido', parsed.error.issues)
+        new ValidationError('Parametro "month" invalido', parsed.error.issues),
       );
     }
 
     const summary = await getSummaryUseCase.execute(
       session.user.id,
-      parsed.data
+      parsed.data,
     );
 
-    return ok(summary);
+    const response = ok(summary);
+    response.headers.set("Cache-Control", "private, max-age=30");
+    return response;
   } catch (error) {
     console.error("[GET /api/transactions/summary] Error:", error);
 

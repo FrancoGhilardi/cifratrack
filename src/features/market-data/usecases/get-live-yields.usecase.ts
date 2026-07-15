@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import {
   getProviderName,
   YIELD_PROVIDERS,
@@ -41,8 +42,18 @@ interface SourceRate {
 }
 
 export class GetLiveYieldsUseCase {
+  // El catálogo ya resuelto (post fetch + matching + cálculo de TNA) se
+  // cachea entero — cachear solo los fetches individuales (como hace
+  // fetchJson con next.revalidate) no evita rehacer todo el armado del
+  // catálogo en cada request dentro de la misma ventana de 5 min.
+  private readonly getCachedCatalog = unstable_cache(
+    () => this.buildCatalog(),
+    ["market-data-live-catalog"],
+    { revalidate: CACHE_REVALIDATE_SECONDS },
+  );
+
   async execute(providerId?: string) {
-    const catalog = await this.buildCatalog();
+    const catalog = await this.getCachedCatalog();
 
     if (!providerId) {
       return catalog;
@@ -181,27 +192,53 @@ export class GetLiveYieldsUseCase {
   }
 
   private async fetchRentaFijaPreviousSamples(latest: RawFundRate[]) {
-    const previousByTargetDate = new Map<string, RawFundRate[]>();
-    const previousSamples: RawFundRate[] = [];
     const today = new Date();
 
-    for (const fund of latest) {
-      const fundDate = this.parseDate(fund.fecha);
+    // Primera pasada (sync): calcular fecha objetivo por fondo y agrupar por
+    // targetDateKey, sin pegarle a la red todavía.
+    const fundsWithTargetDate = latest
+      .map((fund) => {
+        const fundDate = this.parseDate(fund.fecha);
 
-      if (!fundDate || this.daysBetweenDates(fundDate, today) > 30) {
-        continue;
+        if (!fundDate || this.daysBetweenDates(fundDate, today) > 30) {
+          return null;
+        }
+
+        const targetDate = new Date(fundDate);
+        targetDate.setDate(targetDate.getDate() - 30);
+
+        return {
+          fund,
+          targetDate,
+          targetDateKey: this.formatDateKey(targetDate),
+        };
+      })
+      .filter((item) => item !== null);
+
+    const uniqueTargetDates = new Map<string, Date>();
+    for (const { targetDate, targetDateKey } of fundsWithTargetDate) {
+      if (!uniqueTargetDates.has(targetDateKey)) {
+        uniqueTargetDates.set(targetDateKey, targetDate);
       }
+    }
 
-      const targetDate = new Date(fundDate);
-      targetDate.setDate(targetDate.getDate() - 30);
+    // Un fetch (con sus reintentos internos) por fecha objetivo distinta,
+    // todos en paralelo — antes era secuencial fondo por fondo.
+    const snapshotEntries = await Promise.all(
+      Array.from(uniqueTargetDates.entries()).map(
+        async ([targetDateKey, targetDate]) =>
+          [
+            targetDateKey,
+            await this.fetchNearestRentaFijaSnapshot(targetDate),
+          ] as const,
+      ),
+    );
+    const snapshotsByTargetDate = new Map(snapshotEntries);
 
-      const targetDateKey = this.formatDateKey(targetDate);
-      let snapshot = previousByTargetDate.get(targetDateKey);
+    const previousSamples: RawFundRate[] = [];
 
-      if (!snapshot) {
-        snapshot = await this.fetchNearestRentaFijaSnapshot(targetDate);
-        previousByTargetDate.set(targetDateKey, snapshot);
-      }
+    for (const { fund, targetDate, targetDateKey } of fundsWithTargetDate) {
+      const snapshot = snapshotsByTargetDate.get(targetDateKey) ?? [];
 
       const fundMatch = snapshot
         .filter(
