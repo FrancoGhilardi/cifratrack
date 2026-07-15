@@ -9,34 +9,36 @@ export interface IRecurringRuleRepository {
   findById(id: string, userId: string): Promise<RecurringRule | null>;
   create(
     userId: string,
-    data: CreateRecurringRuleInput
+    data: CreateRecurringRuleInput,
   ): Promise<RecurringRule>;
   update(
     id: string,
     userId: string,
-    data: UpdateRecurringRuleInput
+    data: UpdateRecurringRuleInput,
   ): Promise<RecurringRule>;
   delete(id: string, userId: string): Promise<void>;
   findCategories(
-    ruleId: string
+    ruleId: string,
   ): Promise<Array<{ categoryId: string; allocatedAmount: number }>>;
   findCategoriesByRuleIds(
-    ruleIds: string[]
+    ruleIds: string[],
   ): Promise<
     Record<string, Array<{ categoryId: string; allocatedAmount: number }>>
   >;
   setCategories(
     ruleId: string,
-    categories: Array<{ categoryId: string; allocatedAmount: number }>
+    categories: Array<{ categoryId: string; allocatedAmount: number }>,
   ): Promise<void>;
-  findExistingTransaction(
+  findExistingTransactionRuleIds(
     userId: string,
-    ruleId: string,
-    month: string
-  ): Promise<string | null>;
-  createTransactionFromRule(
-    rule: RecurringRule,
+    ruleIds: string[],
+    month: string,
+  ): Promise<Set<string>>;
+  bulkCreateTransactionsFromRules(
+    items: Array<{
+      rule: RecurringRule;
+      splits: Array<{ categoryId: string; allocatedAmount: number }>;
+    }>,
     month: import("@/shared/lib/date").Month,
-    splits: Array<{ categoryId: string; allocatedAmount: number }>
   ): Promise<void>;
 }
