@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/shared/ui/theme-provider";
@@ -9,14 +9,38 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const description =
+  "Gestiona tus ingresos, egresos e inversiones de manera simple y efectiva";
+
 export const metadata: Metadata = {
-  title: "CifraTrack - Control Personal de Finanzas",
-  description: "Gestiona tus ingresos, egresos e inversiones de manera simple y efectiva",
+  metadataBase: new URL(appUrl),
+  title: {
+    default: "CifraTrack - Control Personal de Finanzas",
+    template: "%s | CifraTrack",
+  },
+  description,
   icons: {
     icon: [{ url: "/icon.png", type: "image/png" }],
     shortcut: ["/icon.png"],
     apple: ["/icon.png"],
   },
+  manifest: "/manifest.webmanifest",
+  openGraph: {
+    title: "CifraTrack",
+    description,
+    siteName: "CifraTrack",
+    locale: "es_AR",
+    type: "website",
+    images: [{ url: "/icon.png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
 };
 
 export default function RootLayout({
