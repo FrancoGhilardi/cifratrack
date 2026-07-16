@@ -50,10 +50,20 @@ export const CategoryPieChart = memo(function CategoryPieChart({
     setActiveName(d.value ?? null);
   const onPieLeave = () => setActiveName(null);
 
+  const chartSummary = data
+    .map(
+      (entry) => `${entry.name}: ${calculatePercentage(entry.value, total)}%`,
+    )
+    .join(", ");
+
   return (
     <div className="space-y-4">
-      <div className="h-[220px] sm:h-[250px]">
-        <ResponsiveContainer width="100%" height="100%">
+      <div
+        className="h-[220px] sm:h-[250px]"
+        role="img"
+        aria-label={`Distribución por categoría: ${chartSummary}`}
+      >
+        <ResponsiveContainer width="100%" height="100%" aria-hidden="true">
           <PieChart>
             <Pie
               data={data}
@@ -87,6 +97,25 @@ export const CategoryPieChart = memo(function CategoryPieChart({
           </PieChart>
         </ResponsiveContainer>
       </div>
+      <table className="sr-only">
+        <caption>Distribución por categoría</caption>
+        <thead>
+          <tr>
+            <th scope="col">Categoría</th>
+            <th scope="col">Monto</th>
+            <th scope="col">Porcentaje</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((entry) => (
+            <tr key={entry.name}>
+              <td>{entry.name}</td>
+              <td>{formatCurrency(entry.value)}</td>
+              <td>{calculatePercentage(entry.value, total)}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <div className="grid gap-2 sm:grid-cols-2">
         {data.map((entry) => (
