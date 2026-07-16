@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { X } from "lucide-react";
-import iconPng from "../../../public/icon.png";
 import { useActiveRoute } from "@/shared/lib/hooks/useActiveRoute";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
@@ -38,7 +37,7 @@ export function Sidebar({
           className="flex items-center gap-2 text-xl font-bold"
         >
           <Image
-            src={iconPng}
+            src="/icon.png"
             alt="CifraTrack"
             width={28}
             height={28}

@@ -8,7 +8,6 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import iconPng from "../../../public/icon.png";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import {
   Card,
@@ -74,7 +73,7 @@ export function AuthShell({
             <div className="space-y-8 px-4">
               <div className="inline-flex items-center gap-3 rounded-full border border-border bg-background/80 px-4 py-2 shadow-sm backdrop-blur">
                 <Image
-                  src={iconPng}
+                  src="/icon.png"
                   alt="CifraTrack"
                   width={28}
                   height={28}
@@ -129,7 +128,7 @@ export function AuthShell({
             <CardHeader className="space-y-4 p-5 sm:p-6">
               <div className="flex items-center gap-3 lg:hidden">
                 <Image
-                  src={iconPng}
+                  src="/icon.png"
                   alt="CifraTrack"
                   width={32}
                   height={32}
