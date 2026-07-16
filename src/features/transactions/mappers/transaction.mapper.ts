@@ -24,7 +24,6 @@ export interface TransactionDTO {
   title: string;
   description: string | null;
   amount: number;
-  currency: string;
   paymentMethodId: string | null;
   paymentMethodName: string | null;
   isFixed: boolean;
@@ -61,7 +60,6 @@ export class TransactionMapper {
         title: data.transaction.title,
         description: data.transaction.description,
         amount: data.transaction.amount,
-        currency: data.transaction.currency,
         paymentMethodId: data.transaction.paymentMethodId,
         isFixed: data.transaction.isFixed,
         status: data.transaction.status,
@@ -117,7 +115,6 @@ export class TransactionMapper {
         title: transaction.title,
         description: transaction.description,
         amount: transaction.amount,
-        currency: transaction.currency,
         paymentMethodId: transaction.paymentMethodId,
         paymentMethodName: data.paymentMethodName,
         isFixed: transaction.isFixed,

@@ -276,7 +276,6 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
               title: rule.title,
               description: rule.description,
               amount: Math.trunc(rule.amount),
-              currency: "ARS",
               paymentMethodId: rule.paymentMethodId,
               isFixed: true,
               status: rule.status,

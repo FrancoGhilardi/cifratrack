@@ -225,7 +225,6 @@ export const transactions = pgTable(
     title: varchar({ length: 120 }).notNull(),
     description: text(),
     amount: integer().notNull(),
-    currency: char({ length: 3 }).default("ARS").notNull(),
     paymentMethodId: uuid("payment_method_id"),
     isFixed: boolean("is_fixed").default(false).notNull(),
     status: transactionStatus().default("paid").notNull(),

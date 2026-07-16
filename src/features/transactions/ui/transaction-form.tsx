@@ -198,7 +198,6 @@ export function TransactionForm({
       title: values.title,
       description: values.description || null,
       amount: amountInCents,
-      currency: "ARS",
       paymentMethodId: values.paymentMethodId || null,
       isFixed: values.isFixed,
       status: values.status,

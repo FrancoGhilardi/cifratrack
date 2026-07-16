@@ -34,7 +34,6 @@ export const createTransactionSchema = z.object({
     .number()
     .int("El monto debe ser un número entero (centavos)")
     .positive("El monto debe ser mayor a cero"),
-  currency: z.string().length(3).default("ARS").optional(),
   paymentMethodId: z
     .string()
     .uuid("ID de forma de pago inválido")

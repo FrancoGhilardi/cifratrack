@@ -147,7 +147,7 @@ export function TransactionsTable({
           if (row.original.kind !== "income") return null;
           return (
             <div className="text-right font-medium text-green-600 dark:text-green-400">
-              {formatCurrency(row.original.amount, row.original.currency)}
+              {formatCurrency(row.original.amount)}
             </div>
           );
         },
@@ -165,7 +165,7 @@ export function TransactionsTable({
 
           return (
             <div className={cn("text-right font-medium", colorClass)}>
-              {formatCurrency(row.original.amount, row.original.currency)}
+              {formatCurrency(row.original.amount)}
             </div>
           );
         },
@@ -324,7 +324,7 @@ export function TransactionsTable({
 
                 <div className="shrink-0 text-right">
                   <p className={cn("text-lg font-semibold", amountColorClass)}>
-                    {formatCurrency(transaction.amount, transaction.currency)}
+                    {formatCurrency(transaction.amount)}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {transaction.kind === "income" ? "Ingreso" : "Egreso"}

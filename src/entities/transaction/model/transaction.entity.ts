@@ -18,7 +18,6 @@ export class Transaction {
     public readonly title: string,
     public readonly description: string | null,
     public readonly amount: number, // en centavos
-    public readonly currency: string,
     public readonly paymentMethodId: string | null,
     public readonly isFixed: boolean,
     public readonly status: TransactionStatus,
@@ -90,7 +89,6 @@ export class Transaction {
     title: string;
     description?: string | null;
     amount: number;
-    currency?: string;
     paymentMethodId?: string | null;
     isFixed?: boolean;
     status?: "pending" | "paid";
@@ -110,7 +108,6 @@ export class Transaction {
       data.title,
       data.description ?? null,
       data.amount,
-      data.currency ?? "ARS",
       data.paymentMethodId ?? null,
       data.isFixed ?? false,
       data.status ?? "paid",
@@ -135,7 +132,6 @@ export class Transaction {
     title: string;
     description: string | null;
     amount: number;
-    currency: string;
     paymentMethodId: string | null;
     isFixed: boolean;
     status: "pending" | "paid";
@@ -159,7 +155,6 @@ export class Transaction {
       data.title,
       data.description,
       data.amount,
-      data.currency,
       data.paymentMethodId,
       data.isFixed,
       data.status,
@@ -186,7 +181,6 @@ export class Transaction {
       title: this.title,
       description: this.description,
       amount: this.amount,
-      currency: this.currency,
       paymentMethodId: this.paymentMethodId,
       isFixed: this.isFixed,
       status: this.status,
@@ -222,7 +216,6 @@ export class Transaction {
       this.title,
       this.description,
       this.amount,
-      this.currency,
       this.paymentMethodId,
       this.isFixed,
       this.status,
@@ -248,7 +241,6 @@ export class Transaction {
       this.title,
       this.description,
       this.amount,
-      this.currency,
       this.paymentMethodId,
       this.isFixed,
       "paid",
