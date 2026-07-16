@@ -7,6 +7,10 @@ import { z } from "zod";
 
 import { type CreateTransactionInput } from "@/entities/transaction/model/transaction.schema";
 import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
+import {
+  entryKindSchema,
+  transactionStatusSchema,
+} from "@/shared/db/enums.zod";
 import { cn } from "@/shared/lib/utils";
 import {
   centsToPesos,
@@ -37,7 +41,7 @@ import { CategorySplitInput } from "./category-split-input";
 import { type TransactionDTO } from "../mappers/transaction.mapper";
 
 const formSchema = z.object({
-  kind: z.enum(["income", "expense"]),
+  kind: entryKindSchema,
   title: z
     .string()
     .min(2, "El título debe tener al menos 2 caracteres")
@@ -49,7 +53,7 @@ const formSchema = z.object({
     .max(21000000, "El monto excede el límite permitido por el sistema ($21M)"),
   paymentMethodId: z.string().uuid("Selecciona una forma de pago").optional(),
   isFixed: z.boolean().optional(),
-  status: z.enum(["pending", "paid"]),
+  status: transactionStatusSchema,
   occurredOn: z.string(),
   dueOn: z.string().optional(),
   paidOn: z.string().optional(),

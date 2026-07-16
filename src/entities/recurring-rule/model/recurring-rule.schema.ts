@@ -1,18 +1,34 @@
-import { z } from 'zod';
-import { nonEmptyStringSchema, amountSchema, dayOfMonthSchema, monthSchema } from '@/shared/lib/validation';
+import { z } from "zod";
+import {
+  nonEmptyStringSchema,
+  amountSchema,
+  dayOfMonthSchema,
+  monthSchema,
+} from "@/shared/lib/validation";
+import {
+  entryKindSchema,
+  transactionStatusSchema,
+} from "@/shared/db/enums.zod";
 
 export const recurringRuleCategorySchema = z.object({
-  categoryId: z.string().uuid('ID de categoría inválido'),
+  categoryId: z.string().uuid("ID de categoría inválido"),
   allocatedAmount: amountSchema,
 });
 
 export const createRecurringRuleSchema = z.object({
-  title: nonEmptyStringSchema.max(120, 'El título no puede superar 120 caracteres'),
-  description: z.string().max(500, 'La descripción no puede superar 500 caracteres').optional().nullable(),
+  title: nonEmptyStringSchema.max(
+    120,
+    "El título no puede superar 120 caracteres",
+  ),
+  description: z
+    .string()
+    .max(500, "La descripción no puede superar 500 caracteres")
+    .optional()
+    .nullable(),
   amount: amountSchema,
-  kind: z.enum(['income', 'expense']),
+  kind: entryKindSchema,
   dayOfMonth: dayOfMonthSchema,
-  status: z.enum(['pending', 'paid']).default('pending'),
+  status: transactionStatusSchema.default("pending"),
   paymentMethodId: z.string().uuid().optional().nullable(),
   activeFromMonth: monthSchema,
   activeToMonth: monthSchema.optional().nullable(),
@@ -21,6 +37,12 @@ export const createRecurringRuleSchema = z.object({
 
 export const updateRecurringRuleSchema = createRecurringRuleSchema.partial();
 
-export type CreateRecurringRuleInput = z.infer<typeof createRecurringRuleSchema>;
-export type UpdateRecurringRuleInput = z.infer<typeof updateRecurringRuleSchema>;
-export type RecurringRuleCategoryInput = z.infer<typeof recurringRuleCategorySchema>;
+export type CreateRecurringRuleInput = z.infer<
+  typeof createRecurringRuleSchema
+>;
+export type UpdateRecurringRuleInput = z.infer<
+  typeof updateRecurringRuleSchema
+>;
+export type RecurringRuleCategoryInput = z.infer<
+  typeof recurringRuleCategorySchema
+>;

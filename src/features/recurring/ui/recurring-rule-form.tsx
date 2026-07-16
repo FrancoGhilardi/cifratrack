@@ -8,6 +8,10 @@ import { z } from "zod";
 import type { CreateRecurringRuleInput } from "@/entities/recurring-rule/model/recurring-rule.schema";
 import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
 import { CategorySplitInput } from "@/features/transactions/ui/category-split-input";
+import {
+  entryKindSchema,
+  transactionStatusSchema,
+} from "@/shared/db/enums.zod";
 import { Month } from "@/shared/lib/date";
 import { useDialogForm } from "@/shared/lib/hooks";
 import { formatErrorMessage } from "@/shared/lib/utils/error-messages";
@@ -54,9 +58,9 @@ const formSchema = z.object({
     .number()
     .positive("El monto debe ser mayor a cero")
     .max(21000000, "El monto excede el límite permitido por el sistema ($21M)"),
-  kind: z.enum(["income", "expense"]),
+  kind: entryKindSchema,
   dayOfMonth: z.number().int().min(1, "Día mínimo 1").max(31, "Día máximo 31"),
-  status: z.enum(["pending", "paid"]),
+  status: transactionStatusSchema,
   paymentMethodId: z.string().uuid().optional(),
   activeFromMonth: z.string(),
   activeToMonth: z.string().optional().nullable(),

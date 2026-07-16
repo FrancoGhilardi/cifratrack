@@ -5,6 +5,10 @@ import {
   dateISOSchema,
 } from "@/shared/lib/validation";
 import { createSortSchema, paginationSchema } from "@/shared/lib/pagination";
+import {
+  entryKindSchema,
+  transactionStatusSchema,
+} from "@/shared/db/enums.zod";
 
 /**
  * Schema para el split de categorías
@@ -21,7 +25,7 @@ export const categorySplitSchema = z.object({
  * Schema para crear transacción
  */
 export const createTransactionSchema = z.object({
-  kind: z.enum(["income", "expense"]),
+  kind: entryKindSchema,
   title: nonEmptyStringSchema
     .max(120, "El título no puede superar los 120 caracteres")
     .min(2, "El título debe tener al menos 2 caracteres"),
@@ -40,7 +44,7 @@ export const createTransactionSchema = z.object({
     .optional()
     .nullable(),
   isFixed: z.boolean().default(false).optional(),
-  status: z.enum(["pending", "paid"]),
+  status: transactionStatusSchema,
   occurredOn: dateISOSchema,
   occurredMonth: z
     .string()
@@ -77,7 +81,7 @@ export const updateTransactionSchema = z.object({
     .optional()
     .nullable(),
   isFixed: z.boolean().optional(),
-  status: z.enum(["pending", "paid"]).optional(),
+  status: transactionStatusSchema.optional(),
   occurredOn: dateISOSchema.optional(),
   occurredMonth: z
     .string()
@@ -95,8 +99,8 @@ export const updateTransactionSchema = z.object({
  * Schema para filtrar transacciones
  */
 export const listTransactionsSchema = z.object({
-  kind: z.enum(["income", "expense"]).optional(),
-  status: z.enum(["pending", "paid"]).optional(),
+  kind: entryKindSchema.optional(),
+  status: transactionStatusSchema.optional(),
   month: z
     .string()
     .regex(/^\d{4}-\d{2}$/, "El mes debe estar en formato YYYY-MM")
@@ -137,8 +141,8 @@ export const listTransactionsQuerySchema = paginationSchema
   .merge(
     z.object({
       month: monthSchema.optional(),
-      kind: z.enum(["income", "expense"]).optional(),
-      status: z.enum(["pending", "paid"]).optional(),
+      kind: entryKindSchema.optional(),
+      status: transactionStatusSchema.optional(),
       paymentMethodId: z.string().uuid().optional(),
       categoryIds: z.preprocess(
         csvToArray,
