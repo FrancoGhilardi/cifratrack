@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Pencil, Trash2, CreditCard } from 'lucide-react';
-import { Badge } from '@/shared/ui/badge';
-import { DataTable } from '@/shared/ui/data-table';
-import type { DataTableColumn } from '@/shared/ui/data-table';
-import type { PaymentMethodDTO } from '../api/payment-methods.api';
-import { PaymentMethodForm } from './payment-method-form';
-import { DeletePaymentMethodDialog } from './delete-payment-method-dialog';
-import { usePaymentMethodMutations } from '../hooks/usePaymentMethodMutations';
-import type { CreatePaymentMethodInput } from '@/entities/payment-method/model/payment-method.schema';
+import { useState } from "react";
+import { Pencil, Trash2, CreditCard } from "lucide-react";
+import { Badge } from "@/shared/ui/badge";
+import { DataTable } from "@/shared/ui/data-table";
+import type { DataTableColumn } from "@/shared/ui/data-table";
+import type { PaymentMethodDTO } from "../api/payment-methods.api";
+import { PaymentMethodForm } from "./payment-method-form";
+import { DeletePaymentMethodDialog } from "./delete-payment-method-dialog";
+import { usePaymentMethodMutations } from "../hooks/usePaymentMethodMutations";
+import type { CreatePaymentMethodInput } from "@/entities/payment-method/model/payment-method.schema";
 
 interface PaymentMethodListProps {
   paymentMethods: PaymentMethodDTO[];
@@ -53,8 +53,8 @@ export function PaymentMethodList({
   const handleFormSubmit = async (data: CreatePaymentMethodInput) => {
     if (selectedPaymentMethod) {
       await updatePaymentMethod.mutateAsync({
-        ...data,
         id: selectedPaymentMethod.id,
+        data,
       });
     } else {
       await createPaymentMethod.mutateAsync(data);
@@ -71,23 +71,23 @@ export function PaymentMethodList({
 
   const columns: DataTableColumn<PaymentMethodDTO>[] = [
     {
-      header: 'Nombre',
-      accessorKey: 'name',
-      className: 'font-medium',
+      header: "Nombre",
+      accessorKey: "name",
+      className: "font-medium",
     },
     {
-      header: 'Estado',
+      header: "Estado",
       cell: (pm) => (
-        <Badge variant={pm.isActive ? 'default' : 'secondary'}>
-          {pm.isActive ? 'Activa' : 'Inactiva'}
+        <Badge variant={pm.isActive ? "default" : "secondary"}>
+          {pm.isActive ? "Activa" : "Inactiva"}
         </Badge>
       ),
     },
     {
-      header: 'Tipo',
+      header: "Tipo",
       cell: (pm) => (
-        <Badge variant={pm.isDefault ? 'outline' : 'secondary'}>
-          {pm.isDefault ? 'Por defecto' : 'Personalizada'}
+        <Badge variant={pm.isDefault ? "outline" : "secondary"}>
+          {pm.isDefault ? "Por defecto" : "Personalizada"}
         </Badge>
       ),
     },
@@ -102,17 +102,17 @@ export function PaymentMethodList({
         columns={columns}
         actions={[
           {
-            label: 'Editar forma de pago',
+            label: "Editar forma de pago",
             icon: Pencil,
             onClick: handleEdit,
-            variant: 'ghost',
+            variant: "ghost",
             disabled: (pm) => pm.isDefault,
           },
           {
-            label: 'Eliminar forma de pago',
+            label: "Eliminar forma de pago",
             icon: Trash2,
             onClick: handleDelete,
-            variant: 'ghost',
+            variant: "ghost",
             disabled: (pm) => pm.isDefault,
           },
         ]}

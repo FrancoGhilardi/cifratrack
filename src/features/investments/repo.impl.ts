@@ -19,6 +19,7 @@ import type {
 import { Investment } from "@/entities/investment/model/investment.entity";
 import type { InvestmentQueryParams } from "@/entities/investment/model/investment.schema";
 import { NotFoundError, ValidationError } from "@/shared/lib/errors";
+import { formatDateToISO } from "@/shared/lib/date";
 
 /**
  * Repositorio de inversiones con Drizzle ORM
@@ -223,7 +224,7 @@ export class InvestmentRepository implements IInvestmentRepository {
           return item.title;
         case "startedOn":
         default:
-          return item.startedOn.toISOString().split("T")[0];
+          return formatDateToISO(item.startedOn);
       }
     };
 
@@ -288,7 +289,7 @@ export class InvestmentRepository implements IInvestmentRepository {
         tna: investment.tna.toString(),
         days: investment.days === 0 ? null : investment.days,
         isCompound: investment.isCompound,
-        startedOn: investment.startedOn.toISOString().split("T")[0],
+        startedOn: formatDateToISO(investment.startedOn),
         notes: investment.notes,
       })
       .returning();
@@ -340,7 +341,7 @@ export class InvestmentRepository implements IInvestmentRepository {
       updateData.days = data.days === 0 ? null : data.days;
     if (data.isCompound !== undefined) updateData.isCompound = data.isCompound;
     if (data.startedOn !== undefined) {
-      updateData.startedOn = data.startedOn.toISOString().split("T")[0];
+      updateData.startedOn = formatDateToISO(data.startedOn);
     }
     if (data.notes !== undefined) updateData.notes = data.notes;
 

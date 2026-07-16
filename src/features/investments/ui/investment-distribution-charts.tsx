@@ -1,33 +1,27 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import dynamic from "next/dynamic";
 
 import { useCurrency } from "@/shared/lib/hooks/useCurrency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
 
 import type { InvestmentDTO } from "../model/investment.dto";
+import type { ChartDatum, ChartKey } from "./investment-pie-chart";
+
+const InvestmentPieChart = dynamic(
+  () => import("./investment-pie-chart").then((m) => m.InvestmentPieChart),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[220px] sm:h-[250px]" />,
+  },
+);
 
 interface InvestmentDistributionChartsProps {
   investments: InvestmentDTO[];
 }
-
-type ChartKey = "principal" | "yield" | "total";
-
-type ChartDatum = {
-  name: string;
-  platform: string;
-  principal: number;
-  yield: number;
-  total: number;
-  color: string;
-};
-
-type TooltipPayloadItem = {
-  payload: ChartDatum;
-  value: number;
-};
 
 const COLORS = [
   "#0ea5e9",
@@ -41,29 +35,6 @@ const COLORS = [
   "#6366f1",
   "#84cc16",
 ];
-
-function ChartTooltip({
-  active,
-  payload,
-  formatCurrency,
-}: {
-  active?: boolean;
-  payload?: TooltipPayloadItem[];
-  formatCurrency: (value: number) => string;
-}) {
-  if (!active || !payload || payload.length === 0) {
-    return null;
-  }
-
-  const item = payload[0];
-  return (
-    <div className="rounded-lg border bg-popover p-3 text-popover-foreground shadow-sm">
-      <p className="font-medium">{item.payload.name}</p>
-      <p className="text-xs text-muted-foreground">{item.payload.platform}</p>
-      <p className="mt-1 font-semibold">{formatCurrency(item.value)}</p>
-    </div>
-  );
-}
 
 function ChartCard({
   title,
@@ -99,31 +70,11 @@ function ChartCard({
 
       {checked && (
         <CardContent className="space-y-4">
-          <div className="h-[220px] sm:h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={28}
-                  outerRadius={82}
-                  dataKey={chartKey}
-                  strokeWidth={0}
-                >
-                  {data.map((entry) => (
-                    <Cell
-                      key={`${chartKey}-${entry.name}`}
-                      fill={entry.color}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  content={<ChartTooltip formatCurrency={formatCurrency} />}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          <InvestmentPieChart
+            data={data}
+            chartKey={chartKey}
+            formatCurrency={formatCurrency}
+          />
 
           <div className="max-h-40 space-y-2 overflow-auto pr-1">
             {data.map((entry) => (

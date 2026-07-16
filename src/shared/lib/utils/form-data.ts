@@ -13,16 +13,6 @@ export function dateToISOString(
 }
 
 /**
- * Convierte una fecha ISO string a formato de input date (YYYY-MM-DD)
- */
-export function isoStringToDateInput(
-  isoString: string | undefined | null,
-): string | undefined {
-  if (!isoString) return undefined;
-  return new Date(isoString).toISOString().split("T")[0];
-}
-
-/**
  * Convierte un valor de input date (YYYY-MM-DD) a un Date UTC estable.
  * Evita corrimientos cuando luego se serializa nuevamente con toISOString().
  */
@@ -66,29 +56,6 @@ export function normalizeNullValues<T extends Record<string, unknown>>(
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const value = obj[key];
       result[key] = (value === null ? undefined : value) as T[typeof key];
-    }
-  }
-
-  return result;
-}
-
-/**
- * Convierte un objeto con campos Date a un objeto con strings ISO
- * Útil para preparar datos antes de enviarlos a APIs REST
- */
-export function convertDatesToISO<T extends Record<string, unknown>>(
-  obj: T,
-): Record<string, unknown> {
-  const result = {} as Record<string, unknown>;
-
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const value = obj[key] as unknown;
-      if (value instanceof Date) {
-        result[key] = value.toISOString();
-      } else {
-        result[key] = value;
-      }
     }
   }
 

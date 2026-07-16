@@ -1,12 +1,6 @@
-import type { IInvestmentRepository } from '@/entities/investment/repo';
+import { DeleteUseCase } from "@/shared/lib/usecases/delete.usecase";
 
 /**
- * Caso de uso: Eliminar inversión
+ * Caso de uso: Eliminar inversión (passthrough al repo, sin reglas propias)
  */
-export class DeleteInvestmentUseCase {
-  constructor(private readonly investmentRepo: IInvestmentRepository) {}
-
-  async execute(id: string, userId: string): Promise<void> {
-    await this.investmentRepo.delete(id, userId);
-  }
-}
+export class DeleteInvestmentUseCase extends DeleteUseCase {}

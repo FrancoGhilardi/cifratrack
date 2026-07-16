@@ -113,6 +113,8 @@ pnpm dev
 
 #### Base de Datos
 
+**Proveedor:** Supabase (PostgreSQL gestionado). La app se conecta a través del connection pooler de Supabase (Supavisor) en **transaction mode** (puerto `6543`), no directo a Postgres — necesario porque cada función serverless de Vercel abriría su propio pool de conexiones y agotaría los slots de Postgres bajo carga. Por eso `src/shared/db/client.ts` usa `prepare: false` (los prepared statements no sobreviven al cambio de conexión física entre transacciones en ese modo).
+
 Generar archivos SQL basados en cambios del esquema (`src/shared/db/schema.ts`):
 
 ```bash

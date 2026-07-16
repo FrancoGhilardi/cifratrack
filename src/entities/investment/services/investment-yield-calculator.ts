@@ -1,3 +1,5 @@
+import { ValidationError } from "@/shared/lib/errors";
+
 /**
  * Resultado del cálculo de rendimiento de una inversión
  */
@@ -36,15 +38,15 @@ export class InvestmentYieldCalculator {
   ): InvestmentYieldResult {
     // Validaciones básicas
     if (principal <= 0) {
-      throw new Error("El principal debe ser mayor a cero");
+      throw new ValidationError("El principal debe ser mayor a cero");
     }
 
     if (tna < 0) {
-      throw new Error("La TNA no puede ser negativa");
+      throw new ValidationError("La TNA no puede ser negativa");
     }
 
     if (days < 0) {
-      throw new Error("Los días no pueden ser negativos");
+      throw new ValidationError("Los días no pueden ser negativos");
     }
 
     let yieldAmount = 0;
@@ -85,7 +87,7 @@ export class InvestmentYieldCalculator {
    */
   calculateTEA(principal: number, finalAmount: number, days: number): number {
     if (principal <= 0 || finalAmount <= 0 || days <= 0) {
-      throw new Error("Los valores deben ser mayores a cero");
+      throw new ValidationError("Los valores deben ser mayores a cero");
     }
 
     // TEA = ((Final / Principal) - 1) × (365 / días) × 100
@@ -121,7 +123,7 @@ export class InvestmentYieldCalculator {
     targetYield: number,
   ): number {
     if (principal <= 0 || tna <= 0 || targetYield <= 0) {
-      throw new Error("Los valores deben ser mayores a cero");
+      throw new ValidationError("Los valores deben ser mayores a cero");
     }
 
     // Despejando días de la fórmula: yield = principal × (tna / 100) × (días / 365)

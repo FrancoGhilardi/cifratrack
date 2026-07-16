@@ -14,13 +14,14 @@ export interface TransactionsSummary {
 }
 
 /**
- * Hook para adaptar el resumen de transacciones del mes
+ * Hook para adaptar el resumen de transacciones del mes (view-model puro,
+ * no hace fetch — para eso ver `useTransactionsSummaryQuery`).
  *
  * @param summary - Resumen de egresos por estado
  * @returns Resumen con flags para la UI
  */
-export function useTransactionsSummary(
-  summary?: TransactionSummaryDTO
+export function useTransactionsSummaryView(
+  summary?: TransactionSummaryDTO,
 ): TransactionsSummary {
   return useMemo(() => {
     const totalPaid = summary?.totalPaid ?? 0;

@@ -29,8 +29,10 @@ import type {
   TransactionWithNames,
 } from "@/entities/transaction/repo";
 import type { TransactionSummaryDTO } from "@/entities/transaction/model/transaction-summary.dto";
+import { Transaction as TransactionEntity } from "@/entities/transaction/model/transaction.entity";
 import type { Transaction } from "@/entities/transaction/model/transaction.entity";
 import { NotFoundError, ValidationError } from "@/shared/lib/errors";
+import { normalizeText } from "@/shared/lib/utils/text";
 import { TransactionMapper } from "./mappers/transaction.mapper";
 
 export interface TransactionWithRelations {
@@ -96,12 +98,7 @@ export class TransactionRepository implements ITransactionRepository {
 
     if (q) {
       // Normalizar query para quitar acentos y pasar a minúsculas (Búsqueda Case Insensitive + Accent Insensitive)
-      const normalize = (str: string) =>
-        str
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "");
-      const searchPattern = `%${normalize(q)}%`;
+      const searchPattern = `%${normalizeText(q)}%`;
 
       // Mapeo de caracteres en DB: pasar a minúsculas y luego quitar tildes
       const translateSql = (
@@ -175,17 +172,9 @@ export class TransactionRepository implements ITransactionRepository {
       }
     }
 
-    // Contar total
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(transactions)
-      .where(and(...baseConditions));
-
-    const total = countResult?.count ?? 0;
-    const totalPages = Math.ceil(total / pageSize);
+    // Contar total y obtener transacciones en paralelo (independientes)
     const offset = (page - 1) * pageSize;
 
-    // Obtener transacciones
     const transactionQuery = db
       .select()
       .from(transactions)
@@ -193,15 +182,27 @@ export class TransactionRepository implements ITransactionRepository {
       .orderBy(orderFn(orderColumn), orderFn(transactions.id))
       .limit(pageSize);
 
-    const transactionRows = await (useKeyset
-      ? transactionQuery
-      : transactionQuery.offset(offset));
+    const [countResult, transactionRows] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(transactions)
+        .where(and(...baseConditions))
+        .then((rows) => rows[0]),
+      useKeyset ? transactionQuery : transactionQuery.offset(offset),
+    ]);
 
-    // Obtener categorías asociadas
+    const total = countResult?.count ?? 0;
+    const totalPages = Math.ceil(total / pageSize);
+
+    // Obtener categorías asociadas y payment methods en paralelo (independientes)
     const transactionIds = transactionRows.map((t) => t.id);
-    const categoriesData =
+    const paymentMethodIds = transactionRows
+      .filter((t) => t.paymentMethodId)
+      .map((t) => t.paymentMethodId!);
+
+    const [categoriesData, paymentMethodsData] = await Promise.all([
       transactionIds.length > 0
-        ? await db
+        ? db
             .select({
               transactionId: transactionCategories.transactionId,
               categoryId: transactionCategories.categoryId,
@@ -214,20 +215,14 @@ export class TransactionRepository implements ITransactionRepository {
               eq(transactionCategories.categoryId, categories.id),
             )
             .where(inArray(transactionCategories.transactionId, transactionIds))
-        : [];
-
-    // Obtener payment methods
-    const paymentMethodIds = transactionRows
-      .filter((t) => t.paymentMethodId)
-      .map((t) => t.paymentMethodId!);
-
-    const paymentMethodsData =
+        : Promise.resolve([]),
       paymentMethodIds.length > 0
-        ? await db
+        ? db
             .select({ id: paymentMethods.id, name: paymentMethods.name })
             .from(paymentMethods)
             .where(inArray(paymentMethods.id, paymentMethodIds))
-        : [];
+        : Promise.resolve([]),
+    ]);
 
     // Mapear resultados a entidades de dominio
     const transactionsWithRelations: TransactionWithRelations[] =
@@ -268,7 +263,7 @@ export class TransactionRepository implements ITransactionRepository {
           return item.transaction.createdAt.toISOString();
         case "occurred_on":
         default:
-          return item.transaction.occurredOn.toISOString().split("T")[0];
+          return item.transaction.occurredOn;
       }
     };
 
@@ -305,30 +300,30 @@ export class TransactionRepository implements ITransactionRepository {
       return null;
     }
 
-    // Obtener categorías
-    const categoriesData = await db
-      .select({
-        categoryId: transactionCategories.categoryId,
-        categoryName: categories.name,
-        allocatedAmount: transactionCategories.allocatedAmount,
-      })
-      .from(transactionCategories)
-      .innerJoin(
-        categories,
-        eq(transactionCategories.categoryId, categories.id),
-      )
-      .where(eq(transactionCategories.transactionId, id));
+    // Obtener categorías y payment method en paralelo (independientes)
+    const [categoriesData, paymentMethodRows] = await Promise.all([
+      db
+        .select({
+          categoryId: transactionCategories.categoryId,
+          categoryName: categories.name,
+          allocatedAmount: transactionCategories.allocatedAmount,
+        })
+        .from(transactionCategories)
+        .innerJoin(
+          categories,
+          eq(transactionCategories.categoryId, categories.id),
+        )
+        .where(eq(transactionCategories.transactionId, id)),
+      transaction.paymentMethodId
+        ? db
+            .select({ id: paymentMethods.id, name: paymentMethods.name })
+            .from(paymentMethods)
+            .where(eq(paymentMethods.id, transaction.paymentMethodId))
+            .limit(1)
+        : Promise.resolve([]),
+    ]);
 
-    // Obtener payment method
-    let paymentMethod = null;
-    if (transaction.paymentMethodId) {
-      const [pm] = await db
-        .select({ id: paymentMethods.id, name: paymentMethods.name })
-        .from(paymentMethods)
-        .where(eq(paymentMethods.id, transaction.paymentMethodId))
-        .limit(1);
-      paymentMethod = pm ?? null;
-    }
+    const paymentMethod = paymentMethodRows[0] ?? null;
 
     const transactionWithRelations: TransactionWithRelations = {
       transaction,
@@ -352,17 +347,12 @@ export class TransactionRepository implements ITransactionRepository {
     data: CreateTransactionInput,
   ): Promise<TransactionWithNames> {
     return await db.transaction(async (tx) => {
-      const occurredOn = data.occurredOn.toISOString().split("T")[0];
+      const occurredOn = data.occurredOn;
       const dueOn =
         data.status === "pending"
-          ? data.dueOn
-            ? data.dueOn.toISOString().split("T")[0]
-            : data.isFixed && data.kind === "expense"
-              ? occurredOn
-              : null
-          : data.dueOn
-            ? data.dueOn.toISOString().split("T")[0]
-            : null;
+          ? (data.dueOn ??
+            (data.isFixed && data.kind === "expense" ? occurredOn : null))
+          : (data.dueOn ?? null);
 
       if (data.status === "pending" && !dueOn) {
         throw new ValidationError(
@@ -379,18 +369,12 @@ export class TransactionRepository implements ITransactionRepository {
           title: data.title,
           description: data.description ?? null,
           amount: data.amount,
-          currency: data.currency ?? "ARS",
           paymentMethodId: data.paymentMethodId ?? null,
           isFixed: data.isFixed ?? false,
           status: data.status,
           occurredOn,
           dueOn,
-          paidOn:
-            data.status === "pending"
-              ? null
-              : data.paidOn
-                ? data.paidOn.toISOString().split("T")[0]
-                : null,
+          paidOn: data.status === "pending" ? null : (data.paidOn ?? null),
           occurredMonth: occurredOn.substring(0, 7),
           sourceRecurringRuleId: data.sourceRecurringRuleId ?? null,
         })
@@ -475,11 +459,8 @@ export class TransactionRepository implements ITransactionRepository {
         {};
 
       const existingTransaction = existing.transaction;
-      const existingOccurredOn = existingTransaction.occurredOn
-        .toISOString()
-        .split("T")[0];
-      const existingDueOn =
-        existingTransaction.dueOn?.toISOString().split("T")[0] ?? null;
+      const existingOccurredOn = existingTransaction.occurredOn;
+      const existingDueOn = existingTransaction.dueOn;
 
       if (data.title !== undefined) updateData.title = data.title;
       if (data.description !== undefined)
@@ -487,43 +468,15 @@ export class TransactionRepository implements ITransactionRepository {
       if (data.amount !== undefined) updateData.amount = data.amount;
       if (data.status !== undefined) updateData.status = data.status;
       if (data.occurredOn !== undefined) {
-        // Verificar tipo y convertir si es necesario
-        let dateStr: string;
-        if (data.occurredOn instanceof Date) {
-          dateStr = data.occurredOn.toISOString().split("T")[0];
-        } else if (typeof data.occurredOn === "string") {
-          dateStr = new Date(data.occurredOn).toISOString().split("T")[0];
-        } else {
-          // Fallback: convertir cualquier otro tipo a Date primero
-          dateStr = new Date(
-            data.occurredOn as unknown as string | number | Date,
-          )
-            .toISOString()
-            .split("T")[0];
-        }
-        updateData.occurredOn = dateStr;
+        updateData.occurredOn = data.occurredOn;
         // Actualizar occurredMonth en formato YYYY-MM
-        updateData.occurredMonth = dateStr.substring(0, 7);
+        updateData.occurredMonth = data.occurredOn.substring(0, 7);
       }
       if (data.dueOn !== undefined) {
-        // Verificar tipo y convertir si es necesario
-        if (data.dueOn === null) {
-          updateData.dueOn = null;
-        } else if (data.dueOn instanceof Date) {
-          updateData.dueOn = data.dueOn.toISOString().split("T")[0];
-        } else if (typeof data.dueOn === "string") {
-          updateData.dueOn = new Date(data.dueOn).toISOString().split("T")[0];
-        }
+        updateData.dueOn = data.dueOn;
       }
       if (data.paidOn !== undefined) {
-        // Verificar tipo y convertir si es necesario
-        if (data.paidOn === null) {
-          updateData.paidOn = null;
-        } else if (data.paidOn instanceof Date) {
-          updateData.paidOn = data.paidOn.toISOString().split("T")[0];
-        } else if (typeof data.paidOn === "string") {
-          updateData.paidOn = new Date(data.paidOn).toISOString().split("T")[0];
-        }
+        updateData.paidOn = data.paidOn;
       }
       if (data.paymentMethodId !== undefined)
         updateData.paymentMethodId = data.paymentMethodId;
@@ -678,13 +631,56 @@ export class TransactionRepository implements ITransactionRepository {
    * Obtener transacciones de un mes específico
    */
   async getByMonth(userId: string, month: string): Promise<Transaction[]> {
-    const result = await this.list({
-      userId,
-      month,
-      pageSize: 1000, // suficiente para un mes
-    });
+    const rows = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.occurredMonth, month),
+        ),
+      )
+      .orderBy(asc(transactions.occurredOn), asc(transactions.id));
 
-    return result.data.map((item) => item.transaction);
+    const transactionIds = rows.map((t) => t.id);
+    const splitsData =
+      transactionIds.length > 0
+        ? await db
+            .select({
+              transactionId: transactionCategories.transactionId,
+              categoryId: transactionCategories.categoryId,
+              allocatedAmount: transactionCategories.allocatedAmount,
+            })
+            .from(transactionCategories)
+            .where(inArray(transactionCategories.transactionId, transactionIds))
+        : [];
+
+    return rows.map((row) =>
+      TransactionEntity.fromPersistence({
+        id: row.id,
+        userId: row.userId,
+        kind: row.kind,
+        title: row.title,
+        description: row.description,
+        amount: row.amount,
+        paymentMethodId: row.paymentMethodId,
+        isFixed: row.isFixed,
+        status: row.status,
+        occurredOn: row.occurredOn,
+        dueOn: row.dueOn,
+        paidOn: row.paidOn,
+        occurredMonth: row.occurredMonth,
+        sourceRecurringRuleId: row.sourceRecurringRuleId,
+        split: splitsData
+          .filter((s) => s.transactionId === row.id)
+          .map((s) => ({
+            categoryId: s.categoryId,
+            allocatedAmount: s.allocatedAmount,
+          })),
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      }),
+    );
   }
 
   /**

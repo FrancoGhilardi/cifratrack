@@ -1,24 +1,12 @@
 import type { IPaymentMethodRepository } from "@/entities/payment-method/repo";
 import type { PaymentMethod } from "@/entities/payment-method/model/payment-method.entity";
-import { NotFoundError } from "@/shared/lib/errors";
+import { GetByIdUseCase } from "@/shared/lib/usecases/get-by-id.usecase";
 
 /**
- * Caso de uso: Obtener forma de pago por ID
+ * Caso de uso: Obtener forma de pago por ID (passthrough al repo, sin reglas propias)
  */
-export class GetPaymentMethodByIdUseCase {
-  constructor(
-    private readonly paymentMethodRepository: IPaymentMethodRepository
-  ) {}
-
-  async execute(id: string, userId: string): Promise<PaymentMethod> {
-    const paymentMethod = await this.paymentMethodRepository.findById(
-      id,
-      userId
-    );
-    if (!paymentMethod) {
-      throw new NotFoundError("Forma de pago", id);
-    }
-
-    return paymentMethod;
+export class GetPaymentMethodByIdUseCase extends GetByIdUseCase<PaymentMethod> {
+  constructor(paymentMethodRepository: IPaymentMethodRepository) {
+    super(paymentMethodRepository, "Forma de pago");
   }
 }

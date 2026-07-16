@@ -27,13 +27,7 @@ import { formatDateToLocal } from "@/shared/lib/utils/date-format";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
+import { MobileSortSelect } from "@/shared/ui/mobile-sort-select";
 import {
   Table,
   TableBody,
@@ -93,10 +87,11 @@ export function TransactionsTable({
             </Button>
           );
         },
-        cell: ({ row }) => {
-          const date = new Date(row.original.occurredOn);
-          return <span className="font-medium">{formatDateToLocal(date)}</span>;
-        },
+        cell: ({ row }) => (
+          <span className="font-medium">
+            {formatDateToLocal(row.original.occurredOn)}
+          </span>
+        ),
       },
       {
         accessorKey: "title",
@@ -152,7 +147,7 @@ export function TransactionsTable({
           if (row.original.kind !== "income") return null;
           return (
             <div className="text-right font-medium text-green-600 dark:text-green-400">
-              {formatCurrency(row.original.amount, row.original.currency)}
+              +{formatCurrency(row.original.amount)}
             </div>
           );
         },
@@ -170,7 +165,7 @@ export function TransactionsTable({
 
           return (
             <div className={cn("text-right font-medium", colorClass)}>
-              {formatCurrency(row.original.amount, row.original.currency)}
+              −{formatCurrency(row.original.amount)}
             </div>
           );
         },
@@ -270,26 +265,14 @@ export function TransactionsTable({
       <div className="rounded-xl border bg-card p-4 md:hidden">
         <div className="space-y-2">
           <p className="text-sm font-medium">Orden</p>
-          <Select
+          <MobileSortSelect
+            options={MOBILE_SORT_OPTIONS}
             value={mobileSortValue}
-            onValueChange={(value) => {
-              const [sortBy, sortOrder] = value.split(":");
-              if (sortBy && (sortOrder === "asc" || sortOrder === "desc")) {
-                onSortingChange?.(sortBy, sortOrder);
-              }
-            }}
-          >
-            <SelectTrigger className="h-11">
-              <SelectValue placeholder="Ordenar movimientos" />
-            </SelectTrigger>
-            <SelectContent>
-              {MOBILE_SORT_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onSortChange={(sortBy, sortOrder) =>
+              onSortingChange?.(sortBy, sortOrder)
+            }
+            placeholder="Ordenar movimientos"
+          />
         </div>
       </div>
 
@@ -341,7 +324,7 @@ export function TransactionsTable({
 
                 <div className="shrink-0 text-right">
                   <p className={cn("text-lg font-semibold", amountColorClass)}>
-                    {formatCurrency(transaction.amount, transaction.currency)}
+                    {formatCurrency(transaction.amount)}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {transaction.kind === "income" ? "Ingreso" : "Egreso"}
@@ -357,7 +340,7 @@ export function TransactionsTable({
                       Fecha
                     </p>
                     <p className="font-medium">
-                      {formatDateToLocal(new Date(transaction.occurredOn))}
+                      {formatDateToLocal(transaction.occurredOn)}
                     </p>
                   </div>
                 </div>
@@ -383,13 +366,9 @@ export function TransactionsTable({
                       </p>
                       <p className="font-medium">
                         {transaction.status === "pending" && transaction.dueOn
-                          ? `Vence ${formatDateToLocal(
-                              new Date(transaction.dueOn),
-                            )}`
+                          ? `Vence ${formatDateToLocal(transaction.dueOn)}`
                           : transaction.paidOn
-                            ? `Pagado el ${formatDateToLocal(
-                                new Date(transaction.paidOn),
-                              )}`
+                            ? `Pagado el ${formatDateToLocal(transaction.paidOn)}`
                             : transaction.status === "paid"
                               ? "Movimiento registrado como pagado"
                               : "Sin fecha adicional"}

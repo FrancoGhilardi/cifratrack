@@ -1,9 +1,13 @@
-import { db } from '@/shared/db/client';
-import { categories, transactionCategories } from '@/shared/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
-import { Category } from '@/entities/category/model/category.entity';
-import type { ICategoryRepository } from '@/entities/category/repo';
-import type { CreateCategoryInput, UpdateCategoryInput } from '@/entities/category/model/category.schema';
+import { db } from "@/shared/db/client";
+import { categories, transactionCategories } from "@/shared/db/schema";
+import { eq, and, sql } from "drizzle-orm";
+import { Category } from "@/entities/category/model/category.entity";
+import type { ICategoryRepository } from "@/entities/category/repo";
+import type {
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from "@/entities/category/model/category.schema";
+import { NotFoundError } from "@/shared/lib/errors";
 
 /**
  * Implementación del repositorio de categorías con Drizzle
@@ -14,7 +18,7 @@ export class CategoryRepository implements ICategoryRepository {
    */
   async list(
     userId: string,
-    filters?: { kind?: 'income' | 'expense'; isActive?: boolean }
+    filters?: { kind?: "income" | "expense"; isActive?: boolean },
   ): Promise<Category[]> {
     const conditions = [eq(categories.userId, userId)];
 
@@ -42,7 +46,7 @@ export class CategoryRepository implements ICategoryRepository {
         isDefault: row.isDefault,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
-      })
+      }),
     );
   }
 
@@ -107,7 +111,7 @@ export class CategoryRepository implements ICategoryRepository {
   async update(
     id: string,
     userId: string,
-    data: UpdateCategoryInput
+    data: UpdateCategoryInput,
   ): Promise<Category> {
     const rows = await db
       .update(categories)
@@ -119,7 +123,7 @@ export class CategoryRepository implements ICategoryRepository {
       .returning();
 
     if (rows.length === 0) {
-      throw new Error('Category not found');
+      throw new NotFoundError("Category");
     }
 
     const row = rows[0];
@@ -145,7 +149,7 @@ export class CategoryRepository implements ICategoryRepository {
       .returning({ id: categories.id });
 
     if (result.length === 0) {
-      throw new Error('Category not found');
+      throw new NotFoundError("Category");
     }
   }
 

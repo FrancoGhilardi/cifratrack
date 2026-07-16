@@ -224,61 +224,92 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
     );
   }
 
-  async findExistingTransaction(userId: string, ruleId: string, month: string) {
-    const [row] = await db
-      .select({ id: transactions.id })
+  async findExistingTransactionRuleIds(
+    userId: string,
+    ruleIds: string[],
+    month: string,
+  ): Promise<Set<string>> {
+    if (ruleIds.length === 0) return new Set();
+
+    const rows = await db
+      .select({ ruleId: transactions.sourceRecurringRuleId })
       .from(transactions)
       .where(
         and(
           eq(transactions.userId, userId),
-          eq(transactions.sourceRecurringRuleId, ruleId),
+          inArray(transactions.sourceRecurringRuleId, ruleIds),
           eq(transactions.occurredMonth, month),
         ),
-      )
-      .limit(1);
-    return row?.id ?? null;
+      );
+
+    return new Set(rows.map((row) => row.ruleId!));
   }
 
-  async createTransactionFromRule(
-    rule: RecurringRule,
+  async bulkCreateTransactionsFromRules(
+    items: Array<{
+      rule: RecurringRule;
+      splits: Array<{ categoryId: string; allocatedAmount: number }>;
+    }>,
     month: Month,
-    splits: Array<{ categoryId: string; allocatedAmount: number }>,
-  ) {
-    const occurredOn = `${month.toString()}-${rule.dayOfMonth
-      .toString()
-      .padStart(2, "0")}`;
-    const dueOn = rule.status === "pending" ? occurredOn : null;
-    const paidOn = rule.status === "paid" ? occurredOn : null;
-    const [tx] = await db
-      .insert(transactions)
-      .values({
-        userId: rule.userId,
-        kind: rule.kind,
-        title: rule.title,
-        description: rule.description,
-        amount: Math.trunc(rule.amount),
-        currency: "ARS",
-        paymentMethodId: rule.paymentMethodId,
-        isFixed: true,
-        status: rule.status,
-        occurredOn,
-        dueOn,
-        paidOn,
-        occurredMonth: month.toString(),
-        sourceRecurringRuleId: rule.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+  ): Promise<void> {
+    if (items.length === 0) return;
 
-    if (splits.length > 0) {
-      await db.insert(transactionCategories).values(
-        splits.map((s) => ({
-          transactionId: tx.id,
+    const lastDayOfMonth = new Date(
+      month.getYear(),
+      month.getMonth(),
+      0,
+    ).getDate();
+
+    await db.transaction(async (tx) => {
+      const insertedRows = await tx
+        .insert(transactions)
+        .values(
+          items.map(({ rule }) => {
+            const day = Math.min(rule.dayOfMonth, lastDayOfMonth);
+            const occurredOn = `${month.toString()}-${day.toString().padStart(2, "0")}`;
+            const dueOn = rule.status === "pending" ? occurredOn : null;
+            const paidOn = rule.status === "paid" ? occurredOn : null;
+
+            return {
+              userId: rule.userId,
+              kind: rule.kind,
+              title: rule.title,
+              description: rule.description,
+              amount: Math.trunc(rule.amount),
+              paymentMethodId: rule.paymentMethodId,
+              isFixed: true,
+              status: rule.status,
+              occurredOn,
+              dueOn,
+              paidOn,
+              occurredMonth: month.toString(),
+              sourceRecurringRuleId: rule.id,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+          }),
+        )
+        .returning({
+          id: transactions.id,
+          sourceRecurringRuleId: transactions.sourceRecurringRuleId,
+        });
+
+      const transactionIdByRuleId = new Map(
+        insertedRows.map((row) => [row.sourceRecurringRuleId!, row.id]),
+      );
+
+      const splitRows = items.flatMap(({ rule, splits }) => {
+        const transactionId = transactionIdByRuleId.get(rule.id)!;
+        return splits.map((s) => ({
+          transactionId,
           categoryId: s.categoryId,
           allocatedAmount: Math.trunc(s.allocatedAmount),
-        })),
-      );
-    }
+        }));
+      });
+
+      if (splitRows.length > 0) {
+        await tx.insert(transactionCategories).values(splitRows);
+      }
+    });
   }
 }

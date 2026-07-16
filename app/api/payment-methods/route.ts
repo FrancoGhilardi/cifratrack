@@ -1,70 +1,53 @@
-import { NextRequest } from "next/server";
-import { auth } from "@/shared/lib/auth";
-import { ok, err } from "@/shared/lib/response";
+import { withApiHandler } from "@/shared/lib/api-handler";
+import { ok } from "@/shared/lib/response";
 import { PaymentMethodRepository } from "@/features/payment-methods/repo.impl";
 import { ListPaymentMethodsUseCase } from "@/features/payment-methods/usecases/list-payment-methods.usecase";
 import { UpsertPaymentMethodUseCase } from "@/features/payment-methods/usecases/upsert-payment-method.usecase";
-import { createPaymentMethodSchema } from "@/entities/payment-method/model/payment-method.schema";
-import { AuthenticationError, DomainError, ValidationError } from "@/shared/lib/errors";
+import {
+  createPaymentMethodSchema,
+  type CreatePaymentMethodInput,
+} from "@/entities/payment-method/model/payment-method.schema";
 
 const paymentMethodRepo = new PaymentMethodRepository();
+const listPaymentMethodsUseCase = new ListPaymentMethodsUseCase(
+  paymentMethodRepo,
+);
+const upsertPaymentMethodUseCase = new UpsertPaymentMethodUseCase(
+  paymentMethodRepo,
+);
+
+type ListPaymentMethodsQuery = { isActive?: boolean };
 
 /**
  * GET /api/payment-methods
  * Lista todas las formas de pago del usuario
  */
-export async function GET(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return err(new AuthenticationError("No autenticado"), 401);
-    }
-
-    const { searchParams } = request.nextUrl;
-    const isActive = searchParams.get("isActive");
-
-    const useCase = new ListPaymentMethodsUseCase(paymentMethodRepo);
-    const paymentMethods = await useCase.execute(session.user.id, {
-      isActive: isActive ? isActive === "true" : undefined,
-    });
-
+export const GET = withApiHandler<ListPaymentMethodsQuery>({
+  query: (searchParams) => ({
+    isActive: searchParams.get("isActive")
+      ? searchParams.get("isActive") === "true"
+      : undefined,
+  }),
+  handler: async ({ userId, query }) => {
+    const paymentMethods = await listPaymentMethodsUseCase.execute(
+      userId,
+      query,
+    );
     return ok(paymentMethods.map((pm) => pm.toDTO()));
-  } catch (error) {
-    console.error("Error listing payment methods:", error);
-    return err(error);
-  }
-}
+  },
+});
 
 /**
  * POST /api/payment-methods
  * Crea una nueva forma de pago
  */
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return err(new AuthenticationError("No autenticado"), 401);
-    }
-
-    const body = await request.json();
-
-    // Validar con schema zod
-    const parsed = createPaymentMethodSchema.safeParse(body);
-    if (!parsed.success) {
-      return err(new ValidationError("Datos inválidos", parsed.error.issues));
-    }
-
-    const useCase = new UpsertPaymentMethodUseCase(paymentMethodRepo);
-    const paymentMethod = await useCase.execute(session.user.id, parsed.data);
-
+export const POST = withApiHandler<undefined, CreatePaymentMethodInput>({
+  bodySchema: createPaymentMethodSchema,
+  handler: async ({ userId, body }) => {
+    const paymentMethod = await upsertPaymentMethodUseCase.execute(
+      userId,
+      body,
+    );
     return ok(paymentMethod.toDTO());
-  } catch (error) {
-    console.error("Error creating payment method:", error);
-
-    if (error instanceof DomainError || error instanceof ValidationError) {
-      return err(error);
-    }
-
-    return err(error);
-  }
-}
+  },
+});

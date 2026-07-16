@@ -12,6 +12,7 @@ export function ThemeToggle() {
 
   // useEffect only runs on the client, so now we can safely show the UI
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- flag de hidratación client-only
     setMounted(true);
   }, []);
 

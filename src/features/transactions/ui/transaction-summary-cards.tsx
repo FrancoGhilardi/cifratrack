@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { CheckCircle2, Clock } from "lucide-react";
 import { useCurrency } from "@/shared/lib/hooks/useCurrency";
-import { useTransactionsSummary } from "../hooks/useTransactionsSummary";
+import { useTransactionsSummaryView } from "../hooks/useTransactionsSummaryView";
 import type { TransactionSummaryDTO } from "@/entities/transaction/model/transaction-summary.dto";
 
 interface TransactionSummaryCardsProps {
@@ -15,7 +15,7 @@ export function TransactionSummaryCards({
   summary: summaryData,
 }: TransactionSummaryCardsProps) {
   const { format } = useCurrency();
-  const summary = useTransactionsSummary(summaryData);
+  const summary = useTransactionsSummaryView(summaryData);
 
   return (
     <div className="grid gap-4 md:grid-cols-2">

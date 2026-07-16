@@ -1,49 +1,38 @@
-import { auth } from '@/shared/lib/auth';
-import { DashboardRepository } from '@/features/dashboard/repo.impl';
-import { GetDashboardSummaryUseCase } from '@/features/dashboard/usecases/get-dashboard-summary.usecase';
-import { ok, err } from '@/shared/lib/response';
-import { AuthenticationError, ValidationError } from '@/shared/lib/errors';
-import { RecurringRuleRepository } from '@/features/recurring/repo.impl';
-import { GenerateMonthlyRecurringTransactionsUseCase } from '@/features/recurring/usecases/generate-monthly-recurring-transactions.usecase';
+import { withApiHandler } from "@/shared/lib/api-handler";
+import { DashboardRepository } from "@/features/dashboard/repo.impl";
+import { GetDashboardSummaryUseCase } from "@/features/dashboard/usecases/get-dashboard-summary.usecase";
+import { ValidationError } from "@/shared/lib/errors";
+import { RecurringRuleRepository } from "@/features/recurring/repo.impl";
+import { GenerateMonthlyRecurringTransactionsUseCase } from "@/features/recurring/usecases/generate-monthly-recurring-transactions.usecase";
+import { ok } from "@/shared/lib/response";
 
 const dashboardRepository = new DashboardRepository();
-const getDashboardSummaryUseCase = new GetDashboardSummaryUseCase(dashboardRepository);
+const getDashboardSummaryUseCase = new GetDashboardSummaryUseCase(
+  dashboardRepository,
+);
 const recurringRepository = new RecurringRuleRepository();
-const generateMonthlyRecurringTransactionsUseCase = new GenerateMonthlyRecurringTransactionsUseCase(recurringRepository);
+const generateMonthlyRecurringTransactionsUseCase =
+  new GenerateMonthlyRecurringTransactionsUseCase(recurringRepository);
 
-export async function GET(request: Request) {
-  try {
-    // Verificar autenticación
-    const session = await auth();
-    if (!session?.user?.id) {
-      return err(new AuthenticationError('No autenticado'), 401);
-    }
-
-    // Obtener mes del query param
-    const { searchParams } = new URL(request.url);
-    const month = searchParams.get('month');
-
+export const GET = withApiHandler<string>({
+  query: (searchParams) => {
+    const month = searchParams.get("month");
     if (!month) {
-      return err(new ValidationError('El parámetro "month" es requerido'), 400);
+      throw new ValidationError('El parámetro "month" es requerido');
     }
-
+    return month;
+  },
+  handler: async ({ userId, query: month }) => {
     // Generar transacciones recurrentes del mes (idempotente)
     await generateMonthlyRecurringTransactionsUseCase.execute({
-      userId: session.user.id,
+      userId,
       month,
     });
 
-    // Ejecutar caso de uso
-    const summary = await getDashboardSummaryUseCase.execute(session.user.id, month);
+    const summary = await getDashboardSummaryUseCase.execute(userId, month);
 
-    return ok(summary);
-  } catch (error) {
-    console.error('[Dashboard Summary Error]', error);
-
-    if (error instanceof Error) {
-      return err(error, 400);
-    }
-
-    return err(new Error('Error interno del servidor'), 500);
-  }
-}
+    const response = ok(summary);
+    response.headers.set("Cache-Control", "private, max-age=30");
+    return response;
+  },
+});

@@ -1,8 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { investmentKeys } from '../model/query-keys';
-import type { InvestmentQueryParams } from '../model/investment.dto';
-import * as api from '../api/investments.api';
-import { toast } from '@/shared/lib/toast';
+import { useQuery } from "@tanstack/react-query";
+import { createCrudMutations } from "@/shared/lib/create-crud-mutations";
+import { investmentKeys } from "../model/query-keys";
+import type {
+  InvestmentQueryParams,
+  CreateInvestmentInput,
+  UpdateInvestmentInput,
+} from "../model/investment.dto";
+import * as api from "../api/investments.api";
 
 /**
  * Hook para listar inversiones con paginación y filtros
@@ -28,44 +32,15 @@ export function useInvestment(id: string | null) {
 /**
  * Hook para mutaciones de inversiones (crear, actualizar, eliminar)
  */
-export function useInvestmentMutations() {
-  const queryClient = useQueryClient();
-
-  const createMutation = useMutation({
-    mutationFn: api.createInvestment,
-    onSuccess: () => {
-      // Invalidar lista de inversiones
-      queryClient.invalidateQueries({ queryKey: investmentKeys.lists() });
-      toast.success('Inversión creada');
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al crear inversión'),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof api.updateInvestment>[1] }) =>
-      api.updateInvestment(id, data),
-    onSuccess: (_, variables) => {
-      // Invalidar lista y detalle específico
-      queryClient.invalidateQueries({ queryKey: investmentKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: investmentKeys.detail(variables.id) });
-      toast.success('Inversión actualizada');
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al actualizar inversión'),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: api.deleteInvestment,
-    onSuccess: () => {
-      // Invalidar lista
-      queryClient.invalidateQueries({ queryKey: investmentKeys.lists() });
-      toast.success('Inversión eliminada');
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al eliminar inversión'),
-  });
-
-  return {
-    create: createMutation,
-    update: updateMutation,
-    delete: deleteMutation,
-  };
-}
+export const useInvestmentMutations = createCrudMutations<
+  CreateInvestmentInput,
+  UpdateInvestmentInput
+>({
+  entityLabel: "Inversión",
+  api: {
+    create: api.createInvestment,
+    update: api.updateInvestment,
+    delete: api.deleteInvestment,
+  },
+  queryKeys: investmentKeys,
+});

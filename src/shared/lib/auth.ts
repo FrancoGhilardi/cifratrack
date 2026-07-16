@@ -1,9 +1,14 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { env } from "@/shared/config/env";
 import { UserRepository } from "@/features/auth/repo.impl";
 import { AuthenticateUserUseCase } from "@/features/auth/usecases/authenticate-user.usecase";
 import { loginSchema } from "@/entities/user/model/user.schema";
+import { checkLoginRateLimit, getClientIp } from "@/shared/lib/rate-limit";
+
+class RateLimitedSignInError extends CredentialsSignin {
+  code = "rate-limited";
+}
 
 /**
  * Configuración de Auth.js (NextAuth v5)
@@ -13,16 +18,24 @@ import { loginSchema } from "@/entities/user/model/user.schema";
  * - Google OAuth (futuro)
  */
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials, request) => {
         try {
           // Validar input
           const validated = loginSchema.parse(credentials);
+
+          // Rate limit por IP (previene fuerza bruta)
+          const ip = getClientIp(request);
+          const allowed = await checkLoginRateLimit(ip);
+          if (!allowed) {
+            throw new RateLimitedSignInError();
+          }
 
           // Instanciar repositorio y caso de uso
           const userRepository = new UserRepository();
@@ -38,6 +51,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: user.name,
           };
         } catch (error) {
+          if (error instanceof RateLimitedSignInError) throw error;
+
           // Auth.js espera null si las credenciales son inválidas
           console.error("[Auth] authorize error:", error);
           return null;
@@ -75,7 +90,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60, // 1 hora
+    maxAge: 60 * 60 * 24 * 7, // 7 días
+    updateAge: 60 * 60 * 24, // renovar token si hubo actividad en las últimas 24h
   },
   secret: env.NEXTAUTH_SECRET,
 });

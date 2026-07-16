@@ -24,7 +24,7 @@ async function fetchLive(
     throw new Error("Failed to fetch live rates");
   }
 
-  const raw = await res.json();
+  const { data: raw } = await res.json();
 
   if (Array.isArray(raw)) {
     return raw.map((r) => ({

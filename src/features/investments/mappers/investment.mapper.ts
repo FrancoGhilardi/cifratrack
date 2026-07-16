@@ -1,6 +1,7 @@
 import { Investment } from "@/entities/investment/model/investment.entity";
 import type { InvestmentDTO } from "../model/investment.dto";
 import { InvestmentYieldCalculator } from "@/entities/investment/services/investment-yield-calculator";
+import { formatDateToISO } from "@/shared/lib/date";
 
 /**
  * Mapper para conversión entre Investment (dominio) y InvestmentDTO
@@ -33,6 +34,7 @@ export class InvestmentMapper {
       calculationDays,
       investment.isCompound,
     );
+    const endDate = investment.getEndDate();
 
     return {
       id: investment.id,
@@ -44,8 +46,8 @@ export class InvestmentMapper {
       tna: investment.tna,
       days: investment.days,
       isCompound: investment.isCompound,
-      startedOn: investment.startedOn.toISOString().split("T")[0],
-      endDate: investment.getEndDate()?.toISOString().split("T")[0] ?? null,
+      startedOn: formatDateToISO(investment.startedOn),
+      endDate: endDate ? formatDateToISO(endDate) : null,
       hasEnded: investment.hasEnded(),
       daysRemaining: investment.getDaysRemaining(),
       notes: investment.notes,

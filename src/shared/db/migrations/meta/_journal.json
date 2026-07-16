@@ -43,6 +43,34 @@
       "when": 1775065635366,
       "tag": "0005_secure_public_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784055477268,
+      "tag": "0006_military_may_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784122309724,
+      "tag": "0007_salty_nicolaos",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784123112754,
+      "tag": "0008_dark_piledriver",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784233316803,
+      "tag": "0009_broken_callisto",
+      "breakpoints": true
     }
   ]
 }

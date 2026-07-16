@@ -1,14 +1,15 @@
-import { z } from 'zod';
-import { nonEmptyStringSchema } from '@/shared/lib/validation';
+import { z } from "zod";
+import { nonEmptyStringSchema } from "@/shared/lib/validation";
+import { entryKindSchema } from "@/shared/db/enums.zod";
 
 /**
  * Schema para crear categoría
  */
 export const createCategorySchema = z.object({
-  kind: z.enum(['income', 'expense']),
+  kind: entryKindSchema,
   name: nonEmptyStringSchema
-    .max(60, 'El nombre no puede superar los 60 caracteres')
-    .min(2, 'El nombre debe tener al menos 2 caracteres'),
+    .max(60, "El nombre no puede superar los 60 caracteres")
+    .min(2, "El nombre debe tener al menos 2 caracteres"),
 });
 
 /**
@@ -16,8 +17,8 @@ export const createCategorySchema = z.object({
  */
 export const updateCategorySchema = z.object({
   name: nonEmptyStringSchema
-    .max(60, 'El nombre no puede superar los 60 caracteres')
-    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(60, "El nombre no puede superar los 60 caracteres")
+    .min(2, "El nombre debe tener al menos 2 caracteres")
     .optional(),
   isActive: z.boolean().optional(),
 });
@@ -26,7 +27,7 @@ export const updateCategorySchema = z.object({
  * Schema para filtrar categorías
  */
 export const listCategoriesSchema = z.object({
-  kind: z.enum(['income', 'expense']).optional(),
+  kind: entryKindSchema.optional(),
   isActive: z.boolean().optional(),
 });
 

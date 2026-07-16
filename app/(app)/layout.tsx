@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
-import { auth } from '@/shared/lib/auth';
-import { AppShell } from '@/widgets/layout';
+import type { Metadata } from "next";
+import { auth } from "@/shared/lib/auth";
+import { AppShell } from "@/widgets/layout";
 
 export const metadata: Metadata = {
-  title: 'CifraTrack - Panel Principal',
-  description: 'Control personal de finanzas',
+  title: "Panel Principal",
+  description: "Control personal de finanzas",
 };
 
 export default async function AppLayout({
@@ -13,7 +13,7 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const userName = session?.user?.name ?? 'Usuario';
+  const userName = session?.user?.name ?? "Usuario";
   const userEmail = session?.user?.email ?? undefined;
 
   return (

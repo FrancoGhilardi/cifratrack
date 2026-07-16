@@ -1,5 +1,5 @@
-import { Transaction } from '@/entities/transaction/model/transaction.entity';
-import type { TransactionWithRelations } from '../repo.impl';
+import { Transaction } from "@/entities/transaction/model/transaction.entity";
+import type { TransactionWithRelations } from "../repo.impl";
 
 /**
  * Transaction enriquecida con nombres de relaciones para el DTO
@@ -20,18 +20,17 @@ export interface TransactionWithNames {
 export interface TransactionDTO {
   id: string;
   userId: string;
-  kind: 'income' | 'expense';
+  kind: "income" | "expense";
   title: string;
   description: string | null;
   amount: number;
-  currency: string;
   paymentMethodId: string | null;
   paymentMethodName: string | null;
   isFixed: boolean;
-  status: 'pending' | 'paid';
-  occurredOn: string; // ISO date
-  dueOn: string | null; // ISO date
-  paidOn: string | null; // ISO date
+  status: "pending" | "paid";
+  occurredOn: string; // fecha civil YYYY-MM-DD
+  dueOn: string | null; // fecha civil YYYY-MM-DD
+  paidOn: string | null; // fecha civil YYYY-MM-DD
   occurredMonth: string; // YYYY-MM
   sourceRecurringRuleId: string | null;
   categories: Array<{
@@ -61,26 +60,27 @@ export class TransactionMapper {
         title: data.transaction.title,
         description: data.transaction.description,
         amount: data.transaction.amount,
-        currency: data.transaction.currency,
         paymentMethodId: data.transaction.paymentMethodId,
         isFixed: data.transaction.isFixed,
         status: data.transaction.status,
-        occurredOn: new Date(data.transaction.occurredOn),
-        dueOn: data.transaction.dueOn ? new Date(data.transaction.dueOn) : null,
-        paidOn: data.transaction.paidOn ? new Date(data.transaction.paidOn) : null,
+        occurredOn: data.transaction.occurredOn,
+        dueOn: data.transaction.dueOn,
+        paidOn: data.transaction.paidOn,
         // occurredMonth viene de la DB como char(7) en formato YYYY-MM
-        occurredMonth: data.transaction.occurredMonth || '',
+        occurredMonth: data.transaction.occurredMonth || "",
         sourceRecurringRuleId: data.transaction.sourceRecurringRuleId,
         split: data.categories.map((c) => ({
           categoryId: c.categoryId,
           allocatedAmount: c.allocatedAmount,
         })),
-        createdAt: data.transaction.createdAt instanceof Date 
-          ? data.transaction.createdAt 
-          : new Date(data.transaction.createdAt),
-        updatedAt: data.transaction.updatedAt instanceof Date
-          ? data.transaction.updatedAt
-          : new Date(data.transaction.updatedAt),
+        createdAt:
+          data.transaction.createdAt instanceof Date
+            ? data.transaction.createdAt
+            : new Date(data.transaction.createdAt),
+        updatedAt:
+          data.transaction.updatedAt instanceof Date
+            ? data.transaction.updatedAt
+            : new Date(data.transaction.updatedAt),
       });
 
       // Enriquecer con nombres de relaciones
@@ -93,10 +93,10 @@ export class TransactionMapper {
           allocatedAmount: c.allocatedAmount,
         })),
       };
-      
+
       return result;
     } catch (error) {
-      console.error('Error in rowToDomain:', error);
+      console.error("Error in rowToDomain:", error);
       throw error;
     }
   }
@@ -106,7 +106,7 @@ export class TransactionMapper {
    */
   static domainToDTO(data: TransactionWithNames): TransactionDTO {
     const transaction = data.transaction;
-    
+
     try {
       return {
         id: transaction.id,
@@ -115,14 +115,13 @@ export class TransactionMapper {
         title: transaction.title,
         description: transaction.description,
         amount: transaction.amount,
-        currency: transaction.currency,
         paymentMethodId: transaction.paymentMethodId,
         paymentMethodName: data.paymentMethodName,
         isFixed: transaction.isFixed,
         status: transaction.status,
-        occurredOn: transaction.occurredOn.toISOString(),
-        dueOn: transaction.dueOn?.toISOString() ?? null,
-        paidOn: transaction.paidOn?.toISOString() ?? null,
+        occurredOn: transaction.occurredOn,
+        dueOn: transaction.dueOn,
+        paidOn: transaction.paidOn,
         occurredMonth: transaction.occurredMonth,
         sourceRecurringRuleId: transaction.sourceRecurringRuleId,
         categories: data.categoryNames,
@@ -130,15 +129,12 @@ export class TransactionMapper {
         updatedAt: transaction.updatedAt.toISOString(),
       };
     } catch (error) {
-      console.error('Error mapping domain to DTO:', error);
-      console.error('Transaction object:', JSON.stringify(transaction, null, 2));
-      console.error('Types:', {
-        occurredOn: typeof transaction.occurredOn,
-        occurredOnIsDate: transaction.occurredOn instanceof Date,
-        dueOn: typeof transaction.dueOn,
-        dueOnIsDate: transaction.dueOn instanceof Date,
-        paidOn: typeof transaction.paidOn,
-        paidOnIsDate: transaction.paidOn instanceof Date,
+      console.error("Error mapping domain to DTO:", error);
+      console.error(
+        "Transaction object:",
+        JSON.stringify(transaction, null, 2),
+      );
+      console.error("Types:", {
         createdAt: typeof transaction.createdAt,
         createdAtIsDate: transaction.createdAt instanceof Date,
         updatedAt: typeof transaction.updatedAt,

@@ -1,8 +1,8 @@
-import bcrypt from 'bcryptjs';
-import type { IUserRepository } from '@/entities/user/repo';
-import type { LoginInput } from '@/entities/user/model/user.schema';
-import type { User } from '@/entities/user/model/user.entity';
-import { AuthenticationError } from '@/shared/lib/errors';
+import type { IUserRepository } from "@/entities/user/repo";
+import type { LoginInput } from "@/entities/user/model/user.schema";
+import type { User } from "@/entities/user/model/user.entity";
+import { AuthenticationError } from "@/shared/lib/errors";
+import { verifyPassword } from "@/shared/lib/password";
 
 /**
  * Caso de uso: Autenticar usuario con credenciales
@@ -21,29 +21,19 @@ export class AuthenticateUserUseCase {
     const user = await this.userRepository.findByEmail(input.email);
 
     if (!user) {
-      throw new AuthenticationError('Credenciales inválidas');
+      throw new AuthenticationError("Credenciales inválidas");
     }
 
     // Verificar password
-    const isValidPassword = await this.verifyPassword(
+    const isValidPassword = await verifyPassword(
       input.password,
-      user.hashedPassword
+      user.hashedPassword,
     );
 
     if (!isValidPassword) {
-      throw new AuthenticationError('Credenciales inválidas');
+      throw new AuthenticationError("Credenciales inválidas");
     }
 
     return user;
-  }
-
-  /**
-   * Verificar password con bcrypt
-   */
-  private async verifyPassword(
-    plainPassword: string,
-    hashedPassword: string
-  ): Promise<boolean> {
-    return await bcrypt.compare(plainPassword, hashedPassword);
   }
 }

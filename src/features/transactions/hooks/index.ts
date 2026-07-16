@@ -1,5 +1,5 @@
 export { useTransactionsTable } from "./useTransactionsTable";
 export { useTransactionMutations } from "./useTransactionMutations";
 export { useTransaction } from "./useTransaction";
-export { useTransactionsSummary } from "./useTransactionsSummary";
+export { useTransactionsSummaryView } from "./useTransactionsSummaryView";
 export { useTransactionsSummaryQuery } from "./useTransactionsSummaryQuery";

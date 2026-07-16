@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/shared/lib/auth";
 
-const PUBLIC_PATHS = ["/login", "/register", "/api/auth", "/api/cron"];
+const PUBLIC_PATHS = ["/login", "/register", "/api/auth"];
 
 export default auth((req) => {
   const { nextUrl } = req;
@@ -21,5 +21,7 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)",
+  ],
 };

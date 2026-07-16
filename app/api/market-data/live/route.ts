@@ -1,32 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
+import { withApiHandler } from "@/shared/lib/api-handler";
 import { GetLiveYieldsUseCase } from "@/features/market-data/usecases/get-live-yields.usecase";
+import { NotFoundError } from "@/shared/lib/errors";
+import { ok } from "@/shared/lib/response";
 
 export const dynamic = "force-dynamic";
 
 const getLiveYieldsUseCase = new GetLiveYieldsUseCase();
 
-export async function GET(req: NextRequest) {
-  const providerId = req.nextUrl.searchParams
-    .get("providerId")
-    ?.trim()
-    .toLowerCase();
-
-  try {
+export const GET = withApiHandler<string | undefined>({
+  public: true,
+  query: (searchParams) =>
+    searchParams.get("providerId")?.trim().toLowerCase() || undefined,
+  handler: async ({ query: providerId }) => {
     const result = await getLiveYieldsUseCase.execute(providerId);
 
     if (providerId && !result) {
-      return NextResponse.json(
-        { error: "Provider not found in selector catalog" },
-        { status: 404 },
-      );
+      throw new NotFoundError("Proveedor", providerId);
     }
 
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("[GET /api/market-data/live] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch live rate" },
-      { status: 500 },
-    );
-  }
-}
+    return ok(result);
+  },
+});

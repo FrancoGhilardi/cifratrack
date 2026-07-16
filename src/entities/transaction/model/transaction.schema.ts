@@ -1,6 +1,14 @@
 import { z } from "zod";
-import { nonEmptyStringSchema, monthSchema } from "@/shared/lib/validation";
+import {
+  nonEmptyStringSchema,
+  monthSchema,
+  dateISOSchema,
+} from "@/shared/lib/validation";
 import { createSortSchema, paginationSchema } from "@/shared/lib/pagination";
+import {
+  entryKindSchema,
+  transactionStatusSchema,
+} from "@/shared/db/enums.zod";
 
 /**
  * Schema para el split de categorías
@@ -17,7 +25,7 @@ export const categorySplitSchema = z.object({
  * Schema para crear transacción
  */
 export const createTransactionSchema = z.object({
-  kind: z.enum(["income", "expense"]),
+  kind: entryKindSchema,
   title: nonEmptyStringSchema
     .max(120, "El título no puede superar los 120 caracteres")
     .min(2, "El título debe tener al menos 2 caracteres"),
@@ -30,20 +38,19 @@ export const createTransactionSchema = z.object({
     .number()
     .int("El monto debe ser un número entero (centavos)")
     .positive("El monto debe ser mayor a cero"),
-  currency: z.string().length(3).default("ARS").optional(),
   paymentMethodId: z
     .string()
     .uuid("ID de forma de pago inválido")
     .optional()
     .nullable(),
   isFixed: z.boolean().default(false).optional(),
-  status: z.enum(["pending", "paid"]),
-  occurredOn: z.coerce.date(),
+  status: transactionStatusSchema,
+  occurredOn: dateISOSchema,
   occurredMonth: z
     .string()
     .regex(/^\d{4}-\d{2}$/, "El mes debe estar en formato YYYY-MM"),
-  dueOn: z.coerce.date().optional().nullable(),
-  paidOn: z.coerce.date().optional().nullable(),
+  dueOn: dateISOSchema.optional().nullable(),
+  paidOn: dateISOSchema.optional().nullable(),
   sourceRecurringRuleId: z.string().uuid().optional().nullable(),
   split: z
     .array(categorySplitSchema)
@@ -74,14 +81,14 @@ export const updateTransactionSchema = z.object({
     .optional()
     .nullable(),
   isFixed: z.boolean().optional(),
-  status: z.enum(["pending", "paid"]).optional(),
-  occurredOn: z.coerce.date().optional(),
+  status: transactionStatusSchema.optional(),
+  occurredOn: dateISOSchema.optional(),
   occurredMonth: z
     .string()
     .regex(/^\d{4}-\d{2}$/, "El mes debe estar en formato YYYY-MM")
     .optional(),
-  dueOn: z.coerce.date().optional().nullable(),
-  paidOn: z.coerce.date().optional().nullable(),
+  dueOn: dateISOSchema.optional().nullable(),
+  paidOn: dateISOSchema.optional().nullable(),
   split: z
     .array(categorySplitSchema)
     .min(1, "Debe haber al menos una categoría asignada")
@@ -92,8 +99,8 @@ export const updateTransactionSchema = z.object({
  * Schema para filtrar transacciones
  */
 export const listTransactionsSchema = z.object({
-  kind: z.enum(["income", "expense"]).optional(),
-  status: z.enum(["pending", "paid"]).optional(),
+  kind: entryKindSchema.optional(),
+  status: transactionStatusSchema.optional(),
   month: z
     .string()
     .regex(/^\d{4}-\d{2}$/, "El mes debe estar en formato YYYY-MM")
@@ -134,17 +141,17 @@ export const listTransactionsQuerySchema = paginationSchema
   .merge(
     z.object({
       month: monthSchema.optional(),
-      kind: z.enum(["income", "expense"]).optional(),
-      status: z.enum(["pending", "paid"]).optional(),
+      kind: entryKindSchema.optional(),
+      status: transactionStatusSchema.optional(),
       paymentMethodId: z.string().uuid().optional(),
       categoryIds: z.preprocess(
         csvToArray,
-        z.array(z.string().uuid()).optional()
+        z.array(z.string().uuid()).optional(),
       ),
       q: z.string().max(100).optional(),
       cursor: z.string().min(1).optional(),
       cursorId: z.string().uuid().optional(),
-    })
+    }),
   )
   .superRefine((data, ctx) => {
     if ((data.cursor && !data.cursorId) || (!data.cursor && data.cursorId)) {

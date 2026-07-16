@@ -19,6 +19,7 @@ import {
   dateInputToUTCDate,
   getCurrentDateInput,
 } from "@/shared/lib/utils/form-data";
+import { formatDateToISO } from "@/shared/lib/date";
 import { formatPercentageValue } from "@/shared/lib/utils/percentage";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
@@ -85,8 +86,7 @@ export function InvestmentForm({
             tna: 0,
             days: 30,
             isCompound: false,
-            startedOn:
-              dateInputToUTCDate(getCurrentDateInput()) ?? new Date(),
+            startedOn: dateInputToUTCDate(getCurrentDateInput()) ?? new Date(),
             notes: "",
           },
     [investment],
@@ -455,7 +455,7 @@ export function InvestmentForm({
                       className="h-11 min-w-0"
                       value={
                         field.value instanceof Date
-                          ? field.value.toISOString().split("T")[0]
+                          ? formatDateToISO(field.value)
                           : ""
                       }
                       onChange={(e) => {

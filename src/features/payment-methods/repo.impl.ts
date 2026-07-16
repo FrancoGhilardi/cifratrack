@@ -7,6 +7,7 @@ import type {
   CreatePaymentMethodInput,
   UpdatePaymentMethodInput,
 } from "@/entities/payment-method/model/payment-method.schema";
+import { NotFoundError } from "@/shared/lib/errors";
 
 /**
  * Implementación del repositorio de Payment Methods con Drizzle ORM
@@ -14,7 +15,7 @@ import type {
 export class PaymentMethodRepository implements IPaymentMethodRepository {
   async list(
     userId: string,
-    options?: { isActive?: boolean }
+    options?: { isActive?: boolean },
   ): Promise<PaymentMethod[]> {
     const conditions = [eq(paymentMethods.userId, userId)];
 
@@ -45,13 +46,13 @@ export class PaymentMethodRepository implements IPaymentMethodRepository {
 
   async findByName(
     name: string,
-    userId: string
+    userId: string,
   ): Promise<PaymentMethod | null> {
     const rows = await db
       .select()
       .from(paymentMethods)
       .where(
-        and(eq(paymentMethods.name, name), eq(paymentMethods.userId, userId))
+        and(eq(paymentMethods.name, name), eq(paymentMethods.userId, userId)),
       )
       .limit(1);
 
@@ -62,7 +63,7 @@ export class PaymentMethodRepository implements IPaymentMethodRepository {
 
   async create(
     userId: string,
-    data: CreatePaymentMethodInput
+    data: CreatePaymentMethodInput,
   ): Promise<PaymentMethod> {
     const [row] = await db
       .insert(paymentMethods)
@@ -80,7 +81,7 @@ export class PaymentMethodRepository implements IPaymentMethodRepository {
   async update(
     id: string,
     userId: string,
-    data: UpdatePaymentMethodInput
+    data: UpdatePaymentMethodInput,
   ): Promise<PaymentMethod> {
     const [row] = await db
       .update(paymentMethods)
@@ -93,7 +94,7 @@ export class PaymentMethodRepository implements IPaymentMethodRepository {
       .returning();
 
     if (!row) {
-      throw new Error("Payment method not found");
+      throw new NotFoundError("Payment method");
     }
 
     return PaymentMethod.fromPersistence(row);
@@ -106,7 +107,7 @@ export class PaymentMethodRepository implements IPaymentMethodRepository {
       .returning();
 
     if (result.length === 0) {
-      throw new Error("Payment method not found");
+      throw new NotFoundError("Payment method");
     }
   }
 
@@ -117,8 +118,8 @@ export class PaymentMethodRepository implements IPaymentMethodRepository {
       .where(
         and(
           eq(transactions.paymentMethodId, id),
-          eq(transactions.userId, userId)
-        )
+          eq(transactions.userId, userId),
+        ),
       )
       .limit(1);
 

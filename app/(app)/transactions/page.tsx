@@ -10,15 +10,13 @@ import { TransactionDialog } from "@/features/transactions/ui/transaction-dialog
 import { TransactionSummaryCards } from "@/features/transactions/ui/transaction-summary-cards";
 import { useTransactionMutations } from "@/features/transactions/hooks/useTransactionMutations";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { TableLoadingOverlay } from "@/shared/ui/table-loading-overlay";
 import { Pagination } from "@/shared/ui/pagination";
 import { PageHeader } from "@/shared/ui/page-header";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Plus } from "lucide-react";
 import { useCrudDialogState } from "@/shared/lib/hooks/useCrudDialogState";
-import {
-  handleMutationError,
-  logMutationSuccess,
-} from "@/shared/lib/utils/mutation-handlers";
+import { useMemo } from "react";
 import type { SortingState } from "@tanstack/react-table";
 
 export default function TransactionsPage() {
@@ -26,6 +24,7 @@ export default function TransactionsPage() {
     transactions,
     meta,
     isLoading,
+    isFetching,
     isError,
     error,
     params,
@@ -46,18 +45,10 @@ export default function TransactionsPage() {
 
     try {
       await mutations.delete.mutateAsync(dialogState.deleteId);
-      logMutationSuccess("delete", "Movimiento");
       dialogActions.closeDelete();
-    } catch (error) {
-      handleMutationError("delete", "movimiento", error);
+    } catch {
+      // El error se muestra vía toast (useTransactionMutations); el dialog queda abierto
     }
-  };
-
-  const handleFormSuccess = () => {
-    logMutationSuccess(
-      dialogState.editingId ? "update" : "create",
-      "Movimiento"
-    );
   };
 
   const handleSortChange = (sortBy: string, sortOrder: "asc" | "desc") => {
@@ -65,12 +56,15 @@ export default function TransactionsPage() {
   };
 
   // Convertir params a SortingState para TanStack Table
-  const sorting: SortingState = [
-    {
-      id: params.sortBy || "occurredOn",
-      desc: params.sortOrder === "desc",
-    },
-  ];
+  const sorting: SortingState = useMemo(
+    () => [
+      {
+        id: params.sortBy || "occurredOn",
+        desc: params.sortOrder === "desc",
+      },
+    ],
+    [params.sortBy, params.sortOrder],
+  );
 
   if (isError) {
     return (
@@ -124,13 +118,16 @@ export default function TransactionsPage() {
         </div>
       ) : (
         <>
-          <TransactionsTable
-            transactions={transactions}
-            sorting={sorting}
-            onSortingChange={handleSortChange}
-            onEdit={dialogActions.openEdit}
-            onDelete={dialogActions.openDelete}
-          />
+          <div className="relative">
+            <TableLoadingOverlay show={isFetching} className="rounded-lg" />
+            <TransactionsTable
+              transactions={transactions}
+              sorting={sorting}
+              onSortingChange={handleSortChange}
+              onEdit={dialogActions.openEdit}
+              onDelete={dialogActions.openDelete}
+            />
+          </div>
 
           {/* Paginación */}
           {meta && meta.totalPages > 1 && (
@@ -155,7 +152,6 @@ export default function TransactionsPage() {
         open={dialogState.isFormOpen}
         onOpenChange={(open) => !open && dialogActions.closeForm()}
         transactionId={dialogState.editingId}
-        onSuccess={handleFormSuccess}
       />
 
       {/* Dialog de confirmación para eliminar */}

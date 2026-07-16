@@ -64,7 +64,6 @@ export async function createTransaction(data: {
   title: string;
   description?: string | null;
   amount: number;
-  currency?: string;
   paymentMethodId?: string | null;
   isFixed?: boolean;
   status: "pending" | "paid";
@@ -97,7 +96,6 @@ export async function updateTransaction(
     title?: string;
     description?: string | null;
     amount?: number;
-    currency?: string;
     paymentMethodId?: string | null;
     isFixed?: boolean;
     status?: "pending" | "paid";

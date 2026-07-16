@@ -1,7 +1,7 @@
-import bcrypt from 'bcryptjs';
-import type { IUserRepository } from '@/entities/user/repo';
-import { AppError, NotFoundError } from '@/shared/lib/errors';
-import { User } from '@/entities/user/model/user.entity';
+import type { IUserRepository } from "@/entities/user/repo";
+import { AppError, NotFoundError } from "@/shared/lib/errors";
+import { User } from "@/entities/user/model/user.entity";
+import { hashPassword, verifyPassword } from "@/shared/lib/password";
 
 interface ChangePasswordInput {
   currentPassword: string;
@@ -14,17 +14,24 @@ export class ChangePasswordUseCase {
   async execute(userId: string, input: ChangePasswordInput) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new NotFoundError('Usuario', userId);
+      throw new NotFoundError("Usuario", userId);
     }
 
-    const isValid = await bcrypt.compare(input.currentPassword, user.hashedPassword);
+    const isValid = await verifyPassword(
+      input.currentPassword,
+      user.hashedPassword,
+    );
     if (!isValid) {
-      throw new AppError('La contraseña actual es incorrecta', 'BAD_REQUEST', 400);
+      throw new AppError(
+        "La contraseña actual es incorrecta",
+        "BAD_REQUEST",
+        400,
+      );
     }
 
     User.validateNewPasswordStrength(input.newPassword);
 
-    const newHashed = await bcrypt.hash(input.newPassword, 10);
+    const newHashed = await hashPassword(input.newPassword);
     user.validatePasswordChange(newHashed);
 
     const updated = await this.userRepository.updatePassword(userId, newHashed);

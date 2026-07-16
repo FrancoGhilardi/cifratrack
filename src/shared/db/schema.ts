@@ -59,6 +59,15 @@ export const users = pgTable(
   (table) => [unique("users_email_key").on(table.email)],
 );
 
+/**
+ * SIN USO: tablas del adapter de NextAuth (OAuth accounts, sesiones en DB,
+ * verification tokens). El proveedor activo es Credentials con sesión JWT
+ * (ver src/shared/lib/auth.ts), que no pasa por estas tablas.
+ *
+ * Se mantienen documentadas porque agregar un provider OAuth (Google, etc.)
+ * es roadmap real — si se descarta definitivamente, se pueden quitar del
+ * schema y generar la migración de DROP correspondiente.
+ */
 export const accounts = pgTable(
   "accounts",
   {
@@ -216,7 +225,6 @@ export const transactions = pgTable(
     title: varchar({ length: 120 }).notNull(),
     description: text(),
     amount: integer().notNull(),
-    currency: char({ length: 3 }).default("ARS").notNull(),
     paymentMethodId: uuid("payment_method_id"),
     isFixed: boolean("is_fixed").default(false).notNull(),
     status: transactionStatus().default("paid").notNull(),
@@ -233,25 +241,54 @@ export const transactions = pgTable(
       .notNull(),
   },
   (table) => [
+    // (user_id, occurred_on, id): sirve tanto el filtro por usuario+fecha
+    // como el keyset pagination por defecto (ORDER BY occurred_on, id) de
+    // list() en transactions/repo.impl.ts — btree se recorre en reversa
+    // para servir el DESC sin necesitar un índice aparte.
     index("idx_tx_user_date").using(
       "btree",
-      table.userId.asc().nullsLast().op("uuid_ops"),
-      table.occurredOn.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast(),
+      table.occurredOn.asc().nullsLast(),
+      table.id.asc().nullsLast(),
     ),
     index("idx_tx_user_kind").using(
       "btree",
-      table.userId.asc().nullsLast().op("enum_ops"),
-      table.kind.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast(),
+      table.kind.asc().nullsLast(),
     ),
     index("idx_tx_user_month").using(
       "btree",
-      table.userId.asc().nullsLast().op("uuid_ops"),
-      table.occurredMonth.asc().nullsLast().op("date_ops"),
+      table.userId.asc().nullsLast(),
+      table.occurredMonth.asc().nullsLast(),
     ),
     index("idx_tx_user_status").using(
       "btree",
       table.userId.asc().nullsLast().op("uuid_ops"),
       table.status.asc().nullsLast().op("enum_ops"),
+    ),
+    // FK sin índice: cada ON DELETE SET NULL de recurring_rules escanea
+    // transactions completa sin esto; también usado por
+    // findExistingTransactionRuleIds en recurring/repo.impl.ts.
+    index("idx_tx_source_recurring_rule").using(
+      "btree",
+      table.sourceRecurringRuleId.asc().nullsLast(),
+    ),
+    // FK sin índice: filtrable en list() y target de ON DELETE SET NULL
+    // de payment_methods.
+    index("idx_tx_payment_method").using(
+      "btree",
+      table.paymentMethodId.asc().nullsLast(),
+    ),
+    // Índices trigram sobre la expresión normalizada (translate+lower) que usa
+    // el filtro de búsqueda `q` en repo.impl.ts — un índice sobre la columna
+    // cruda no serviría porque no matchea la expresión de la query.
+    index("idx_tx_title_search_trgm").using(
+      "gin",
+      sql`translate(lower(${table.title}), 'áéíóúäëïöüñ', 'aeiouaeioun') gin_trgm_ops`,
+    ),
+    index("idx_tx_description_search_trgm").using(
+      "gin",
+      sql`translate(lower(${table.description}), 'áéíóúäëïöüñ', 'aeiouaeioun') gin_trgm_ops`,
     ),
     foreignKey({
       columns: [table.sourceRecurringRuleId],
@@ -319,6 +356,7 @@ export const investments = pgTable(
   ],
 );
 
+// SIN USO: ver nota de `accounts` más arriba — pertenece al adapter de NextAuth.
 export const verificationTokens = pgTable(
   "verification_tokens",
   {

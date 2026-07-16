@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Schema de validación para variables de entorno
@@ -6,14 +6,22 @@ import { z } from 'zod';
  */
 const envSchema = z.object({
   // Base de datos
-  DATABASE_URL: z.string().url('DATABASE_URL debe ser una URL válida'),
+  DATABASE_URL: z.string().url("DATABASE_URL debe ser una URL válida"),
 
   // Auth.js (NextAuth)
-  NEXTAUTH_SECRET: z.string().min(32, 'NEXTAUTH_SECRET debe tener al menos 32 caracteres'),
-  NEXTAUTH_URL: z.string().url('NEXTAUTH_URL debe ser una URL válida'),
+  NEXTAUTH_SECRET: z
+    .string()
+    .min(32, "NEXTAUTH_SECRET debe tener al menos 32 caracteres"),
+  NEXTAUTH_URL: z.string().url("NEXTAUTH_URL debe ser una URL válida"),
 
   // Node environment
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+
+  // Rate limiting (Upstash Redis) - opcional: si falta, el rate limiting queda deshabilitado
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 });
 
 /**
@@ -27,10 +35,14 @@ function validateEnv() {
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
       NEXTAUTH_URL: process.env.NEXTAUTH_URL,
       NODE_ENV: process.env.NODE_ENV,
+      UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+      UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const missingVars = error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('\n');
+      const missingVars = error.issues
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join("\n");
       throw new Error(`Variables de entorno inválidas:\n${missingVars}`);
     }
     throw error;

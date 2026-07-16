@@ -7,17 +7,17 @@ import { z } from "zod";
 
 import { type CreateTransactionInput } from "@/entities/transaction/model/transaction.schema";
 import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
+import {
+  entryKindSchema,
+  transactionStatusSchema,
+} from "@/shared/db/enums.zod";
 import { cn } from "@/shared/lib/utils";
 import {
   centsToPesos,
   pesosTocents,
   validateSplitsSum,
 } from "@/shared/lib/utils/money-conversion";
-import {
-  dateInputToUTCDate,
-  getCurrentDateInput,
-  isoStringToDateInput,
-} from "@/shared/lib/utils/form-data";
+import { getCurrentDateInput } from "@/shared/lib/utils/form-data";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import {
@@ -41,7 +41,7 @@ import { CategorySplitInput } from "./category-split-input";
 import { type TransactionDTO } from "../mappers/transaction.mapper";
 
 const formSchema = z.object({
-  kind: z.enum(["income", "expense"]),
+  kind: entryKindSchema,
   title: z
     .string()
     .min(2, "El título debe tener al menos 2 caracteres")
@@ -53,7 +53,7 @@ const formSchema = z.object({
     .max(21000000, "El monto excede el límite permitido por el sistema ($21M)"),
   paymentMethodId: z.string().uuid("Selecciona una forma de pago").optional(),
   isFixed: z.boolean().optional(),
-  status: z.enum(["pending", "paid"]),
+  status: transactionStatusSchema,
   occurredOn: z.string(),
   dueOn: z.string().optional(),
   paidOn: z.string().optional(),
@@ -98,10 +98,9 @@ export function TransactionForm({
       paymentMethodId: transaction?.paymentMethodId ?? undefined,
       isFixed: transaction?.isFixed,
       status: transaction?.status ?? "paid",
-      occurredOn:
-        isoStringToDateInput(transaction?.occurredOn) ?? getCurrentDateInput(),
-      dueOn: isoStringToDateInput(transaction?.dueOn),
-      paidOn: isoStringToDateInput(transaction?.paidOn),
+      occurredOn: transaction?.occurredOn ?? getCurrentDateInput(),
+      dueOn: transaction?.dueOn ?? undefined,
+      paidOn: transaction?.paidOn ?? undefined,
       split:
         transaction?.categories.map((category) => ({
           categoryId: category.categoryId,
@@ -178,28 +177,23 @@ export function TransactionForm({
       return;
     }
 
-    const normalizedDueOn =
-      showStatusAndDue && values.status === "pending"
-        ? (dateInputToUTCDate(values.dueOn || values.occurredOn) ?? null)
-        : values.dueOn
-          ? (dateInputToUTCDate(values.dueOn) ?? null)
-          : null;
-
-    const normalizedPaidOn =
-      showStatusAndDue && values.status === "pending"
-        ? null
-        : values.paidOn
-          ? (dateInputToUTCDate(values.paidOn) ?? null)
-          : null;
-
-    const occurredDate = dateInputToUTCDate(values.occurredOn);
-    if (!occurredDate) {
+    if (!values.occurredOn) {
       form.setError("occurredOn", {
         type: "manual",
         message: "La fecha de ocurrencia es requerida",
       });
       return;
     }
+
+    const normalizedDueOn =
+      showStatusAndDue && values.status === "pending"
+        ? values.dueOn || values.occurredOn
+        : values.dueOn || null;
+
+    const normalizedPaidOn =
+      showStatusAndDue && values.status === "pending"
+        ? null
+        : values.paidOn || null;
 
     const occurredMonth = values.occurredOn.slice(0, 7);
 
@@ -208,11 +202,10 @@ export function TransactionForm({
       title: values.title,
       description: values.description || null,
       amount: amountInCents,
-      currency: "ARS",
       paymentMethodId: values.paymentMethodId || null,
       isFixed: values.isFixed,
       status: values.status,
-      occurredOn: occurredDate,
+      occurredOn: values.occurredOn,
       occurredMonth,
       dueOn: normalizedDueOn,
       paidOn: normalizedPaidOn,
