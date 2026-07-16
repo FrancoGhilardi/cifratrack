@@ -87,10 +87,11 @@ export function TransactionsTable({
             </Button>
           );
         },
-        cell: ({ row }) => {
-          const date = new Date(row.original.occurredOn);
-          return <span className="font-medium">{formatDateToLocal(date)}</span>;
-        },
+        cell: ({ row }) => (
+          <span className="font-medium">
+            {formatDateToLocal(row.original.occurredOn)}
+          </span>
+        ),
       },
       {
         accessorKey: "title",
@@ -339,7 +340,7 @@ export function TransactionsTable({
                       Fecha
                     </p>
                     <p className="font-medium">
-                      {formatDateToLocal(new Date(transaction.occurredOn))}
+                      {formatDateToLocal(transaction.occurredOn)}
                     </p>
                   </div>
                 </div>
@@ -365,13 +366,9 @@ export function TransactionsTable({
                       </p>
                       <p className="font-medium">
                         {transaction.status === "pending" && transaction.dueOn
-                          ? `Vence ${formatDateToLocal(
-                              new Date(transaction.dueOn),
-                            )}`
+                          ? `Vence ${formatDateToLocal(transaction.dueOn)}`
                           : transaction.paidOn
-                            ? `Pagado el ${formatDateToLocal(
-                                new Date(transaction.paidOn),
-                              )}`
+                            ? `Pagado el ${formatDateToLocal(transaction.paidOn)}`
                             : transaction.status === "paid"
                               ? "Movimiento registrado como pagado"
                               : "Sin fecha adicional"}

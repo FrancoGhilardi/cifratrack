@@ -32,7 +32,6 @@ import type { TransactionSummaryDTO } from "@/entities/transaction/model/transac
 import { Transaction as TransactionEntity } from "@/entities/transaction/model/transaction.entity";
 import type { Transaction } from "@/entities/transaction/model/transaction.entity";
 import { NotFoundError, ValidationError } from "@/shared/lib/errors";
-import { formatDateToISO } from "@/shared/lib/date";
 import { normalizeText } from "@/shared/lib/utils/text";
 import { TransactionMapper } from "./mappers/transaction.mapper";
 
@@ -264,7 +263,7 @@ export class TransactionRepository implements ITransactionRepository {
           return item.transaction.createdAt.toISOString();
         case "occurred_on":
         default:
-          return formatDateToISO(item.transaction.occurredOn);
+          return item.transaction.occurredOn;
       }
     };
 
@@ -348,17 +347,12 @@ export class TransactionRepository implements ITransactionRepository {
     data: CreateTransactionInput,
   ): Promise<TransactionWithNames> {
     return await db.transaction(async (tx) => {
-      const occurredOn = formatDateToISO(data.occurredOn);
+      const occurredOn = data.occurredOn;
       const dueOn =
         data.status === "pending"
-          ? data.dueOn
-            ? formatDateToISO(data.dueOn)
-            : data.isFixed && data.kind === "expense"
-              ? occurredOn
-              : null
-          : data.dueOn
-            ? formatDateToISO(data.dueOn)
-            : null;
+          ? (data.dueOn ??
+            (data.isFixed && data.kind === "expense" ? occurredOn : null))
+          : (data.dueOn ?? null);
 
       if (data.status === "pending" && !dueOn) {
         throw new ValidationError(
@@ -381,12 +375,7 @@ export class TransactionRepository implements ITransactionRepository {
           status: data.status,
           occurredOn,
           dueOn,
-          paidOn:
-            data.status === "pending"
-              ? null
-              : data.paidOn
-                ? formatDateToISO(data.paidOn)
-                : null,
+          paidOn: data.status === "pending" ? null : (data.paidOn ?? null),
           occurredMonth: occurredOn.substring(0, 7),
           sourceRecurringRuleId: data.sourceRecurringRuleId ?? null,
         })
@@ -471,12 +460,8 @@ export class TransactionRepository implements ITransactionRepository {
         {};
 
       const existingTransaction = existing.transaction;
-      const existingOccurredOn = formatDateToISO(
-        existingTransaction.occurredOn,
-      );
-      const existingDueOn = existingTransaction.dueOn
-        ? formatDateToISO(existingTransaction.dueOn)
-        : null;
+      const existingOccurredOn = existingTransaction.occurredOn;
+      const existingDueOn = existingTransaction.dueOn;
 
       if (data.title !== undefined) updateData.title = data.title;
       if (data.description !== undefined)
@@ -484,41 +469,15 @@ export class TransactionRepository implements ITransactionRepository {
       if (data.amount !== undefined) updateData.amount = data.amount;
       if (data.status !== undefined) updateData.status = data.status;
       if (data.occurredOn !== undefined) {
-        // Verificar tipo y convertir si es necesario
-        let dateStr: string;
-        if (data.occurredOn instanceof Date) {
-          dateStr = formatDateToISO(data.occurredOn);
-        } else if (typeof data.occurredOn === "string") {
-          dateStr = formatDateToISO(new Date(data.occurredOn));
-        } else {
-          // Fallback: convertir cualquier otro tipo a Date primero
-          dateStr = formatDateToISO(
-            new Date(data.occurredOn as unknown as string | number | Date),
-          );
-        }
-        updateData.occurredOn = dateStr;
+        updateData.occurredOn = data.occurredOn;
         // Actualizar occurredMonth en formato YYYY-MM
-        updateData.occurredMonth = dateStr.substring(0, 7);
+        updateData.occurredMonth = data.occurredOn.substring(0, 7);
       }
       if (data.dueOn !== undefined) {
-        // Verificar tipo y convertir si es necesario
-        if (data.dueOn === null) {
-          updateData.dueOn = null;
-        } else if (data.dueOn instanceof Date) {
-          updateData.dueOn = formatDateToISO(data.dueOn);
-        } else if (typeof data.dueOn === "string") {
-          updateData.dueOn = formatDateToISO(new Date(data.dueOn));
-        }
+        updateData.dueOn = data.dueOn;
       }
       if (data.paidOn !== undefined) {
-        // Verificar tipo y convertir si es necesario
-        if (data.paidOn === null) {
-          updateData.paidOn = null;
-        } else if (data.paidOn instanceof Date) {
-          updateData.paidOn = formatDateToISO(data.paidOn);
-        } else if (typeof data.paidOn === "string") {
-          updateData.paidOn = formatDateToISO(new Date(data.paidOn));
-        }
+        updateData.paidOn = data.paidOn;
       }
       if (data.paymentMethodId !== undefined)
         updateData.paymentMethodId = data.paymentMethodId;
@@ -709,9 +668,9 @@ export class TransactionRepository implements ITransactionRepository {
         paymentMethodId: row.paymentMethodId,
         isFixed: row.isFixed,
         status: row.status,
-        occurredOn: new Date(row.occurredOn),
-        dueOn: row.dueOn ? new Date(row.dueOn) : null,
-        paidOn: row.paidOn ? new Date(row.paidOn) : null,
+        occurredOn: row.occurredOn,
+        dueOn: row.dueOn,
+        paidOn: row.paidOn,
         occurredMonth: row.occurredMonth,
         sourceRecurringRuleId: row.sourceRecurringRuleId,
         split: splitsData

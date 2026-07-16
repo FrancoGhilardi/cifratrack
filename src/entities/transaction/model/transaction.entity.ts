@@ -1,7 +1,6 @@
 import type { entryKind, transactionStatus } from "@/shared/db/schema";
 import { TransactionSplit } from "./transaction-split.vo";
 import { ValidationError } from "@/shared/lib/errors";
-import { formatDateToISO } from "@/shared/lib/date";
 
 type EntryKind = (typeof entryKind.enumValues)[number];
 type TransactionStatus = (typeof transactionStatus.enumValues)[number];
@@ -23,9 +22,9 @@ export class Transaction {
     public readonly paymentMethodId: string | null,
     public readonly isFixed: boolean,
     public readonly status: TransactionStatus,
-    public readonly occurredOn: Date,
-    public readonly dueOn: Date | null,
-    public readonly paidOn: Date | null,
+    public readonly occurredOn: string, // formato YYYY-MM-DD (fecha civil, sin timezone)
+    public readonly dueOn: string | null, // formato YYYY-MM-DD
+    public readonly paidOn: string | null, // formato YYYY-MM-DD
     public readonly occurredMonth: string, // formato YYYY-MM
     public readonly sourceRecurringRuleId: string | null,
     public readonly split: TransactionSplit | null,
@@ -62,6 +61,24 @@ export class Transaction {
     if (!/^\d{4}-\d{2}$/.test(this.occurredMonth)) {
       throw new ValidationError("El mes debe estar en formato YYYY-MM");
     }
+
+    // Validar formato de fechas civiles (YYYY-MM-DD, sin componente horario)
+    const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateOnlyPattern.test(this.occurredOn)) {
+      throw new ValidationError(
+        "La fecha de ocurrencia debe estar en formato YYYY-MM-DD",
+      );
+    }
+    if (this.dueOn && !dateOnlyPattern.test(this.dueOn)) {
+      throw new ValidationError(
+        "La fecha de vencimiento debe estar en formato YYYY-MM-DD",
+      );
+    }
+    if (this.paidOn && !dateOnlyPattern.test(this.paidOn)) {
+      throw new ValidationError(
+        "La fecha de pago debe estar en formato YYYY-MM-DD",
+      );
+    }
   }
 
   /**
@@ -77,9 +94,9 @@ export class Transaction {
     paymentMethodId?: string | null;
     isFixed?: boolean;
     status?: "pending" | "paid";
-    occurredOn: Date;
-    dueOn?: Date | null;
-    paidOn?: Date | null;
+    occurredOn: string;
+    dueOn?: string | null;
+    paidOn?: string | null;
     sourceRecurringRuleId?: string | null;
     split?: Array<{ categoryId: string; allocatedAmount: number }> | null;
   }): Transaction {
@@ -122,9 +139,9 @@ export class Transaction {
     paymentMethodId: string | null;
     isFixed: boolean;
     status: "pending" | "paid";
-    occurredOn: Date;
-    dueOn: Date | null;
-    paidOn: Date | null;
+    occurredOn: string;
+    dueOn: string | null;
+    paidOn: string | null;
     occurredMonth: string;
     sourceRecurringRuleId: string | null;
     split?: Array<{ categoryId: string; allocatedAmount: number }> | null;
@@ -173,9 +190,9 @@ export class Transaction {
       paymentMethodId: this.paymentMethodId,
       isFixed: this.isFixed,
       status: this.status,
-      occurredOn: formatDateToISO(this.occurredOn),
-      dueOn: this.dueOn ? formatDateToISO(this.dueOn) : null,
-      paidOn: this.paidOn ? formatDateToISO(this.paidOn) : null,
+      occurredOn: this.occurredOn,
+      dueOn: this.dueOn,
+      paidOn: this.paidOn,
       occurredMonth: this.occurredMonth,
       sourceRecurringRuleId: this.sourceRecurringRuleId,
       split: this.split?.toPersistence() ?? null,
@@ -223,7 +240,7 @@ export class Transaction {
   /**
    * Marcar como pagada
    */
-  markAsPaid(paidOn: Date): Transaction {
+  markAsPaid(paidOn: string): Transaction {
     return new Transaction(
       this.id,
       this.userId,
@@ -247,12 +264,10 @@ export class Transaction {
   }
 
   /**
-   * Formatear fecha a mes YYYY-MM
+   * Extraer mes YYYY-MM de una fecha civil YYYY-MM-DD
    */
-  private static formatMonth(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    return `${year}-${month}`;
+  private static formatMonth(occurredOn: string): string {
+    return occurredOn.slice(0, 7);
   }
 
   /**

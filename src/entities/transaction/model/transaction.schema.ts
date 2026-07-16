@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { nonEmptyStringSchema, monthSchema } from "@/shared/lib/validation";
+import {
+  nonEmptyStringSchema,
+  monthSchema,
+  dateISOSchema,
+} from "@/shared/lib/validation";
 import { createSortSchema, paginationSchema } from "@/shared/lib/pagination";
 
 /**
@@ -38,12 +42,12 @@ export const createTransactionSchema = z.object({
     .nullable(),
   isFixed: z.boolean().default(false).optional(),
   status: z.enum(["pending", "paid"]),
-  occurredOn: z.coerce.date(),
+  occurredOn: dateISOSchema,
   occurredMonth: z
     .string()
     .regex(/^\d{4}-\d{2}$/, "El mes debe estar en formato YYYY-MM"),
-  dueOn: z.coerce.date().optional().nullable(),
-  paidOn: z.coerce.date().optional().nullable(),
+  dueOn: dateISOSchema.optional().nullable(),
+  paidOn: dateISOSchema.optional().nullable(),
   sourceRecurringRuleId: z.string().uuid().optional().nullable(),
   split: z
     .array(categorySplitSchema)
@@ -75,13 +79,13 @@ export const updateTransactionSchema = z.object({
     .nullable(),
   isFixed: z.boolean().optional(),
   status: z.enum(["pending", "paid"]).optional(),
-  occurredOn: z.coerce.date().optional(),
+  occurredOn: dateISOSchema.optional(),
   occurredMonth: z
     .string()
     .regex(/^\d{4}-\d{2}$/, "El mes debe estar en formato YYYY-MM")
     .optional(),
-  dueOn: z.coerce.date().optional().nullable(),
-  paidOn: z.coerce.date().optional().nullable(),
+  dueOn: dateISOSchema.optional().nullable(),
+  paidOn: dateISOSchema.optional().nullable(),
   split: z
     .array(categorySplitSchema)
     .min(1, "Debe haber al menos una categoría asignada")
@@ -139,12 +143,12 @@ export const listTransactionsQuerySchema = paginationSchema
       paymentMethodId: z.string().uuid().optional(),
       categoryIds: z.preprocess(
         csvToArray,
-        z.array(z.string().uuid()).optional()
+        z.array(z.string().uuid()).optional(),
       ),
       q: z.string().max(100).optional(),
       cursor: z.string().min(1).optional(),
       cursorId: z.string().uuid().optional(),
-    })
+    }),
   )
   .superRefine((data, ctx) => {
     if ((data.cursor && !data.cursorId) || (!data.cursor && data.cursorId)) {

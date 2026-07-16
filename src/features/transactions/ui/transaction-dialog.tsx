@@ -12,7 +12,6 @@ import { TransactionForm } from "./transaction-form";
 import { useTransaction } from "../hooks/useTransaction";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { convertDatesToISO } from "@/shared/lib/utils/form-data";
 import type { CreateTransactionInput } from "@/entities/transaction/model/transaction.schema";
 
 interface TransactionDialogProps {
@@ -43,21 +42,16 @@ export function TransactionDialog({
 
   const handleSubmit = async (data: CreateTransactionInput) => {
     try {
-      // Mantener nulls para poder limpiar columnas nullable en el update.
-      const apiData = convertDatesToISO(data);
-
       if (isEditing && transactionId) {
         await mutations.update.mutateAsync({
           id: transactionId,
-          data: apiData as unknown as Parameters<
+          data: data as unknown as Parameters<
             typeof mutations.update.mutateAsync
           >[0]["data"],
         });
       } else {
         await mutations.create.mutateAsync(
-          apiData as unknown as Parameters<
-            typeof mutations.create.mutateAsync
-          >[0],
+          data as unknown as Parameters<typeof mutations.create.mutateAsync>[0],
         );
       }
       onOpenChange(false);

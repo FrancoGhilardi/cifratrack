@@ -13,11 +13,7 @@ import {
   pesosTocents,
   validateSplitsSum,
 } from "@/shared/lib/utils/money-conversion";
-import {
-  dateInputToUTCDate,
-  getCurrentDateInput,
-  isoStringToDateInput,
-} from "@/shared/lib/utils/form-data";
+import { getCurrentDateInput } from "@/shared/lib/utils/form-data";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import {
@@ -98,10 +94,9 @@ export function TransactionForm({
       paymentMethodId: transaction?.paymentMethodId ?? undefined,
       isFixed: transaction?.isFixed,
       status: transaction?.status ?? "paid",
-      occurredOn:
-        isoStringToDateInput(transaction?.occurredOn) ?? getCurrentDateInput(),
-      dueOn: isoStringToDateInput(transaction?.dueOn),
-      paidOn: isoStringToDateInput(transaction?.paidOn),
+      occurredOn: transaction?.occurredOn ?? getCurrentDateInput(),
+      dueOn: transaction?.dueOn ?? undefined,
+      paidOn: transaction?.paidOn ?? undefined,
       split:
         transaction?.categories.map((category) => ({
           categoryId: category.categoryId,
@@ -178,28 +173,23 @@ export function TransactionForm({
       return;
     }
 
-    const normalizedDueOn =
-      showStatusAndDue && values.status === "pending"
-        ? (dateInputToUTCDate(values.dueOn || values.occurredOn) ?? null)
-        : values.dueOn
-          ? (dateInputToUTCDate(values.dueOn) ?? null)
-          : null;
-
-    const normalizedPaidOn =
-      showStatusAndDue && values.status === "pending"
-        ? null
-        : values.paidOn
-          ? (dateInputToUTCDate(values.paidOn) ?? null)
-          : null;
-
-    const occurredDate = dateInputToUTCDate(values.occurredOn);
-    if (!occurredDate) {
+    if (!values.occurredOn) {
       form.setError("occurredOn", {
         type: "manual",
         message: "La fecha de ocurrencia es requerida",
       });
       return;
     }
+
+    const normalizedDueOn =
+      showStatusAndDue && values.status === "pending"
+        ? values.dueOn || values.occurredOn
+        : values.dueOn || null;
+
+    const normalizedPaidOn =
+      showStatusAndDue && values.status === "pending"
+        ? null
+        : values.paidOn || null;
 
     const occurredMonth = values.occurredOn.slice(0, 7);
 
@@ -212,7 +202,7 @@ export function TransactionForm({
       paymentMethodId: values.paymentMethodId || null,
       isFixed: values.isFixed,
       status: values.status,
-      occurredOn: occurredDate,
+      occurredOn: values.occurredOn,
       occurredMonth,
       dueOn: normalizedDueOn,
       paidOn: normalizedPaidOn,
