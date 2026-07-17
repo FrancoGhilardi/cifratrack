@@ -34,6 +34,8 @@ function createMockRepo(
     findCategories: vi.fn(),
     findCategoriesByRuleIds: vi.fn().mockResolvedValue({}),
     setCategories: vi.fn(),
+    verifyPaymentMethodOwnership: vi.fn().mockResolvedValue(true),
+    verifyCategoriesOwnership: vi.fn().mockResolvedValue(true),
     findExistingTransactionRuleIds: vi.fn().mockResolvedValue(new Set()),
     bulkCreateTransactionsFromRules: vi.fn(),
     ...overrides,

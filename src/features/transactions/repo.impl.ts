@@ -388,6 +388,23 @@ export class TransactionRepository implements ITransactionRepository {
       }> = [];
 
       if (data.split && data.split.length > 0) {
+        // Verificar ownership de las categorías antes de crear los splits
+        const categoryIds = data.split.map((s) => s.categoryId);
+        const uniqueCategoryIds = [...new Set(categoryIds)];
+        const categoriesRows = await tx
+          .select({ id: categories.id, name: categories.name })
+          .from(categories)
+          .where(
+            and(
+              inArray(categories.id, uniqueCategoryIds),
+              eq(categories.userId, userId),
+            ),
+          );
+
+        if (categoriesRows.length !== uniqueCategoryIds.length) {
+          throw new ValidationError("Categoría inexistente");
+        }
+
         await tx.insert(transactionCategories).values(
           data.split.map((split) => ({
             transactionId: transaction.id,
@@ -395,13 +412,6 @@ export class TransactionRepository implements ITransactionRepository {
             allocatedAmount: split.allocatedAmount,
           })),
         );
-
-        // Obtener nombres de categorías
-        const categoryIds = data.split.map((s) => s.categoryId);
-        const categoriesRows = await tx
-          .select({ id: categories.id, name: categories.name })
-          .from(categories)
-          .where(inArray(categories.id, categoryIds));
 
         data.split.forEach((split) => {
           const category = categoriesRows.find(
@@ -417,15 +427,23 @@ export class TransactionRepository implements ITransactionRepository {
         });
       }
 
-      // Obtener payment method
+      // Obtener payment method (verifica ownership)
       let paymentMethod = null;
       if (transaction.paymentMethodId) {
         const [pm] = await tx
           .select({ id: paymentMethods.id, name: paymentMethods.name })
           .from(paymentMethods)
-          .where(eq(paymentMethods.id, transaction.paymentMethodId))
+          .where(
+            and(
+              eq(paymentMethods.id, transaction.paymentMethodId),
+              eq(paymentMethods.userId, userId),
+            ),
+          )
           .limit(1);
-        paymentMethod = pm ?? null;
+        if (!pm) {
+          throw new ValidationError("Forma de pago inexistente");
+        }
+        paymentMethod = pm;
       }
 
       const transactionWithRelations: TransactionWithRelations = {
@@ -530,13 +548,30 @@ export class TransactionRepository implements ITransactionRepository {
       }> = [];
 
       if (data.split !== undefined) {
-        // Eliminar splits existentes
-        await tx
-          .delete(transactionCategories)
-          .where(eq(transactionCategories.transactionId, id));
-
-        // Crear nuevos splits
+        // Verificar ownership de las categorías antes de tocar los splits
         if (data.split.length > 0) {
+          const categoryIds = data.split.map((s) => s.categoryId);
+          const uniqueCategoryIds = [...new Set(categoryIds)];
+          const categoriesRows = await tx
+            .select({ id: categories.id, name: categories.name })
+            .from(categories)
+            .where(
+              and(
+                inArray(categories.id, uniqueCategoryIds),
+                eq(categories.userId, userId),
+              ),
+            );
+
+          if (categoriesRows.length !== uniqueCategoryIds.length) {
+            throw new ValidationError("Categoría inexistente");
+          }
+
+          // Eliminar splits existentes
+          await tx
+            .delete(transactionCategories)
+            .where(eq(transactionCategories.transactionId, id));
+
+          // Crear nuevos splits
           await tx.insert(transactionCategories).values(
             data.split.map((split) => ({
               transactionId: id,
@@ -544,13 +579,6 @@ export class TransactionRepository implements ITransactionRepository {
               allocatedAmount: split.allocatedAmount,
             })),
           );
-
-          // Obtener nombres de categorías
-          const categoryIds = data.split.map((s) => s.categoryId);
-          const categoriesRows = await tx
-            .select({ id: categories.id, name: categories.name })
-            .from(categories)
-            .where(inArray(categories.id, categoryIds));
 
           data.split.forEach((split) => {
             const category = categoriesRows.find(
@@ -564,6 +592,11 @@ export class TransactionRepository implements ITransactionRepository {
               });
             }
           });
+        } else {
+          // Split vacío: eliminar splits existentes sin crear nuevos
+          await tx
+            .delete(transactionCategories)
+            .where(eq(transactionCategories.transactionId, id));
         }
       } else {
         // Mantener splits existentes
@@ -583,15 +616,23 @@ export class TransactionRepository implements ITransactionRepository {
         categoriesData.push(...existingCategories);
       }
 
-      // Obtener payment method
+      // Obtener payment method (verifica ownership)
       let paymentMethod = null;
       if (transaction.paymentMethodId) {
         const [pm] = await tx
           .select({ id: paymentMethods.id, name: paymentMethods.name })
           .from(paymentMethods)
-          .where(eq(paymentMethods.id, transaction.paymentMethodId))
+          .where(
+            and(
+              eq(paymentMethods.id, transaction.paymentMethodId),
+              eq(paymentMethods.userId, userId),
+            ),
+          )
           .limit(1);
-        paymentMethod = pm ?? null;
+        if (!pm) {
+          throw new ValidationError("Forma de pago inexistente");
+        }
+        paymentMethod = pm;
       }
 
       const transactionWithRelations: TransactionWithRelations = {

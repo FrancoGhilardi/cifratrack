@@ -5,6 +5,8 @@ import {
   recurringRuleCategories,
   transactions,
   transactionCategories,
+  categories,
+  paymentMethods,
 } from "@/shared/db/schema";
 import { RecurringRule } from "@/entities/recurring-rule/model/recurring-rule.entity";
 import type { IRecurringRuleRepository } from "@/entities/recurring-rule/repo";
@@ -222,6 +224,41 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
         allocatedAmount: Math.trunc(cat.allocatedAmount),
       })),
     );
+  }
+
+  async verifyPaymentMethodOwnership(
+    userId: string,
+    paymentMethodId: string,
+  ): Promise<boolean> {
+    const [pm] = await db
+      .select({ id: paymentMethods.id })
+      .from(paymentMethods)
+      .where(
+        and(
+          eq(paymentMethods.id, paymentMethodId),
+          eq(paymentMethods.userId, userId),
+        ),
+      )
+      .limit(1);
+    return Boolean(pm);
+  }
+
+  async verifyCategoriesOwnership(
+    userId: string,
+    categoryIds: string[],
+  ): Promise<boolean> {
+    if (categoryIds.length === 0) return true;
+    const uniqueCategoryIds = [...new Set(categoryIds)];
+    const rows = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(
+        and(
+          inArray(categories.id, uniqueCategoryIds),
+          eq(categories.userId, userId),
+        ),
+      );
+    return rows.length === uniqueCategoryIds.length;
   }
 
   async findExistingTransactionRuleIds(

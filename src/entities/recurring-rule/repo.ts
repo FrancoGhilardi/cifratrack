@@ -29,6 +29,14 @@ export interface IRecurringRuleRepository {
     ruleId: string,
     categories: Array<{ categoryId: string; allocatedAmount: number }>,
   ): Promise<void>;
+  verifyPaymentMethodOwnership(
+    userId: string,
+    paymentMethodId: string,
+  ): Promise<boolean>;
+  verifyCategoriesOwnership(
+    userId: string,
+    categoryIds: string[],
+  ): Promise<boolean>;
   findExistingTransactionRuleIds(
     userId: string,
     ruleIds: string[],
