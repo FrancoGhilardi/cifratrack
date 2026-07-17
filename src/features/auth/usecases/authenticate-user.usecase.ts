@@ -5,26 +5,25 @@ import { AuthenticationError } from "@/shared/lib/errors";
 import { verifyPassword } from "@/shared/lib/password";
 
 /**
- * Caso de uso: Autenticar usuario con credenciales
- *
- * Responsabilidades:
- * 1. Buscar usuario por email
- * 2. Verificar que el usuario exista
- * 3. Comparar password con hash almacenado
- * 4. Retornar usuario si las credenciales son válidas
+ * Hash bcrypt (cost 10, igual a MIN_SALT_ROUNDS de password.ts) de una cadena
+ * aleatoria fija, sin contraseña real asociada. Se compara contra ella cuando
+ * el email no existe para que esa rama pague el mismo costo de bcrypt que la
+ * de password incorrecto, evitando enumerar usuarios por timing.
  */
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$aKjtBs1uwu5E.6hBsYkWr.FSbKHnrT73F2FL7CJKra.p.FYNkKQt2";
+
 export class AuthenticateUserUseCase {
   constructor(private readonly userRepository: IUserRepository) {}
 
   async execute(input: LoginInput): Promise<User> {
-    // Buscar usuario por email
     const user = await this.userRepository.findByEmail(input.email);
 
     if (!user) {
+      await verifyPassword(input.password, DUMMY_PASSWORD_HASH);
       throw new AuthenticationError("Credenciales inválidas");
     }
 
-    // Verificar password
     const isValidPassword = await verifyPassword(
       input.password,
       user.hashedPassword,
