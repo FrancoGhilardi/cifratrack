@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -19,13 +18,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/ui/form";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { AuthShell } from "@/widgets/auth/auth-shell";
+import { PasswordInput } from "@/shared/ui/password-input";
 
 export default function LoginPage() {
   const { login, isLoading } = useLogin();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -49,19 +48,9 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      title="Inicia sesión"
-      description="Accede a tu cuenta para revisar tu dashboard, registrar movimientos y seguir tu portafolio desde cualquier dispositivo."
-      footer={
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          ¿No tienes cuenta?{" "}
-          <Link
-            href="/register"
-            className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            Regístrate
-          </Link>
-        </p>
-      }
+      title="Tus números, claros."
+      description="Ingresá para seguir tus ingresos, gastos e inversiones en un solo lugar."
+      footer={null}
     >
       <Form {...form}>
         <form
@@ -98,25 +87,13 @@ export default function LoginPage() {
               <FormItem>
                 <FormLabel>Contraseña</FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      className="h-11 pr-10"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                      tabIndex={-1}
-                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
+                  <PasswordInput
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className="h-11"
+                    disabled={isLoading}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

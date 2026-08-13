@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -11,6 +10,7 @@ import {
 import { useRegister } from "@/features/auth/hooks/useRegister";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
+import { PasswordInput } from "@/shared/ui/password-input";
 import {
   Form,
   FormControl,
@@ -50,17 +50,12 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
-      title="Crea tu cuenta"
-      description="Empieza con tu espacio de trabajo financiero y deja listo el flujo para dashboard, movimientos, recurrentes e inversiones."
+      title="Empezá a ordenar."
+      description="Creá tu cuenta y tené el control de tus finanzas desde el primer mes."
       footer={
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          ¿Ya tienes cuenta?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            Inicia sesión
-          </Link>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Al crear tu cuenta aceptás los Términos y la Política de privacidad.
+          Arrancás con categorías y formas de pago listas para usar.
         </p>
       }
     >
@@ -120,9 +115,8 @@ export default function RegisterPage() {
               <FormItem>
                 <FormLabel>Contraseña</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
+                  <PasswordInput
+                    placeholder="Mínimo 8 caracteres"
                     autoComplete="new-password"
                     className="h-11"
                     disabled={isLoading}
@@ -141,9 +135,8 @@ export default function RegisterPage() {
               <FormItem>
                 <FormLabel>Confirmar contraseña</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
+                  <PasswordInput
+                    placeholder="Volvé a escribirla"
                     autoComplete="new-password"
                     className="h-11"
                     disabled={isLoading}
