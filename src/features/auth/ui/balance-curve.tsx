@@ -82,17 +82,21 @@ export function BalanceCurve() {
 
       // relleno de área
       ctx.save();
-      if (!isHex) ctx.globalAlpha = 0.14;
-      const grad = ctx.createLinearGradient(0, topY, 0, baseY);
-      grad.addColorStop(0, hexOrColorWithAlpha(accent, 0.16));
-      grad.addColorStop(1, hexOrColorWithAlpha(accent, 0));
+      if (isHex) {
+        const grad = ctx.createLinearGradient(0, topY, 0, baseY);
+        grad.addColorStop(0, hexOrColorWithAlpha(accent, 0.16));
+        grad.addColorStop(1, hexOrColorWithAlpha(accent, 0));
+        ctx.fillStyle = grad;
+      } else {
+        ctx.globalAlpha = 0.14;
+        ctx.fillStyle = accent;
+      }
       ctx.beginPath();
       ctx.moveTo(X(0), Y(0));
       for (let i = 1; i < reveal; i++) ctx.lineTo(X(i), Y(i));
       ctx.lineTo(X(reveal - 1), baseY);
       ctx.lineTo(X(0), baseY);
       ctx.closePath();
-      ctx.fillStyle = isHex ? grad : accent;
       ctx.fill();
       ctx.restore();
 

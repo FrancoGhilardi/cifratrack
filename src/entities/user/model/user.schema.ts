@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { emailSchema, passwordSchema, nonEmptyStringSchema } from '@/shared/lib/validation';
+import { emailSchema, passwordSchema, strongPasswordSchema, nonEmptyStringSchema } from '@/shared/lib/validation';
 
 /**
  * Schema para registro de usuario
  */
 export const registerSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: strongPasswordSchema,
   confirmPassword: z.string().min(1, 'Confirmar contraseña es requerido'),
   username: nonEmptyStringSchema
     .max(100, 'El nombre no puede superar los 100 caracteres')

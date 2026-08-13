@@ -19,14 +19,7 @@ export class UserRepository implements IUserRepository {
 
     if (result.length === 0) return null;
 
-    return User.fromPersistence({
-      id: result[0].id,
-      email: result[0].email,
-      name: result[0].name,
-      hashedPassword: result[0].password,
-      createdAt: result[0].createdAt,
-      updatedAt: result[0].updatedAt,
-    });
+    return User.fromRow(result[0]);
   }
 
   async findById(id: string): Promise<User | null> {
@@ -38,14 +31,7 @@ export class UserRepository implements IUserRepository {
 
     if (result.length === 0) return null;
 
-    return User.fromPersistence({
-      id: result[0].id,
-      email: result[0].email,
-      name: result[0].name,
-      hashedPassword: result[0].password,
-      createdAt: result[0].createdAt,
-      updatedAt: result[0].updatedAt,
-    });
+    return User.fromRow(result[0]);
   }
 
   async create(data: {
@@ -66,14 +52,7 @@ export class UserRepository implements IUserRepository {
       })
       .returning();
 
-    return User.fromPersistence({
-      id: result[0].id,
-      email: result[0].email,
-      name: result[0].name,
-      hashedPassword: result[0].password,
-      createdAt: result[0].createdAt,
-      updatedAt: result[0].updatedAt,
-    });
+    return User.fromRow(result[0]);
   }
 
   async updateProfile(userId: string, data: UpdateProfileInput): Promise<User> {
@@ -99,14 +78,7 @@ export class UserRepository implements IUserRepository {
       throw new NotFoundError('Usuario', userId);
     }
 
-    return User.fromPersistence({
-      id: result[0].id,
-      email: result[0].email,
-      name: result[0].name,
-      hashedPassword: result[0].password,
-      createdAt: result[0].createdAt,
-      updatedAt: result[0].updatedAt,
-    });
+    return User.fromRow(result[0]);
   }
 
   async updatePassword(userId: string, hashedPassword: string): Promise<User> {
@@ -123,14 +95,7 @@ export class UserRepository implements IUserRepository {
       throw new NotFoundError('Usuario', userId);
     }
 
-    return User.fromPersistence({
-      id: result[0].id,
-      email: result[0].email,
-      name: result[0].name,
-      hashedPassword: result[0].password,
-      createdAt: result[0].createdAt,
-      updatedAt: result[0].updatedAt,
-    });
+    return User.fromRow(result[0]);
   }
 
   async emailExists(email: string, excludeUserId?: string): Promise<boolean> {

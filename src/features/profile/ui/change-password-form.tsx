@@ -3,10 +3,17 @@
 import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
 import { Button } from "@/shared/ui/button";
+import { PasswordInput } from "@/shared/ui/password-input";
 import { useDialogForm } from "@/shared/lib/hooks/useDialogForm";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/shared/ui/form";
 import {
   changePasswordSchema,
   type ChangePasswordInput,
@@ -53,69 +60,80 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
   });
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="space-y-2">
-        <Label htmlFor="currentPassword">Contraseña actual</Label>
-        <Input
-          id="currentPassword"
-          type="password"
-          autoComplete="current-password"
-          className="h-11"
-          {...form.register("currentPassword")}
+    <Form {...form}>
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <FormField
+          control={form.control}
+          name="currentPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Contraseña actual</FormLabel>
+              <FormControl>
+                <PasswordInput
+                  autoComplete="current-password"
+                  className="h-11"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {form.formState.errors.currentPassword && (
-          <p className="text-sm text-red-500">
-            {form.formState.errors.currentPassword.message}
-          </p>
-        )}
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="newPassword">Nueva contraseña</Label>
-        <Input
-          id="newPassword"
-          type="password"
-          autoComplete="new-password"
-          className="h-11"
-          {...form.register("newPassword")}
+        <FormField
+          control={form.control}
+          name="newPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nueva contraseña</FormLabel>
+              <FormControl>
+                <PasswordInput
+                  autoComplete="new-password"
+                  className="h-11"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {form.formState.errors.newPassword && (
-          <p className="text-sm text-red-500">
-            {form.formState.errors.newPassword.message}
-          </p>
-        )}
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          className="h-11"
-          {...form.register("confirmPassword")}
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Confirmar contraseña</FormLabel>
+              <FormControl>
+                <PasswordInput
+                  autoComplete="new-password"
+                  className="h-11"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {form.formState.errors.confirmPassword && (
-          <p className="text-sm text-red-500">
-            {form.formState.errors.confirmPassword.message}
-          </p>
+
+        {apiError && (
+          <div
+            className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400"
+            role="alert"
+          >
+            {apiError}
+          </div>
         )}
-      </div>
 
-      {apiError && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
-          {apiError}
-        </div>
-      )}
-
-      <Button
-        type="submit"
-        disabled={form.formState.isSubmitting}
-        isLoading={form.formState.isSubmitting}
-        className="w-full sm:w-auto"
-      >
-        {form.formState.isSubmitting ? "Guardando..." : "Cambiar contraseña"}
-      </Button>
-    </form>
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          isLoading={form.formState.isSubmitting}
+          className="w-full sm:w-auto"
+        >
+          {form.formState.isSubmitting ? "Guardando..." : "Cambiar contraseña"}
+        </Button>
+      </form>
+    </Form>
   );
 }

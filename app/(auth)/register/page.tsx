@@ -14,6 +14,7 @@ import { PasswordInput } from "@/shared/ui/password-input";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -123,6 +124,9 @@ export default function RegisterPage() {
                     {...field}
                   />
                 </FormControl>
+                <FormDescription>
+                  Mínimo 8 caracteres, con mayúscula, minúscula y número.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

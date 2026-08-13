@@ -1,9 +1,7 @@
 import { ShieldCheck } from "lucide-react";
 import { AuthWordmark } from "./auth-wordmark";
 import { BalanceCurve } from "./balance-curve";
-
-const BRAND_SERIF =
-  '"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif';
+import { AUTH_BRAND_SERIF } from "./auth-fonts";
 
 const LEDGER_ROWS = [
   {
@@ -39,7 +37,7 @@ export function AuthBrandPanel() {
       <div className="relative z-10">
         <h2
           className="mb-4 max-w-[15ch] text-4xl font-medium leading-tight tracking-tight text-balance text-auth-panel-ink"
-          style={{ fontFamily: BRAND_SERIF }}
+          style={{ fontFamily: AUTH_BRAND_SERIF }}
         >
           Cada peso, anotado. Cada mes, entendido.
         </h2>
