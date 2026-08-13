@@ -15,11 +15,19 @@ export const passwordSchema = z
   .max(100, "La contraseña no puede superar los 100 caracteres");
 
 /**
+ * Regex compartida: al menos 1 mayúscula, 1 minúscula, 1 número.
+ * Fuente única para `strongPasswordSchema` (Zod) y
+ * `User.validateNewPasswordStrength()` (dominio) — evita que ambas
+ * reglas diverjan a futuro.
+ */
+export const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+
+/**
  * Schema para password con requisitos más estrictos
  * Al menos 1 mayúscula, 1 minúscula, 1 número
  */
 export const strongPasswordSchema = passwordSchema.regex(
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+  STRONG_PASSWORD_REGEX,
   "La contraseña debe contener al menos una mayúscula, una minúscula y un número",
 );
 

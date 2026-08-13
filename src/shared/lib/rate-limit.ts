@@ -16,38 +16,29 @@ if (!redis) {
   );
 }
 
-const loginRatelimit = redis
-  ? new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(5, "1 m"),
-      prefix: "ratelimit:login",
-    })
-  : null;
+/**
+ * Crea un limitador sliding-window de 5 intentos/minuto con el prefix dado.
+ * Fail-open (retorna `true` siempre) si Redis no está configurado.
+ */
+function createRateLimiter(prefix: string) {
+  const limiter = redis
+    ? new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(5, "1 m"),
+        prefix: `ratelimit:${prefix}`,
+      })
+    : null;
 
-const registerRatelimit = redis
-  ? new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(5, "1 m"),
-      prefix: "ratelimit:register",
-    })
-  : null;
-
-/** Retorna true si el intento está permitido (fail-open si Redis no está configurado). */
-export async function checkLoginRateLimit(
-  identifier: string,
-): Promise<boolean> {
-  if (!loginRatelimit) return true;
-  const { success } = await loginRatelimit.limit(identifier);
-  return success;
+  return async (identifier: string): Promise<boolean> => {
+    if (!limiter) return true;
+    const { success } = await limiter.limit(identifier);
+    return success;
+  };
 }
 
-export async function checkRegisterRateLimit(
-  identifier: string,
-): Promise<boolean> {
-  if (!registerRatelimit) return true;
-  const { success } = await registerRatelimit.limit(identifier);
-  return success;
-}
+export const checkLoginRateLimit = createRateLimiter("login");
+export const checkRegisterRateLimit = createRateLimiter("register");
+export const checkChangePasswordRateLimit = createRateLimiter("change-password");
 
 /** Extrae la IP del cliente desde headers de proxy (Vercel, etc). */
 export function getClientIp(request: Request): string {

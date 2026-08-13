@@ -16,6 +16,7 @@ import type {
 } from "@/entities/recurring-rule/model/recurring-rule.schema";
 import { Month } from "@/shared/lib/date";
 import { NotFoundError } from "@/shared/lib/errors";
+import { verifyOwnership } from "@/shared/lib/db-ownership";
 
 export class RecurringRuleRepository implements IRecurringRuleRepository {
   async list(userId: string): Promise<RecurringRule[]> {
@@ -230,35 +231,28 @@ export class RecurringRuleRepository implements IRecurringRuleRepository {
     userId: string,
     paymentMethodId: string,
   ): Promise<boolean> {
-    const [pm] = await db
-      .select({ id: paymentMethods.id })
-      .from(paymentMethods)
-      .where(
-        and(
-          eq(paymentMethods.id, paymentMethodId),
-          eq(paymentMethods.userId, userId),
-        ),
-      )
-      .limit(1);
-    return Boolean(pm);
+    return verifyOwnership(
+      db,
+      paymentMethods,
+      paymentMethods.id,
+      paymentMethods.userId,
+      userId,
+      [paymentMethodId],
+    );
   }
 
   async verifyCategoriesOwnership(
     userId: string,
     categoryIds: string[],
   ): Promise<boolean> {
-    if (categoryIds.length === 0) return true;
-    const uniqueCategoryIds = [...new Set(categoryIds)];
-    const rows = await db
-      .select({ id: categories.id })
-      .from(categories)
-      .where(
-        and(
-          inArray(categories.id, uniqueCategoryIds),
-          eq(categories.userId, userId),
-        ),
-      );
-    return rows.length === uniqueCategoryIds.length;
+    return verifyOwnership(
+      db,
+      categories,
+      categories.id,
+      categories.userId,
+      userId,
+      categoryIds,
+    );
   }
 
   async findExistingTransactionRuleIds(

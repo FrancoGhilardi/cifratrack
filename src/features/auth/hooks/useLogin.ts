@@ -1,45 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import type { LoginInput } from "@/entities/user/model/user.schema";
+import { useCredentialsSignIn } from "./useCredentialsSignIn";
 
 export function useLogin() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { signInWithCredentials, isLoading, error } = useCredentialsSignIn();
 
-  const login = async (data: LoginInput) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        const message =
-          result.code === "rate-limited"
-            ? "Demasiados intentos. Probá de nuevo en un minuto."
-            : "Credenciales incorrectas";
-        throw new Error(message);
-      }
-
-      // Redirigir al dashboard
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const login = (data: LoginInput) => signInWithCredentials(data);
 
   return { login, isLoading, error };
 }

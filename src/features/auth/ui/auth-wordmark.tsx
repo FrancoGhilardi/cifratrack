@@ -1,7 +1,5 @@
 import { cn } from "@/shared/lib/utils";
-
-const BRAND_SERIF =
-  '"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif';
+import { AUTH_BRAND_SERIF } from "./auth-fonts";
 
 interface AuthWordmarkProps {
   className?: string;
@@ -21,7 +19,7 @@ export function AuthWordmark({
         onPanel ? "text-auth-panel-ink" : "text-foreground",
         className,
       )}
-      style={{ fontFamily: BRAND_SERIF }}
+      style={{ fontFamily: AUTH_BRAND_SERIF }}
       aria-label="cifratrack"
     >
       <b className="font-semibold">cifra</b>

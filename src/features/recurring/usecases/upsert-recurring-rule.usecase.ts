@@ -30,25 +30,32 @@ export class UpsertRecurringRuleUseCase {
     paymentMethodId: string | null | undefined,
     categories: CreateRecurringRuleInput["categories"],
   ) {
+    const checks: Promise<void>[] = [];
+
     if (paymentMethodId) {
-      const ownsPaymentMethod = await this.repo.verifyPaymentMethodOwnership(
-        userId,
-        paymentMethodId,
+      checks.push(
+        this.repo
+          .verifyPaymentMethodOwnership(userId, paymentMethodId)
+          .then((owns) => {
+            if (!owns) throw new ValidationError("Forma de pago inexistente");
+          }),
       );
-      if (!ownsPaymentMethod) {
-        throw new ValidationError("Forma de pago inexistente");
-      }
     }
 
     if (categories && categories.length > 0) {
-      const ownsCategories = await this.repo.verifyCategoriesOwnership(
-        userId,
-        categories.map((c) => c.categoryId),
+      checks.push(
+        this.repo
+          .verifyCategoriesOwnership(
+            userId,
+            categories.map((c) => c.categoryId),
+          )
+          .then((owns) => {
+            if (!owns) throw new ValidationError("Categoría inexistente");
+          }),
       );
-      if (!ownsCategories) {
-        throw new ValidationError("Categoría inexistente");
-      }
     }
+
+    await Promise.all(checks);
   }
 
   async create(

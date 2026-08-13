@@ -1,4 +1,5 @@
-import { DomainError } from '@/shared/lib/errors';
+import { DomainError } from "@/shared/lib/errors";
+import { STRONG_PASSWORD_REGEX } from "@/shared/lib/validation";
 
 /**
  * Entidad User del dominio
@@ -11,7 +12,7 @@ export class User {
     public readonly name: string | null,
     public readonly hashedPassword: string,
     public readonly createdAt: Date,
-    public readonly updatedAt: Date
+    public readonly updatedAt: Date,
   ) {
     this.validate();
   }
@@ -20,16 +21,16 @@ export class User {
    * Validaciones de invariantes del dominio
    */
   private validate(): void {
-    if (!this.email || !this.email.includes('@')) {
-      throw new DomainError('Email inválido');
+    if (!this.email || !this.email.includes("@")) {
+      throw new DomainError("Email inválido");
     }
 
     if (!this.hashedPassword) {
-      throw new DomainError('Password hasheado es requerido');
+      throw new DomainError("Password hasheado es requerido");
     }
 
     if (this.hashedPassword.length < 20) {
-      throw new DomainError('Password hasheado inválido');
+      throw new DomainError("Password hasheado inválido");
     }
   }
 
@@ -50,8 +51,31 @@ export class User {
       data.name,
       data.hashedPassword,
       data.createdAt,
-      data.updatedAt
+      data.updatedAt,
     );
+  }
+
+  /**
+   * Factory desde una fila cruda de la tabla `users` (columna `password`,
+   * no `hashedPassword`). Evita repetir el mapeo campo a campo en cada
+   * método de `UserRepository` y en `RegisterUserUseCase`.
+   */
+  static fromRow(row: {
+    id: string;
+    email: string;
+    name: string | null;
+    password: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): User {
+    return User.fromPersistence({
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      hashedPassword: row.password,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    });
   }
 
   /**
@@ -102,21 +126,18 @@ export class User {
    */
   static validateNewPasswordStrength(newPassword: string): void {
     if (!newPassword || newPassword.length < 8) {
-      throw new DomainError('La contraseña debe tener al menos 8 caracteres');
+      throw new DomainError("La contraseña debe tener al menos 8 caracteres");
     }
 
     if (newPassword.length > 100) {
-      throw new DomainError('La contraseña no puede superar los 100 caracteres');
+      throw new DomainError(
+        "La contraseña no puede superar los 100 caracteres",
+      );
     }
 
-    // Requisitos básicos: mayúscula, minúscula y número
-    const hasUpper = /[A-Z]/.test(newPassword);
-    const hasLower = /[a-z]/.test(newPassword);
-    const hasNumber = /[0-9]/.test(newPassword);
-
-    if (!hasUpper || !hasLower || !hasNumber) {
+    if (!STRONG_PASSWORD_REGEX.test(newPassword)) {
       throw new DomainError(
-        'La contraseña debe contener al menos una mayúscula, una minúscula y un número'
+        "La contraseña debe contener al menos una mayúscula, una minúscula y un número",
       );
     }
   }
@@ -126,11 +147,13 @@ export class User {
    */
   validatePasswordChange(newHashedPassword: string): void {
     if (!newHashedPassword) {
-      throw new DomainError('La nueva contraseña es requerida');
+      throw new DomainError("La nueva contraseña es requerida");
     }
 
     if (newHashedPassword === this.hashedPassword) {
-      throw new DomainError('La nueva contraseña debe ser diferente a la actual');
+      throw new DomainError(
+        "La nueva contraseña debe ser diferente a la actual",
+      );
     }
   }
 }

@@ -5,9 +5,7 @@ import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { AuthWordmark } from "@/features/auth/ui/auth-wordmark";
 import { AuthTabs } from "@/features/auth/ui/auth-tabs";
 import { AuthBrandPanel } from "@/features/auth/ui/auth-brand-panel";
-
-const BRAND_SERIF =
-  '"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif';
+import { AUTH_BRAND_SERIF } from "@/features/auth/ui/auth-fonts";
 
 interface AuthShellProps {
   title: string;
@@ -35,7 +33,7 @@ export function AuthShell({
           <div className="mx-auto w-full max-w-[400px]">
             <h1
               className="mb-2 text-3xl font-medium leading-tight tracking-tight text-balance text-foreground sm:text-4xl"
-              style={{ fontFamily: BRAND_SERIF }}
+              style={{ fontFamily: AUTH_BRAND_SERIF }}
             >
               {title}
             </h1>

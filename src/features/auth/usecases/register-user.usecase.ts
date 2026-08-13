@@ -89,14 +89,7 @@ export class RegisterUserUseCase {
       })
       .returning();
 
-    return User.fromPersistence({
-      id: row.id,
-      email: row.email,
-      name: row.name,
-      hashedPassword: row.password,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    });
+    return User.fromRow(row);
   }
 
   /**
