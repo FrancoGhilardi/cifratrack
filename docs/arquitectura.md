@@ -153,6 +153,30 @@ src/
 Features existentes: `auth`, `categories`, `dashboard`, `investments`, `market-data`,
 `payment-methods`, `profile`, `recurring`, `transactions`.
 
+### 5.1) UI de autenticación (login/registro)
+
+`src/widgets/auth/auth-shell.tsx` (`AuthShell`) define el layout split-screen de `/login` y `/register`:
+form a la izquierda (topbar con wordmark + `ThemeToggle`, título, `AuthTabs`, contenido, footer) y panel de
+marca oscuro a la derecha. Mantiene la misma firma de props (`title`, `description`, `footer`, `children`)
+para que las páginas no dependan del layout interno.
+
+Componentes en `src/features/auth/ui/`:
+
+- `AuthWordmark` — wordmark serif "cifratrack.01", reutilizable dentro y fuera del panel oscuro (`onPanel` prop).
+- `AuthTabs` — control segmentado (`role="tablist"`) que navega entre `/login` y `/register` vía `Link`, marca la ruta activa según `usePathname()`.
+- `AuthBrandPanel` — panel oscuro decorativo (headline, mini-ledger de ejemplo, `BalanceCurve`, línea de seguridad). Solo visible en viewport `lg+`.
+- `BalanceCurve` — curva de saldo animada en Canvas nativo (sin librerías de charting), theme-aware (relee el token `--auth-panel-accent` en cada frame) y respeta `prefers-reduced-motion`.
+- `balance-curve.points.ts` — función pura `generateBalanceCurve(count)` que genera los puntos normalizados de la curva; es la única lógica de este conjunto cubierta por test unitario (vitest, `environment: node`).
+
+`src/shared/ui/password-input.tsx` (`PasswordInput`) — input de contraseña con toggle mostrar/ocultar,
+compartido entre login y registro; envuelve `Input` y reenvía ref/props (compatible con `{...field}` de react-hook-form).
+
+**Paleta con scope**: el acento esmeralda y el panel oscuro viven en tokens `--auth-*` (`app/globals.css`,
+`:root` + overrides `.dark` + mapeo en `@theme inline`). No alteran `--primary`/`--accent`/otros tokens
+globales — el theme global de la app sigue siendo escala de grises.
+
+**Google login**: previsto como feature futura; hoy sin UI ni código muerto. No tratar como faltante/bug.
+
 ---
 
 ## 6) Documentos relacionados

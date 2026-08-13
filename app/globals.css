@@ -36,6 +36,17 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.89 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* --- Auth (scope de login/registro) --- */
+  /* El panel de marca permanece oscuro en ambos temas (decisión de diseño). */
+  --auth-accent: oklch(0.52 0.09 168);
+  --auth-accent-press: oklch(0.46 0.09 168);
+  --auth-accent-tint: oklch(0.96 0.02 168);
+  --auth-panel: oklch(0.22 0.02 165);
+  --auth-panel-ink: oklch(0.96 0.01 160);
+  --auth-panel-soft: oklch(0.68 0.03 165);
+  --auth-panel-line: oklch(0.3 0.02 165);
+  --auth-panel-accent: oklch(0.78 0.13 165);
 }
 
 .dark {
@@ -70,6 +81,13 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.28 0 0);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* --- Auth (dark) --- */
+  --auth-accent: oklch(0.74 0.13 168);
+  --auth-accent-press: oklch(0.68 0.13 168);
+  --auth-accent-tint: oklch(0.24 0.03 168);
+  --auth-panel: oklch(0.16 0.015 165);
+  --auth-panel-line: oklch(0.26 0.02 165);
 }
 
 body {
@@ -136,6 +154,15 @@ textarea::placeholder {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-auth-accent: var(--auth-accent);
+  --color-auth-accent-press: var(--auth-accent-press);
+  --color-auth-accent-tint: var(--auth-accent-tint);
+  --color-auth-panel: var(--auth-panel);
+  --color-auth-panel-ink: var(--auth-panel-ink);
+  --color-auth-panel-soft: var(--auth-panel-soft);
+  --color-auth-panel-line: var(--auth-panel-line);
+  --color-auth-panel-accent: var(--auth-panel-accent);
 }
 
 @layer base {
