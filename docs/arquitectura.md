@@ -162,11 +162,15 @@ para que las páginas no dependan del layout interno.
 
 Componentes en `src/features/auth/ui/`:
 
-- `AuthWordmark` — wordmark serif "cifratrack.01", reutilizable dentro y fuera del panel oscuro (`onPanel` prop).
 - `AuthTabs` — control segmentado (`role="tablist"`) que navega entre `/login` y `/register` vía `Link`, marca la ruta activa según `usePathname()`.
-- `AuthBrandPanel` — panel oscuro decorativo (headline, mini-ledger de ejemplo, `BalanceCurve`, línea de seguridad). Solo visible en viewport `lg+`.
+- `AuthBrandPanel` — panel oscuro decorativo (headline, mini-ledger de ejemplo, `BalanceCurve`, línea de seguridad). Solo visible en viewport `lg+`. Usa `Wordmark`/`BRAND_SERIF` de `src/shared/ui/` (ver §5.2).
 - `BalanceCurve` — curva de saldo animada en Canvas nativo (sin librerías de charting), theme-aware (relee el token `--auth-panel-accent` en cada frame) y respeta `prefers-reduced-motion`.
 - `balance-curve.points.ts` — función pura `generateBalanceCurve(count)` que genera los puntos normalizados de la curva; es la única lógica de este conjunto cubierta por test unitario (vitest, `environment: node`).
+
+El wordmark "cifratrack.01" y el font-stack serif de marca (`AuthWordmark`/`AUTH_BRAND_SERIF`) se movieron a
+`src/shared/ui/wordmark.tsx`/`brand-fonts.ts` (`Wordmark`/`BRAND_SERIF`) para que el menú lateral del panel
+los reutilice sin duplicar código — ver §5.2. `AuthShell` y `AuthBrandPanel` los consumen con `tone="default"`
+y `tone="panel"` respectivamente.
 
 `src/shared/ui/password-input.tsx` (`PasswordInput`) — input de contraseña con toggle mostrar/ocultar,
 compartido entre login y registro; envuelve `Input` y reenvía ref/props (compatible con `{...field}` de react-hook-form).
@@ -176,6 +180,35 @@ compartido entre login y registro; envuelve `Input` y reenvía ref/props (compat
 globales — el theme global de la app sigue siendo escala de grises.
 
 **Google login**: previsto como feature futura; hoy sin UI ni código muerto. No tratar como faltante/bug.
+
+### 5.2) UI del panel (dashboard, header, menú lateral)
+
+Comparte la estética del acceso (serif de marca, acento esmeralda, etiquetas mono, cifras tabulares) a
+través de componentes movidos/creados en `src/shared/ui/`:
+
+- `Wordmark` (`wordmark.tsx`) — wordmark serif "cifratrack.01" con tono `default` / `panel` / `nav`; reemplaza
+  al `AuthWordmark` que vivía en `features/auth/ui/` (ver §5.1).
+- `BRAND_SERIF` (`brand-fonts.ts`) — font-stack serif compartido (antes `AUTH_BRAND_SERIF`).
+- `SegmentedToggle` (`segmented-toggle.tsx`) — control segmentado genérico (`role="radiogroup"`), usado por
+  el toggle Lista/Torta de categorías.
+
+Widgets nuevos en `src/widgets/dashboard/` (reemplazan a `SummaryCards`, **eliminado**):
+
+- `BalanceHero` — hero de balance del mes con `BalanceCurveChart` embebida (curva Canvas de saldo acumulado,
+  decorativa/`aria-hidden`, relee tokens de color en cada frame para seguir el tema).
+- `FlowTiles` — dos tiles (ingresos/egresos) con su proporción sobre el movimiento total del mes.
+- `CategoryLedger` — filas de libro mayor por categoría (punto de color, importe mono, hairline de proporción).
+- `category-colors.ts` — rampa de 8 colores de categoría (`getCategoryColor(index)`), como referencias a
+  tokens CSS (`var(--app-cat-N)`), consumida tanto por `CategoryLedger` como por `CategoryPieChart`.
+
+**Paleta con scope de app**: la superficie del menú lateral (clara en tema claro, tinta oscura en tema oscuro
+— a diferencia del panel de auth, que es oscuro en ambos temas), los semánticos de signo (`--app-pos`/`--app-neg`)
+y la rampa de categorías viven en tokens `--app-*` (`app/globals.css`, `:root` + overrides `.dark` + mapeo en
+`@theme inline`), separados de `--auth-*` y de los tokens globales (`--primary`/`--accent`/etc.), que no se tocan.
+
+**Lógica pura del feature**: `src/features/dashboard/lib/` es la ubicación de la lógica de negocio pura del
+feature dashboard, testeable sin DB/React (vitest `environment: node`) — hoy contiene `balance-series.ts`
+(`buildBalanceSeries`, ver `docs/reglas-de-negocio.md` §3.7).
 
 ---
 

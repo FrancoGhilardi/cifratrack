@@ -1,7 +1,7 @@
 import { ShieldCheck } from "lucide-react";
-import { AuthWordmark } from "./auth-wordmark";
+import { Wordmark } from "@/shared/ui/wordmark";
 import { BalanceCurve } from "./balance-curve";
-import { AUTH_BRAND_SERIF } from "./auth-fonts";
+import { BRAND_SERIF } from "@/shared/ui/brand-fonts";
 
 const LEDGER_ROWS = [
   {
@@ -31,13 +31,13 @@ export function AuthBrandPanel() {
       <BalanceCurve />
 
       <div className="relative z-10">
-        <AuthWordmark onPanel />
+        <Wordmark tone="panel" />
       </div>
 
       <div className="relative z-10">
         <h2
           className="mb-4 max-w-[15ch] text-4xl font-medium leading-tight tracking-tight text-balance text-auth-panel-ink"
-          style={{ fontFamily: AUTH_BRAND_SERIF }}
+          style={{ fontFamily: BRAND_SERIF }}
         >
           Cada peso, anotado. Cada mes, entendido.
         </h2>

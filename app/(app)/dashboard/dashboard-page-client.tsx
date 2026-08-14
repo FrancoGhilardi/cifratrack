@@ -1,10 +1,12 @@
 "use client";
 
 import { useDashboardSummary } from "@/features/dashboard/hooks/useDashboardSummary";
-import { SummaryCards } from "@/widgets/dashboard/summary-cards";
+import { useBalanceSeries } from "@/features/dashboard/hooks/useBalanceSeries";
+import { BalanceHero } from "@/widgets/dashboard/balance-hero";
+import { FlowTiles } from "@/widgets/dashboard/flow-tiles";
 import { ExpensesChart } from "@/widgets/dashboard/expenses-chart";
 import {
-  SummaryCardsSkeleton,
+  DashboardHeroSkeleton,
   ExpensesChartSkeleton,
 } from "@/widgets/dashboard/dashboard-skeleton";
 import { useMonthNavigation } from "@/shared/lib/hooks/useMonthNavigation";
@@ -16,7 +18,6 @@ import { PageHeader } from "@/shared/ui/page-header";
  * Página del Dashboard
  */
 export function DashboardPageClient() {
-  // Hook de navegación de meses
   const {
     currentMonth,
     goToPreviousMonth,
@@ -26,8 +27,9 @@ export function DashboardPageClient() {
     formatMonth,
   } = useMonthNavigation();
 
-  // Query del resumen
   const { data: summary, isLoading, error } = useDashboardSummary(currentMonth);
+  const { data: series, isLoading: isSeriesLoading } =
+    useBalanceSeries(currentMonth);
 
   // Summary por defecto si no hay datos o hay error
   const displaySummary = summary || {
@@ -47,10 +49,10 @@ export function DashboardPageClient() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
-        title="Panel Principal"
-        description="Resumen mensual de ingresos, egresos y balance para el periodo seleccionado."
+        title="Panel principal"
+        description="Ingresos, egresos y balance del período seleccionado."
         action={
           <MonthSelector
             currentMonth={currentMonth}
@@ -63,7 +65,6 @@ export function DashboardPageClient() {
         }
       />
 
-      {/* Mensaje de error */}
       {error && !isLoading && (
         <ErrorState
           message={error.message}
@@ -72,15 +73,27 @@ export function DashboardPageClient() {
         />
       )}
 
-      {/* Dashboard Content - Siempre visible */}
       {isLoading ? (
         <>
-          <SummaryCardsSkeleton />
+          <DashboardHeroSkeleton />
           <ExpensesChartSkeleton />
         </>
       ) : (
         <>
-          <SummaryCards summary={displaySummary} />
+          <section className="grid gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-7">
+              <BalanceHero
+                summary={displaySummary}
+                series={series}
+                isSeriesLoading={isSeriesLoading}
+                monthLabel={formatMonth()}
+              />
+            </div>
+            <div className="lg:col-span-5">
+              <FlowTiles summary={displaySummary} />
+            </div>
+          </section>
+
           <ExpensesChart summary={displaySummary} />
         </>
       )}

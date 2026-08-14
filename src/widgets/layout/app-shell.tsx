@@ -68,7 +68,7 @@ export function AppShell({ children, userName, userEmail }: AppShellProps) {
               onOpenNavigation={openMobileNavigation}
               showNavigationTrigger
             />
-            <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+            <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-7">
               <div className="mx-auto w-full max-w-7xl">{children}</div>
             </main>
           </div>

@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Button } from "./button";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { BRAND_SERIF } from "./brand-fonts";
 
 export interface PageHeaderProps {
   /**
@@ -72,11 +73,14 @@ export function PageHeader({
     <div className="space-y-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          <h1
+            className="text-[26px] font-medium leading-tight tracking-tight text-balance sm:text-[29px]"
+            style={{ fontFamily: BRAND_SERIF }}
+          >
             {title}
           </h1>
           {description && (
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+            <p className="mt-1.5 max-w-[52ch] text-[13.5px] leading-relaxed text-muted-foreground">
               {description}
             </p>
           )}

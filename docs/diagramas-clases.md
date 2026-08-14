@@ -244,6 +244,12 @@ classDiagram
         +updatePassword(id, hash) void
     }
 
+    class IDashboardRepository {
+        <<interface>>
+        +getSummary(userId, month) DashboardSummaryDTO
+        +getDailyFlowByMonth(userId, month) DailyFlowRow[]
+    }
+
     class TransactionRepository {
         Drizzle impl
     }
@@ -262,6 +268,10 @@ classDiagram
     class UserRepository {
         Drizzle impl
     }
+    class DashboardRepository {
+        Drizzle impl
+        "getDailyFlowByMonth agrupa por occurred_on, filtra por (user_id, occurred_month)"
+    }
 
     ITransactionRepository <|.. TransactionRepository
     IRecurringRuleRepository <|.. RecurringRuleRepository
@@ -269,6 +279,7 @@ classDiagram
     ICategoryRepository <|.. CategoryRepository
     IPaymentMethodRepository <|.. PaymentMethodRepository
     IUserRepository <|.. UserRepository
+    IDashboardRepository <|.. DashboardRepository
 ```
 
 ---
@@ -352,6 +363,11 @@ classDiagram
     class UpdateProfileUseCase
 
     class GetDashboardSummaryUseCase
+    class GetBalanceSeriesUseCase {
+        -IDashboardRepository dashboardRepository
+        +execute(userId, month) BalanceSeriesDTO
+        "delega el relleno/acumulado en buildBalanceSeries (función pura)"
+    }
     class GetLiveYieldsUseCase
 
     DeleteUseCase <|-- DeleteTransactionUseCase : podría extender (hoy clase propia por reglas futuras)
@@ -361,6 +377,7 @@ classDiagram
     UpsertTransactionUseCase --> ITransactionRepository
     GenerateMonthlyRecurringTransactionsUseCase --> IRecurringRuleRepository
     AuthenticateUserUseCase --> IUserRepository
+    GetBalanceSeriesUseCase --> IDashboardRepository
 ```
 
 Nota: el diagrama de UseCases muestra la intención arquitectónica (`ListUseCase`/`GetByIdUseCase`/
@@ -368,6 +385,36 @@ Nota: el diagrama de UseCases muestra la intención arquitectónica (`ListUseCas
 un UseCase concreto extiende la base genérica, verificar el archivo — los que tienen reglas de
 negocio propias (`Upsert*`, `Delete*` de categorías/formas de pago, `GenerateMonthly*`) están
 escritos como clase independiente, sin herencia.
+
+### 3.1) DTOs de la serie de saldo (`src/entities/dashboard/model/balance-series.dto.ts`)
+
+```mermaid
+classDiagram
+    class DailyFlowRow {
+        +string day "YYYY-MM-DD"
+        +number income "centavos"
+        +number expense "centavos"
+        "fila cruda del repositorio: un día con movimientos"
+    }
+    class BalanceSeriesPointDTO {
+        +string day "YYYY-MM-DD"
+        +number net "centavos"
+        +number cumulative "centavos"
+    }
+    class BalanceSeriesDTO {
+        +string month "YYYY-MM"
+        +BalanceSeriesPointDTO[] points
+        +number min "centavos"
+        +number max "centavos"
+        +number closing "centavos"
+    }
+
+    BalanceSeriesDTO "1" *-- "many" BalanceSeriesPointDTO : points
+```
+
+`buildBalanceSeries(month, rows: DailyFlowRow[])` (`src/features/dashboard/lib/balance-series.ts`) es la
+función pura que transforma `DailyFlowRow[]` (solo días con movimientos) en `BalanceSeriesDTO` (un punto
+por cada día del mes, acumulado). Ver `docs/reglas-de-negocio.md` §3.7 para la regla completa.
 
 ---
 

@@ -2,10 +2,10 @@
 
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
-import { AuthWordmark } from "@/features/auth/ui/auth-wordmark";
+import { Wordmark } from "@/shared/ui/wordmark";
 import { AuthTabs } from "@/features/auth/ui/auth-tabs";
 import { AuthBrandPanel } from "@/features/auth/ui/auth-brand-panel";
-import { AUTH_BRAND_SERIF } from "@/features/auth/ui/auth-fonts";
+import { BRAND_SERIF } from "@/shared/ui/brand-fonts";
 
 interface AuthShellProps {
   title: string;
@@ -25,7 +25,7 @@ export function AuthShell({
       {/* Form side */}
       <section className="relative flex flex-col p-6 sm:p-10 lg:p-14">
         <div className="flex items-center justify-between">
-          <AuthWordmark />
+          <Wordmark />
           <ThemeToggle />
         </div>
 
@@ -33,7 +33,7 @@ export function AuthShell({
           <div className="mx-auto w-full max-w-[400px]">
             <h1
               className="mb-2 text-3xl font-medium leading-tight tracking-tight text-balance text-foreground sm:text-4xl"
-              style={{ fontFamily: AUTH_BRAND_SERIF }}
+              style={{ fontFamily: BRAND_SERIF }}
             >
               {title}
             </h1>

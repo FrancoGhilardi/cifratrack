@@ -1,17 +1,17 @@
 import { PageHeader } from "@/shared/ui/page-header";
 import {
-  SummaryCardsSkeleton,
+  DashboardHeroSkeleton,
   ExpensesChartSkeleton,
 } from "@/widgets/dashboard/dashboard-skeleton";
 
 export default function DashboardLoading() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
-        title="Panel Principal"
-        description="Resumen mensual de ingresos, egresos y balance para el periodo seleccionado."
+        title="Panel principal"
+        description="Ingresos, egresos y balance del período seleccionado."
       />
-      <SummaryCardsSkeleton />
+      <DashboardHeroSkeleton />
       <ExpensesChartSkeleton />
     </div>
   );

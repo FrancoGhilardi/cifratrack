@@ -230,7 +230,50 @@ El mismo patrón (guarda `isDefault` + guarda `hasTransactions`) aplica a
 
 ---
 
-## 7) Diagrama de estados — `Transaction.status`
+## 7) Carga del panel principal (hero + serie de saldo + categorías)
+
+```mermaid
+sequenceDiagram
+    participant B as Browser (DashboardPageClient)
+    participant SQ as useDashboardSummary
+    participant SR as GET /api/dashboard/summary
+    participant GenUC as GenerateMonthlyRecurringTransactionsUseCase
+    participant SumUC as GetDashboardSummaryUseCase
+    participant BQ as useBalanceSeries
+    participant BR as GET /api/dashboard/balance-series
+    participant BalUC as GetBalanceSeriesUseCase
+    participant Repo as DashboardRepository
+
+    par En paralelo (TanStack Query)
+        B->>SQ: useDashboardSummary(month)
+        SQ->>SR: GET ?month=YYYY-MM
+        SR->>GenUC: execute({ userId, month })\n(genera recurrentes del mes, idempotente)
+        GenUC-->>SR: void
+        SR->>SumUC: execute(userId, month)
+        SumUC-->>SR: DashboardSummaryDTO
+        SR-->>SQ: 200 { ok: true, data }
+        SQ-->>B: summary
+    and
+        B->>BQ: useBalanceSeries(month)
+        BQ->>BR: GET ?month=YYYY-MM
+        BR->>BalUC: execute(userId, month)
+        BalUC->>Repo: getDailyFlowByMonth(userId, month)
+        Repo-->>BalUC: DailyFlowRow[] (solo días con movimientos)
+        BalUC->>BalUC: buildBalanceSeries(month, rows)\n(rellena días, acumula, min/max/closing)
+        BalUC-->>BR: BalanceSeriesDTO
+        BR-->>BQ: 200 { ok: true, data }
+        BQ-->>B: series
+    end
+    B->>B: BalanceHero(summary, series) + FlowTiles(summary) + ExpensesChart(summary)
+```
+
+`GET /api/dashboard/balance-series` **no** dispara `GenerateMonthlyRecurringTransactionsUseCase`: ya
+lo hace `/summary` en paralelo, así que duplicarlo sería trabajo redundante. Ver
+`docs/reglas-de-negocio.md` §3.7.
+
+---
+
+## 8) Diagrama de estados — `Transaction.status`
 
 ```mermaid
 stateDiagram-v2
@@ -257,7 +300,7 @@ No hay transición `paid → pending` en el dominio actual (no existe método `m
 
 ---
 
-## 8) Diagrama de estados — versionado de `RecurringRule`
+## 9) Diagrama de estados — versionado de `RecurringRule`
 
 ```mermaid
 stateDiagram-v2
