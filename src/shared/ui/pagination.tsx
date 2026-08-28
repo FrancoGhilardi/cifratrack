@@ -66,11 +66,11 @@ export function Pagination({
 
       {/* Page info */}
       <div className="flex items-center gap-2">
-        <p className="text-sm text-muted-foreground whitespace-nowrap">
+        <p className="font-mono text-sm tabular-nums text-muted-foreground whitespace-nowrap">
           {startItem}-{endItem} de {totalItems}
         </p>
         <span className="text-sm text-muted-foreground">|</span>
-        <p className="text-sm text-muted-foreground whitespace-nowrap">
+        <p className="font-mono text-sm tabular-nums text-muted-foreground whitespace-nowrap">
           Página {currentPage} de {totalPages}
         </p>
       </div>

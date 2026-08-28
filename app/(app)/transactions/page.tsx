@@ -8,8 +8,11 @@ import { TransactionsTable } from "@/features/transactions/ui/transactions-table
 import { TransactionFiltersBar } from "@/features/transactions/ui/transaction-filters-bar";
 import { TransactionDialog } from "@/features/transactions/ui/transaction-dialog";
 import { TransactionSummaryStrip } from "@/features/transactions/ui/transaction-summary-strip";
+import {
+  TransactionSummaryStripSkeleton,
+  TransactionsLedgerSkeleton,
+} from "@/features/transactions/ui/transactions-skeleton";
 import { useTransactionMutations } from "@/features/transactions/hooks/useTransactionMutations";
-import { Skeleton } from "@/shared/ui/skeleton";
 import { TableLoadingOverlay } from "@/shared/ui/table-loading-overlay";
 import { Pagination } from "@/shared/ui/pagination";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -109,7 +112,7 @@ export default function TransactionsPage() {
 
       {/* Tira de resumen */}
       {summaryQuery.isLoading ? (
-        <Skeleton className="h-32 w-full" />
+        <TransactionSummaryStripSkeleton />
       ) : (
         <TransactionSummaryStrip
           summary={summaryQuery.summary}
@@ -132,11 +135,7 @@ export default function TransactionsPage() {
 
       {/* Tabla */}
       {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
+        <TransactionsLedgerSkeleton />
       ) : (
         <>
           <div className="relative">
