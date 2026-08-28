@@ -1,0 +1,36 @@
+@startuml flujo-rendimiento-inversion
+!theme plain
+skinparam backgroundColor white
+skinparam wrapWidth 250
+
+participant "Browser" as B
+participant "POST /api/investments" as R
+participant "UpsertInvestmentUseCase" as UC
+participant "Investment (entidad)" as Ent
+participant "InvestmentYieldCalculator" as Calc
+participant "InvestmentRepository" as Repo
+
+B -> R : { platform, title, principal, tna, days, isCompound }
+R -> UC : execute(userId, data)
+UC -> Ent : Investment.create(data)
+Ent -> Ent : validate()\n(principal>0, 0<=tna<=999.99, days>0 si !isCompound, startedOn no futura)
+alt inválido
+  Ent --> UC : throw ValidationError
+end
+UC -> Repo : create(investment)
+Repo --> UC : Investment persistida
+UC --> R : Investment
+note over R, Calc
+  El cálculo de rendimiento se hace on-demand
+  (GET, no se persiste el yield)
+end note
+R -> Calc : calculate(principal, tna, days, isCompound)
+alt isCompound
+  Calc -> Calc : interés compuesto diario:\ntotal = principal * (1 + tna/100/365)^days
+else simple
+  Calc -> Calc : yield = principal * (tna/100) * (days/365)\ntotal = principal + yield
+end
+Calc --> R : { yield, total, tna, days }
+R --> B : 200 { ok: true, data: { ...InvestmentDTO, yield, total } }
+
+@enduml

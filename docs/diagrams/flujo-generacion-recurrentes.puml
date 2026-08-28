@@ -1,0 +1,38 @@
+@startuml flujo-generacion-recurrentes
+!theme plain
+skinparam backgroundColor white
+skinparam wrapWidth 250
+
+participant "POST /api/recurring/generate\n(requiere sesión)" as Caller
+participant "GenerateMonthlyRecurringTransactionsUseCase" as UC
+participant "RecurringRuleRepository" as Repo
+participant "PostgreSQL" as DB
+
+Caller -> UC : execute({ userId, month })
+UC -> Repo : list(userId)
+Repo --> UC : RecurringRule[]
+UC -> UC : filtra reglas activas en `month`\n(activeFromMonth <= month <= activeToMonth | null)
+alt sin reglas activas
+  UC --> Caller : return (no-op)
+end
+par
+  UC -> Repo : findExistingTransactionRuleIds(userId, ruleIds, month)
+else
+  UC -> Repo : findCategoriesByRuleIds(ruleIds)
+end
+Repo --> UC : existingRuleIds, categoriesByRule
+UC -> UC : descarta reglas ya generadas para `month`\n(garantiza idempotencia)
+alt todas ya generadas
+  UC --> Caller : return (no-op)
+end
+UC -> UC : valida totalSplits == rule.amount (si totalSplits > 0)
+alt split no coincide
+  UC --> Caller : throw AppError("VALIDATION_ERROR")
+end
+UC -> Repo : bulkCreateTransactionsFromRules(pendingRules, month)
+Repo -> DB : INSERT transactions (source_recurring_rule_id = rule.id) + transaction_categories
+DB --> Repo : ok
+Repo --> UC : void
+UC --> Caller : void
+
+@enduml

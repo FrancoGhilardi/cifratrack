@@ -1,0 +1,53 @@
+@startuml clases-errores
+!theme plain
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 250
+
+class Error
+
+abstract class AppError {
+  +message : string
+  +code : string
+  +statusCode : number
+  +details : unknown?
+}
+class ValidationError {
+  code = "VALIDATION_ERROR"
+  statusCode = 400
+}
+class DomainError {
+  code = "DOMAIN_ERROR"
+  statusCode = 400
+}
+class AuthenticationError {
+  code = "AUTHENTICATION_ERROR"
+  statusCode = 401
+}
+class AuthorizationError {
+  code = "AUTHORIZATION_ERROR"
+  statusCode = 403
+}
+class NotFoundError {
+  code = "NOT_FOUND"
+  statusCode = 404
+}
+class ConflictError {
+  code = "CONFLICT"
+  statusCode = 409
+}
+class RateLimitError {
+  code = "RATE_LIMITED"
+  statusCode = 429
+}
+
+Error <|-- AppError
+AppError <|-- ValidationError
+AppError <|-- DomainError
+AppError <|-- AuthenticationError
+AppError <|-- AuthorizationError
+AppError <|-- NotFoundError
+AppError <|-- ConflictError
+AppError <|-- RateLimitError
+
+@enduml

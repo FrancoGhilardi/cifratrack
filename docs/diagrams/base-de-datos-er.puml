@@ -1,0 +1,161 @@
+@startuml base-de-datos-er
+!theme plain
+skinparam backgroundColor white
+skinparam linetype ortho
+hide circle
+hide empty members
+
+entity "users" as users {
+  * id : uuid <<PK>>
+  --
+  username : varchar
+  email : varchar <<UK>> "255 chars"
+  name : varchar "120 chars"
+  password : varchar "255 chars, bcrypt hash"
+  currency : char "3 chars, default ARS"
+  timezone : varchar "64 chars, default America/Argentina/Mendoza"
+  created_at : timestamp
+  updated_at : timestamp
+  last_login_at : timestamp
+}
+
+entity "categories" as categories {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  kind : entry_kind "income o expense"
+  name : varchar "60 chars"
+  is_active : boolean
+  is_default : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+entity "payment_methods" as payment_methods {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  name : varchar "60 chars"
+  is_active : boolean
+  is_default : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+entity "recurring_rules" as recurring_rules {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  title : varchar "120 chars"
+  description : text
+  amount : integer "centavos, CHECK mayor a 0"
+  kind : entry_kind
+  day_of_month : smallint "CHECK entre 1 y 31"
+  status : transaction_status "pending o paid, default pending"
+  payment_method_id : uuid <<FK>> "nullable"
+  active_from_month : char "7 chars, formato YYYY-MM"
+  active_to_month : char "7 chars, formato YYYY-MM, nullable"
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+entity "recurring_rule_categories" as recurring_rule_categories {
+  * id : uuid <<PK>>
+  --
+  recurring_rule_id : uuid <<FK>>
+  category_id : uuid <<FK>>
+  allocated_amount : integer "centavos, CHECK mayor a 0"
+  created_at : timestamp
+}
+
+entity "transactions" as transactions {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  kind : entry_kind
+  title : varchar "120 chars"
+  description : text
+  amount : integer "centavos, CHECK mayor a 0"
+  payment_method_id : uuid <<FK>> "nullable"
+  is_fixed : boolean
+  status : transaction_status "pending o paid, default paid"
+  occurred_on : date
+  due_on : date "requerido si status=pending, CHECK"
+  paid_on : date
+  occurred_month : char "7 chars YYYY-MM, derivado de occurred_on"
+  source_recurring_rule_id : uuid <<FK>> "nullable"
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+entity "transaction_categories" as transaction_categories {
+  * transaction_id : uuid <<PK, FK>>
+  * category_id : uuid <<PK, FK>>
+  --
+  allocated_amount : integer "centavos, CHECK mayor a 0"
+}
+
+entity "investments" as investments {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  platform : varchar "80 chars"
+  title : varchar "120 chars"
+  yield_provider_id : varchar "50 chars, nullable, ej mercadopago"
+  principal : numeric "14,2 decimal nativo, CHECK mayor a 0"
+  tna : numeric "6,2 porcentaje, CHECK entre 0 y 999.99"
+  days : integer "nullable, CHECK entre 1 y 36500"
+  is_compound : boolean
+  started_on : date
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+entity "accounts" as accounts {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  provider : text
+  provider_account_id : text
+  ..
+  sin uso (NextAuth adapter)
+}
+
+entity "sessions" as sessions {
+  * id : uuid <<PK>>
+  --
+  session_token : text <<UK>>
+  user_id : uuid <<FK>>
+  expires : timestamp
+  ..
+  sin uso (NextAuth adapter)
+}
+
+entity "verification_tokens" as verification_tokens {
+  * identifier : text <<PK>>
+  * token : text <<PK>> "tambien UK por separado"
+  --
+  expires : timestamp
+}
+
+users ||--o{ categories : owns
+users ||--o{ payment_methods : owns
+users ||--o{ transactions : owns
+users ||--o{ recurring_rules : owns
+users ||--o{ investments : owns
+users ||--o{ accounts : "unused"
+users ||--o{ sessions : "unused"
+
+payment_methods |o..o{ transactions : "used in\n(nullable, SET NULL)"
+payment_methods |o..o{ recurring_rules : "used in\n(nullable, SET NULL)"
+
+transactions ||--o{ transaction_categories : split
+categories ||--o{ transaction_categories : "allocated in\n(RESTRICT)"
+
+recurring_rules ||--o{ recurring_rule_categories : split
+categories ||--o{ recurring_rule_categories : "allocated in\n(RESTRICT)"
+
+recurring_rules |o..o{ transactions : "generates\n(source_recurring_rule_id, SET NULL)"
+
+@enduml

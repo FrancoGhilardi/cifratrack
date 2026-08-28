@@ -1,0 +1,106 @@
+@startuml clases-repositorios
+!theme plain
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 250
+
+interface ITransactionRepository {
+  +list(params) : PaginatedTransactions
+  +findById(id, userId) : TransactionWithNames?
+  +create(userId, data) : TransactionWithNames
+  +update(id, userId, data) : TransactionWithNames
+  +delete(id, userId) : void
+  +getByMonth(userId, month) : Transaction[]
+  +getExpenseStatusSummary(userId, month) : TransactionSummaryDTO
+  +getMonthlySummary(userId, month) : MonthlySummary
+}
+
+interface IRecurringRuleRepository {
+  +list(userId) : RecurringRule[]
+  +findById(id, userId) : RecurringRule?
+  +create(userId, data) : RecurringRule
+  +update(id, userId, data) : RecurringRule
+  +delete(id, userId) : void
+  +findCategories(ruleId) : Split[]
+  +findCategoriesByRuleIds(ruleIds) : Record
+  +setCategories(ruleId, categories) : void
+  +verifyPaymentMethodOwnership(userId, id) : boolean
+  +verifyCategoriesOwnership(userId, ids) : boolean
+  +findExistingTransactionRuleIds(userId, ruleIds, month) : Set
+  +bulkCreateTransactionsFromRules(items, month) : void
+}
+
+interface IInvestmentRepository {
+  +list(userId, params) : PaginatedInvestments
+  +findById(id, userId) : Investment?
+  +create(investment) : Investment
+  +update(id, userId, data) : Investment
+  +delete(id, userId) : void
+  +count(userId) : number
+  +getTotalInvested(userId) : number
+}
+
+interface ICategoryRepository {
+  +list(userId, filters?) : Category[]
+  +findById(id, userId) : Category?
+  +create(userId, data) : Category
+  +update(id, userId, data) : Category
+  +delete(id, userId) : void
+  +hasTransactions(id, userId) : boolean
+}
+
+interface IPaymentMethodRepository {
+  +list(userId, filters?) : PaymentMethod[]
+  +findById(id, userId) : PaymentMethod?
+  +create(userId, data) : PaymentMethod
+  +update(id, userId, data) : PaymentMethod
+  +delete(id, userId) : void
+  +hasTransactions(id, userId) : boolean
+}
+
+interface IUserRepository {
+  +findByEmail(email) : User?
+  +findById(id) : User?
+  +create(data) : User
+  +updatePassword(id, hash) : void
+}
+
+interface IDashboardRepository {
+  +getSummary(userId, month) : DashboardSummaryDTO
+  +getDailyFlowByMonth(userId, month) : DailyFlowRow[]
+}
+
+class TransactionRepository {
+  Drizzle impl
+}
+class RecurringRuleRepository {
+  Drizzle impl
+}
+class InvestmentRepository {
+  Drizzle impl
+}
+class CategoryRepository {
+  Drizzle impl
+}
+class PaymentMethodRepository {
+  Drizzle impl
+}
+class UserRepository {
+  Drizzle impl
+}
+class DashboardRepository {
+  Drizzle impl
+  ..
+  getDailyFlowByMonth agrupa por occurred_on,
+  filtra por (user_id, occurred_month)
+}
+
+ITransactionRepository <|.. TransactionRepository
+IRecurringRuleRepository <|.. RecurringRuleRepository
+IInvestmentRepository <|.. InvestmentRepository
+ICategoryRepository <|.. CategoryRepository
+IPaymentMethodRepository <|.. PaymentMethodRepository
+IUserRepository <|.. UserRepository
+IDashboardRepository <|.. DashboardRepository
+
+@enduml

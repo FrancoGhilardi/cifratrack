@@ -1,0 +1,42 @@
+@startuml arquitectura-request-lifecycle
+!theme plain
+skinparam backgroundColor white
+skinparam sequenceMessageAlign center
+skinparam wrapWidth 250
+
+participant "Browser" as B
+participant "proxy.ts\n(middleware)" as MW
+participant "Route Handler" as R
+participant "withApiHandler" as H
+participant "UseCase" as U
+participant "Repository\n(Drizzle)" as Repo
+participant "PostgreSQL" as DB
+
+B -> MW : GET/POST /api/transactions
+alt Ruta pública (/login, /register, /api/auth)
+  MW --> R : next() sin chequeo
+else Ruta protegida
+  MW -> MW : auth() vía Auth.js (cookie JWT)
+  alt Sin sesión
+    MW --> B : 302 redirect a /login?callbackUrl=...
+  else Con sesión
+    MW --> R : next()
+  end
+end
+R -> H : withApiHandler({ query, bodySchema, handler })
+H -> H : auth() -> resuelve userId de la sesión\n(nunca del cliente)
+H -> H : parsea query / valida body con Zod
+alt Zod inválido
+  H --> B : 400 ValidationError
+end
+H -> U : usecase.execute(userId, params)
+U -> U : valida reglas de negocio\n(throws DomainError/ValidationError)
+U -> Repo : repo.create/update/list(...)
+Repo -> DB : query Drizzle (parametrizada)
+DB --> Repo : rows
+Repo --> U : Entidad de dominio
+U --> H : Entidad de dominio
+H -> R : handler mapea a DTO
+R --> B : 200 { ok: true, data } (ok/err de response.ts)
+
+@enduml

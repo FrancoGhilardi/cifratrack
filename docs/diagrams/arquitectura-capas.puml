@@ -1,0 +1,35 @@
+@startuml arquitectura-capas
+!theme plain
+skinparam backgroundColor white
+skinparam componentStyle rectangle
+skinparam defaultTextAlignment center
+skinparam wrapWidth 200
+
+left to right direction
+
+package "Navegador" as Client {
+  component "React 19 (Client Components)\nTanStack Query + React Hook Form" as UI
+}
+
+package "Next.js 16 (Vercel / Node runtime)" as Server {
+  component "proxy.ts (middleware)\nAuth.js authorized() gate" as MW
+  component "Route Handlers\napp/api/**/route.ts" as API
+  component "UseCases\nsrc/features/*/usecases" as UC
+  component "Repositories\nsrc/features/*/repo.impl.ts" as REPO
+}
+
+package "Datos" as Data {
+  database "PostgreSQL\n(Supabase)" as PG
+  database "Upstash Redis\n(rate limiting, opcional)" as REDIS
+  component "APIs externas de mercado\n(market-data, server-side)" as EXT
+}
+
+UI --> MW : fetch JSON
+MW --> API
+API --> UC
+UC --> REPO
+REPO --> PG : Drizzle ORM
+API ..> REDIS : checkLoginRateLimit
+UC ..> EXT : market-data usecases
+
+@enduml

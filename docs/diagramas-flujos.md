@@ -8,44 +8,9 @@
 
 ## 1) Login (Credentials + rate limit + mitigación de timing)
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant NA as Auth.js (authorize)
-    participant RL as rate-limit.ts (Upstash)
-    participant UC as AuthenticateUserUseCase
-    participant Repo as UserRepository
-    participant DB as PostgreSQL
+![Diagrama de secuencia de login](https://www.plantuml.com/plantuml/svg/hLFRQXin57pNLvoQFkn2x5uW50mDyGsIueJKpX8AWNAYFVOgqKgAZZQEU_cOVa2-8ZzMjDurSTD07_guEgCvCwFPGmxeGrLgMEZgsdQrNIeZNeM2IWAdKHd1Dyeuz5Z25SgRfRULoKTMMm-hGWLwCbzvT1Sg3mMyttyhX4CVb5GEJO3EqDiLa-y0CWntHuCg5BrhlZG9Lg6mNdsZjCQT3dQ17WDrjIfLw8K8pnm7v683dasViv89IcAWZCbdJ2Dagh7PQ1SRvpDobbMmVhsX8sTtGMUMmzBJ_FEq1eo7GWoXUm2d0-W3gwKvDab7UihZLjJSsOFlG2KglGSEcLVMv_0p5QU3xQqwxRaigCIUGy-KFBdV8cTJw8CiIDvC8to6WQOnWqIvLA0EC5S6cYX0MhDGoyfZRWN4gzrsL_0LGR90fRlMaKa5QIQOFZwKAX3GlQHSvHQIVV1q-wPK1fprS7oM_i6pGCqa87x4io7qOIk9ydcTmyHxwmMPlB6GZQ0FT4-o2fJyDPHiL5ibP-CAPVBXUX9HIOrDHJtf7i0uxfjFffFHEVHwFRWucimc6qBu2A_VrO5aNA5N5em5kbSSejpni9RRR32Lrj5NpTeAR0utKkgJE_9giJvhT2Qju3qOPoSdNxuU3UP7wQL972uHI4EfkBGWBGSBLzAlNO3RYk948blmX3fj5cnVfV1s1K-wgkmclQGpggiW5MfYKERkyPTMENAdURdMv0iElLqzCnXh_ey6AoRVAv0Bojjfb1xJRRz16Mcz9nbYrVw3BO3Qs9R_HVR6H-nNsx6cYV49eVc9dgr8uGSmCIjhuDF5EIGV87zyG4w5E2IJLwKMlm40)
 
-    B->>NA: signIn("credentials", { email, password })
-    NA->>NA: loginSchema.parse(credentials)
-    NA->>RL: checkLoginRateLimit(ip)
-    alt Sin Upstash configurado
-        RL-->>NA: true (fail-open)
-    else Límite excedido (5 req/min por IP)
-        RL-->>NA: false
-        NA-->>B: RateLimitedSignInError
-    end
-    NA->>UC: execute({ email, password })
-    UC->>Repo: findByEmail(email)
-    Repo->>DB: SELECT ... WHERE email = $1
-    alt Usuario no existe
-        DB-->>Repo: null
-        Repo-->>UC: null
-        UC->>UC: verifyPassword(password, DUMMY_HASH)\n(paga el mismo costo bcrypt que el caso real)
-        UC-->>NA: throw AuthenticationError("Credenciales inválidas")
-    else Usuario existe
-        DB-->>Repo: row
-        Repo-->>UC: User
-        UC->>UC: verifyPassword(password, user.hashedPassword)
-        alt Password incorrecto
-            UC-->>NA: throw AuthenticationError("Credenciales inválidas")
-        else Password correcto
-            UC-->>NA: User
-        end
-    end
-    NA-->>B: null (credenciales inválidas) | session JWT (7 días)
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/flujo-login.puml`](diagrams/flujo-login.puml).*
 
 La comparación bcrypt contra un hash dummy cuando el email no existe evita que un atacante
 distinga "email inexistente" de "password incorrecto" por tiempo de respuesta — ver
@@ -55,105 +20,25 @@ distinga "email inexistente" de "password incorrecto" por tiempo de respuesta �
 
 ## 2) Registro de usuario (con seeds)
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant R as POST /api/auth/register
-    participant UC as RegisterUserUseCase
-    participant DB as PostgreSQL (transacción)
+![Diagrama de secuencia de registro de usuario](https://www.plantuml.com/plantuml/svg/XL9DQzj04BtlhtZDoGQRf85U0cqIosfgYEDKbYazXOaqjhPPxOhTKPqFygjwwpL_hAoYG1m2FImCyzwycJUp9q78IriRh4txouqzRtGGxzG7gRXcD8QqLU56suOyrRYcucRZNMlBn1ddiQsqy2jywwdveKkfSFZfGAc6lEX2DsG5UnFlje7z7YXWiWjTBfOvzgdH-zHAjVyyHK_DTgbPZwr2zn8AtD5MoHj95sJZUVdz70FnP0CLXNxwOuSTUpfHQeBn5sGumWEu9cr6Q2Y4hVFb26rWRwdcOpogBF9M2Ox0jroqmWDjcrQ6QfL4P3g9I1H8RtMGCEZYuR4Y8qXZZ3j2lrWgdK8i6RzeYczP8SRZVXoflDiYSNPjT26fzyuhDe5xCQEl_Kj5ttsIdiqkTbEpYsMQvPsFWC6BCLGKAgRIeN0MruM_QsJuRc51mXldDGSCfkdNqzLvVfMSvkdP8fkbon5qcFAQMYEVeu7tDHgwgzdALSrIkVALqENfptbwaL_Dq_pROle_jMGndyzo1LWd3FURFLR9A9uG0896QodwYUlLLl3qr-g2i2PZ26p11eMhQoqTV-2fu4WljMXdXoC4XcT3zZwgrExDvW6sPTVwpU7Y1zmzN9_9kaIS_F3W8nxWRfwlF499Gi-qQRx0es9RAdN2jcnhe_u1)
 
-    B->>R: { email, password, username? }
-    R->>UC: execute(input)
-    UC->>DB: emailExists(email)?
-    alt Email ya registrado
-        DB-->>UC: true
-        UC-->>R: throw ConflictError
-    else Email libre
-        UC->>DB: BEGIN
-        UC->>DB: INSERT users (password hasheado con bcrypt)
-        UC->>DB: INSERT categories (DEFAULT_CATEGORIES, isDefault=true)
-        UC->>DB: INSERT payment_methods (DEFAULT_PAYMENT_METHODS, isDefault=true)
-        UC->>DB: COMMIT
-        Note over UC,DB: si una constraint única falla en el commit\n(race condition), se relanza como ConflictError
-        DB-->>UC: User
-        UC-->>R: User
-        R-->>B: 201 { ok: true, data: UserDTO }
-    end
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/flujo-registro.puml`](diagrams/flujo-registro.puml).*
 
 ---
 
 ## 3) Crear transacción con split multi-categoría
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant R as POST /api/transactions
-    participant UC as UpsertTransactionUseCase
-    participant Repo as TransactionRepository
-    participant DB as PostgreSQL (transacción)
+![Diagrama de secuencia de creación de transacción con split](https://www.plantuml.com/plantuml/svg/ZPDFJnin4CNl_XIlKGyRAGaKgPT884YoQYD1QFEd7DeA3UiXSUErLxQN224-Ka-zzSeNgxmR88kesjFAEp_FU_D6FlQ1N2XpZMjT_h3Tp36vRd1aF6MPiaQy2IlE6OKcPOHVArEGennNbAsNpfP63gss3fkL2hnJtpWgBfGCAnoytnUY81TKfWeo0Qs1inlFhWNo63HBdyvdS-nHeVQs7eAonbVaj4ak2iykp9-fXUSXUQxOnR09xs1JBgnNmRhRkYiNzeK5wyFIyUppAPAd81v-cNR5ZmP23D0zmXHzt26eeBa3ocrfGWThPMG7lj0gzF7rBgF0I-jknx83qjh6ipofsFiEUhtUTzoBQUos6AAF67xWfFJiuWr9WTg2T81Nfcug4CdkLZwidDtW2sabAOwMEcTTqXhn5ODzmPcwLXava4REndgKXh3rzF2JMct1HehOS6lWfcx5iwZbayUfAkdsDvFuCYSS7ZwD6tt9ij0g8sbz1xarmNeSON_hE_B68hFAP4hoVzZViHHNyxTKgbht2AC1-XYa7yQJvgzPUfeEvu_3AlPx1TtcRC9bpc5bfSV5ntIQGacC9qXwlLuR9vCHeigbaZZ4srgmceFqyk6tYR2nADW5DfnnpBNq9Jbb1Q9izzbqdVUrqkGX6V4JD-98aXUegUvZxAy6WSHPhUCpgzVK66yycQNJENRVoB-0o-Sia5GRzIzY79wVdOtdekbjv-LSgB2QKCvUx2pnrVgqAiUU1_llS0UxxYEuakljDIwDvkUu5-AOZInpBVu0)
 
-    B->>R: { title, amount, kind, split: [{categoryId, allocatedAmount}, ...] }
-    R->>UC: create(userId, data)
-    alt sin split
-        UC-->>R: throw ValidationError("Debe especificar al menos una categoría")
-    end
-    UC->>UC: validateSplits(amount, split)\n(suma == amount, sin duplicados, montos > 0)
-    alt suma no coincide
-        UC-->>R: throw ValidationError
-    end
-    UC->>Repo: create(userId, data)
-    Repo->>DB: BEGIN
-    Repo->>DB: SELECT categories/payment_methods WHERE id IN (...) AND user_id = $userId
-    alt algún id no pertenece al usuario
-        DB-->>Repo: menos filas de las esperadas
-        Repo-->>UC: throw ValidationError (rollback)
-    end
-    Repo->>DB: INSERT transactions
-    Repo->>DB: INSERT transaction_categories (splits)
-    Repo->>DB: COMMIT
-    Repo-->>UC: TransactionWithNames
-    UC-->>R: TransactionWithNames
-    R-->>B: 201 { ok: true, data: TransactionDTO }
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/flujo-crear-transaccion.puml`](diagrams/flujo-crear-transaccion.puml).*
 
 ---
 
 ## 4) Generación mensual de transacciones recurrentes (idempotente)
 
-```mermaid
-sequenceDiagram
-    participant Caller as POST /api/recurring/generate (requiere sesión)
-    participant UC as GenerateMonthlyRecurringTransactionsUseCase
-    participant Repo as RecurringRuleRepository
-    participant DB as PostgreSQL
+![Diagrama de secuencia de generación mensual de recurrentes](https://www.plantuml.com/plantuml/svg/ZLFBRXD14BpFLpG-hGKc4H8NAuuIhmso50YiRJWGv7HsElRWsPcbfpU9UNmLdy2FeNtOMLivS9pfhkggwfcp8CXIP1PkRV7DzvRaY34rtlMOqeAPd51GpsH56K5kqJWLriRbo9Z13QRh9Vl2wTXRpt2_CaAj-ZrZ_jbeMS6hryTAvSXYKfEZ4-Xyk9pEu0XpSrGFCcvvL4yNkd8Hq_V241C42kRl7zVj00Q8qLhYVQAt3UYTTxAocsJBDcDq0LCnteLve1W3LHppU1-_0oI5fOHo7unutbIzvV50jW-oP9f-lAWQHaEbQb7GEuLv37sW1qeBeUWd585uebz0LYg3trqrZykkaXJwO4sGg6xfgkgkjwNOa_JbQuEhIhV62YCmBIq6AEtTOG1oS5rDkRvoKNL9RzXdLIHmCcWKd0ng0CryNVa5hh2sgz0A1ECEM1MK8qjHZSC-C4d13YBdUpxlAdAwJATft3cxDKwF7qoG_IsKPYOwHDjOk3ut-NGLsK1FKSKejFHiA0mtMuu6MqlO3u-QoScMFZt0j-FK559asGMwGQWVeSO0vIDkvRf4HYVc1uBHbELUoAK6w_J4wmFq_wNNadA7rcW4yO9scbiZ0GQ3AgINcFd22KJ1x9LFuRZPNNa6vo7rngL6qnF3PSN-7ixpVCpiEUfyEh-OZCvdayltYt6IN2QTjg0c_Pl2hcCc56f_fl9bbJc6A2UdcwGVrrXlunH6G-Z3vFrqdCn0Md28WYyufSNktozAamkZeR5hT1UUjp6BnnMgqR3orIZqwuFjttbJcsXxhoxL6JbTP5Rz0m00)
 
-    Caller->>UC: execute({ userId, month })
-    UC->>Repo: list(userId)
-    Repo-->>UC: RecurringRule[]
-    UC->>UC: filtra reglas activas en `month`\n(activeFromMonth <= month <= activeToMonth | null)
-    alt sin reglas activas
-        UC-->>Caller: return (no-op)
-    end
-    par
-        UC->>Repo: findExistingTransactionRuleIds(userId, ruleIds, month)
-        UC->>Repo: findCategoriesByRuleIds(ruleIds)
-    end
-    Repo-->>UC: existingRuleIds, categoriesByRule
-    UC->>UC: descarta reglas ya generadas para `month`\n(garantiza idempotencia)
-    alt todas ya generadas
-        UC-->>Caller: return (no-op)
-    end
-    UC->>UC: valida totalSplits == rule.amount (si totalSplits > 0)
-    alt split no coincide
-        UC-->>Caller: throw AppError("VALIDATION_ERROR")
-    end
-    UC->>Repo: bulkCreateTransactionsFromRules(pendingRules, month)
-    Repo->>DB: INSERT transactions (source_recurring_rule_id = rule.id) + transaction_categories
-    DB-->>Repo: ok
-    Repo-->>UC: void
-    UC-->>Caller: void
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/flujo-generacion-recurrentes.puml`](diagrams/flujo-generacion-recurrentes.puml).*
 
 **No es un cron público**: la ruta `POST /api/recurring/generate` requiere sesión (no está en
 `PUBLIC_PATHS` de `proxy.ts`). Si se agrega un trigger automático (cron), documentarlo acá y en
@@ -163,67 +48,17 @@ sequenceDiagram
 
 ## 5) Cálculo de rendimiento de inversión
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant R as POST /api/investments
-    participant UC as UpsertInvestmentUseCase
-    participant Ent as Investment (entidad)
-    participant Calc as InvestmentYieldCalculator
-    participant Repo as InvestmentRepository
+![Diagrama de secuencia de cálculo de rendimiento de inversión](https://www.plantuml.com/plantuml/svg/XLB1RjD05BplLqnxYgcJkA0YnMgZAY52FHM51eHK8ItULx9qlMljFYTKLJ-cHxwZFuRMJkC4gBZPUlDcPj_CUM3fkIuDRapzm_KzMQLBJPPTNziL-Q2T5GUyf99G6Qcj2BVQLjBB4jzaSVlTkzgggJFEOxtKJ3lpjPVLPwruYTSdcH2LzAmBNKdBE9nujmxa3o439lkZ3vSVhp2KbHv61u5BiXmQu7mVkAW2URxOWXQ1fZ9G0rrCzx4T2Zsoh9LKIGESMNu9-KMJKLDfYjf8TgtN-FiIVawL2vgTlslTKkM4cA0_nXmvxkFz-CRvCWLhDfIYyjf66fE2hKoXv5r8eSFKbLKyAnx4FAulfiX1FwcecNfr87-X8fXb8XRJ29XPHexEoQ3m99bwBIPEjw2LD5h5MN9jUri3uon5Tdh6LfwUZKQZmMZKkXbd21e7dQKKJMD8NLfOXvkQQoyJ8Gr3szNJez7A2JHQ_MVdlFHkZK-ji7PsvhtpWgpQk8-7GewDvoxqH3IJBSzEXbLiPeWnDXoR4tS0OHqJt8eyvcaR6Z0pA9uUOvmEYh3JTGJ2KXO4P_kAIccL07hlPrTfV6IWPpq26Tp5MYJHFw9A6r6KY6_Oj8Lw_yjsSxFjlq3BqN5fo-IVVWKKhgng2koWjFJQvTUM7Kk3iwv1U8NUCOwYrl0uouPltfuaNwEc81C8GPULeRyrchVyoRFXIE9tf6Z8_gLvrEutKRR4swutWnJDpiu5saRtnvWWn-iimptSRGxsDRMDZhk3mQ1ByjtLPRh7XWSy275ELjMb4Ry1)
 
-    B->>R: { platform, title, principal, tna, days, isCompound }
-    R->>UC: execute(userId, data)
-    UC->>Ent: Investment.create(data)
-    Ent->>Ent: validate()\n(principal>0, 0<=tna<=999.99, days>0 si !isCompound, startedOn no futura)
-    alt inválido
-        Ent-->>UC: throw ValidationError
-    end
-    UC->>Repo: create(investment)
-    Repo-->>UC: Investment persistida
-    UC-->>R: Investment
-    Note over R,Calc: El cálculo de rendimiento se hace on-demand\n(GET, no se persiste el yield)
-    R->>Calc: calculate(principal, tna, days, isCompound)
-    alt isCompound
-        Calc->>Calc: interés compuesto diario:\ntotal = principal * (1 + tna/100/365)^days
-    else simple
-        Calc->>Calc: yield = principal * (tna/100) * (days/365)\ntotal = principal + yield
-    end
-    Calc-->>R: { yield, total, tna, days }
-    R-->>B: 200 { ok: true, data: { ...InvestmentDTO, yield, total } }
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/flujo-rendimiento-inversion.puml`](diagrams/flujo-rendimiento-inversion.puml).*
 
 ---
 
 ## 6) Eliminar categoría (regla de negocio con dos guardas)
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant R as DELETE /api/categories/:id
-    participant UC as DeleteCategoryUseCase
-    participant Repo as CategoryRepository
+![Diagrama de secuencia de eliminación de categoría](https://www.plantuml.com/plantuml/svg/XLF1Jbin4BpxAwQSG2K9GkebXmebv83KLYWYwddxl4bS_BpMUas8gduIftu2FrRblQHge1KtspkUcHslhugHMcqZbh5-bm77q8P4EcZ8U2KQoBspDRUC72aaL-v3ogJKuXirzokLclnKeYWsws3yLtsZbBy6RsjSVhXmBfDQQ4AcP3YPg6mAwmceO79SkfvzcjtDCA8SHWSFN4RZu3lq_0MQ8njFUznsKNXAXJlWOdgCF63cdAK44ztsV9p5kGa67p776FzNT_CTPZ756Fp8JJK-3VuSjR3U-3Etc7OKd0LZB4Foa-sDFq9GD2G1FuPYZ56tBl0SKKib3UBGtnyST5ADqM6t7kpjsLfbWsjfAQIPgkZfeQ_d9-eOKoF9b3oTd3bElbFTDx8TXdBDIwhHtcJz8YYCNDbpmc4c3aJFJrIGHU5voOt9NkeeWZMLEwLKgB4WgRnAmW8dXlMG9aZY0YhI1F9KNYLXMlbDpyFX4BSxnxjKE-47qaZWX58HwuhqNqvzDq971e_57oJqL_RItNxURISOu_BY0ZyWzxtBStWowjyEFvrBOWnvOCNal1ysO1RHXj8ACfa-_qeuNLLIJ_ZpFdYF_T6B7CySG3c6Xa3eX_-MjYqd-yos5h__0SDTczXfEtV5oTSskjy0)
 
-    B->>R: DELETE /api/categories/:id
-    R->>UC: execute(id, userId)
-    UC->>Repo: findById(id, userId)
-    alt no existe / no es del usuario
-        Repo-->>UC: null
-        UC-->>R: throw DomainError("Categoría no encontrada")
-    end
-    alt category.isDefault
-        UC-->>R: throw DomainError("No se pueden eliminar categorías por defecto")
-    end
-    UC->>Repo: hasTransactions(id, userId)
-    alt tiene transacciones asociadas
-        Repo-->>UC: true
-        UC-->>R: throw DomainError("... Puedes desactivarla en su lugar")
-    end
-    UC->>Repo: delete(id, userId)
-    Repo-->>UC: void
-    UC-->>R: void
-    R-->>B: 200 { ok: true, data: null }
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/flujo-eliminar-categoria.puml`](diagrams/flujo-eliminar-categoria.puml).*
 
 El mismo patrón (guarda `isDefault` + guarda `hasTransactions`) aplica a
 `DeletePaymentMethodUseCase`.
@@ -232,40 +67,9 @@ El mismo patrón (guarda `isDefault` + guarda `hasTransactions`) aplica a
 
 ## 7) Carga del panel principal (hero + serie de saldo + categorías)
 
-```mermaid
-sequenceDiagram
-    participant B as Browser (DashboardPageClient)
-    participant SQ as useDashboardSummary
-    participant SR as GET /api/dashboard/summary
-    participant GenUC as GenerateMonthlyRecurringTransactionsUseCase
-    participant SumUC as GetDashboardSummaryUseCase
-    participant BQ as useBalanceSeries
-    participant BR as GET /api/dashboard/balance-series
-    participant BalUC as GetBalanceSeriesUseCase
-    participant Repo as DashboardRepository
+![Diagrama de secuencia de carga del panel principal](https://www.plantuml.com/plantuml/svg/ZLHDRzj65BppLqnpab7ICb8K0GJ43IWxQGzkOabfOIGvF75Vg8sNk-n-M1Q2_9wS_2VYFrRiKf8fnR5p9D_CUszcTlU5ysHzQ1G-gl3951NPcegMDAli5x_WXj4gaZfpbrAtPAd1dAhBsfgWnTWeOx5SIC-z-j9I-wyKVe6dlnzbMKlMoqgsf3sUbDOi7TltUd12RZ4tPCKRgdci96j_y0JaKEuoWkCjT1gQXkmgmQRdkxXNfpCCgPL3iK4FNHy-sOEpPakUpups2xMQS1MibRgUMTAEAY-DTcyTZybnuhzY_NQytyBlRzPdJ4EppmYEIrAaAvwobUmwlOyBcNUamlLOt-dnEwtxcvIazZVPBZxXrZZfpTgc-9aYmwb6Z5EnCXZCI4yzLPSu3snN1nbGeZZ6z1mZt1FGe8ckHjZqFE4c627g-YCLdbzSN5mKPsUnFedrP2v6u6kkWkV1vzZK_YLo93o-7BpNWpeb1fkIOktPGR12mow75DoqniU_SMhNhzXClZ9IR6UbM7gpTYQbbHDWIzxNTZ9xlUwrCU3fqH4-mroEu6tW788yuSjQV76C4YEiZsB6ol76lNBjtavkTzQLoRhoXzQLIKxAzY4v7Q0uJj5YX3gUMgbMBvLPbgjq_Byd9MpHQx-bJCpotGSCd546ulQ672gZqPWhsSGhRDpEp0rz7gGIz-ZC4T-3cAvbfLXJrpC7LQ49Yd8qKWyRkXvMoZYfwrxtZJaxRRjqoYwTyi5qobuwYPkn5bcNp5tRFzcQmJgzV0qymA-8NioaOhSfnf-drorhnswy8EktXIpJnZFC5LkKUNV5W4UlEVv-3I5Tl8JTaVxPzsg45K4PBAYAPstp38BlRdGEShSt-2ymH6YLhCWg4zNTtX2yfJbzYZjQ5a4BqfuFyGzR25EveULQaIi45vfhKqbps0Xy-_hRuRF3w22Ys2nxmLg4HcN_0m00)
 
-    par En paralelo (TanStack Query)
-        B->>SQ: useDashboardSummary(month)
-        SQ->>SR: GET ?month=YYYY-MM
-        SR->>GenUC: execute({ userId, month })\n(genera recurrentes del mes, idempotente)
-        GenUC-->>SR: void
-        SR->>SumUC: execute(userId, month)
-        SumUC-->>SR: DashboardSummaryDTO
-        SR-->>SQ: 200 { ok: true, data }
-        SQ-->>B: summary
-    and
-        B->>BQ: useBalanceSeries(month)
-        BQ->>BR: GET ?month=YYYY-MM
-        BR->>BalUC: execute(userId, month)
-        BalUC->>Repo: getDailyFlowByMonth(userId, month)
-        Repo-->>BalUC: DailyFlowRow[] (solo días con movimientos)
-        BalUC->>BalUC: buildBalanceSeries(month, rows)\n(rellena días, acumula, min/max/closing)
-        BalUC-->>BR: BalanceSeriesDTO
-        BR-->>BQ: 200 { ok: true, data }
-        BQ-->>B: series
-    end
-    B->>B: BalanceHero(summary, series) + FlowTiles(summary) + ExpensesChart(summary)
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/flujo-carga-panel.puml`](diagrams/flujo-carga-panel.puml). Incluye la nota sobre no duplicar la generación de recurrentes.*
 
 `GET /api/dashboard/balance-series` **no** dispara `GenerateMonthlyRecurringTransactionsUseCase`: ya
 lo hace `/summary` en paralelo, así que duplicarlo sería trabajo redundante. Ver
@@ -275,25 +79,9 @@ lo hace `/summary` en paralelo, así que duplicarlo sería trabajo redundante. V
 
 ## 8) Diagrama de estados — `Transaction.status`
 
-```mermaid
-stateDiagram-v2
-    [*] --> paid: create() sin status\n(default)
-    [*] --> pending: create({ status: "pending", dueOn: requerido })
+![Diagrama de estados de Transaction.status](https://www.plantuml.com/plantuml/svg/VLBRYXDH47m_Nr7cAICRKS6NoCfgL0INH7351rT2EwSpqsQcEtjEpruGmO_m9tpUJyYV-2KocuG41L-xgqvLTPsJx9IyQnjmTeesyaIQgNGn7MKdxtAuvpMtZ5L3eY4lHLUKgCKNAfTLiaxZn1fBkAh5-M1_bMZrKQBNUFpaOGYVxd_6QFGCAvA8CSh4v3mia4Mn4JhNOUG5TOqNUpHh5AtsX6zRy1Y3xMvmXDZnJCT8VD5nacZuNeImenw8jfIMp_CxaZZi9pCjmjtclv1p7KhaTcNEwdm4jP6j41dAbPLYHGXgpaXIrGvRx3m7OFBcrUGjodevz-lvTZoF7SzDmOgNByO1spp7ExjyBHLZ2vhEpZ3zS7eQM2DwbN-qI680tbjZIDpm9Qap-WB0LU9i6GlvQZa0GyclvPhZiQUE2_p-yHFS875swzCqr8EszPTYoXbA9UC65nr7wWqFUhd1tsOeO_ee05D3JJUR9wIKzQrkZdfG8skl6QqL5GELtb7JMrFhSsTdjEjVRj5sFMnumw9ddks_Pl4q08alERaaTBrGPNVz2oS6Ht5AQ6YVPtsh0IXDqLX69BUCqbBYqYq_E8XqmXgxjWb_0000)
 
-    pending --> paid: markAsPaid(paidOn)
-    paid --> paid: markAsPaid(paidOn) (idempotente, no-op de negocio)
-
-    note right of pending
-        CHECK chk_tx_pending_due_on en DB:
-        status=pending exige due_on NOT NULL
-    end note
-
-    note right of paid
-        Solo relevante para egresos fijos
-        (isFixed=true) — el resto de las
-        transacciones nace y queda en "paid"
-    end note
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/estado-transaction-status.puml`](diagrams/estado-transaction-status.puml). Incluye la nota sobre la ausencia de transición `paid → pending`.*
 
 No hay transición `paid → pending` en el dominio actual (no existe método `markAsPending()` en
 `Transaction`); revertir un pago requiere editar la transacción con los datos correctos.
@@ -302,33 +90,9 @@ No hay transición `paid → pending` en el dominio actual (no existe método `m
 
 ## 9) Diagrama de estados — versionado de `RecurringRule`
 
-```mermaid
-stateDiagram-v2
-    [*] --> Vigente: create({ activeFromMonth, activeToMonth: null })
+![Diagrama de estados de versionado de RecurringRule](https://www.plantuml.com/plantuml/svg/VLF1RbCn4BpxAuQSaYf9WOfB9L1H2QVI7bhAeLJLnjw-MFMpmzfkLHKaZdm0PoHEY4DF_GFo9_qIvFUIfea4HzkxixCpuvsOI5Ak7JWcCc4WhBE8zTL0icFr94suPamTMQ_YXVLJ4gen9drHISZUx0ON15SJc_ZH-vNGz8CrQOBdBvugTR9nYi7W5OvjnJunjg65AN7t1gIJlUIt4kftmQT9Vtvn59hZDdns3bzwIYrwLt7or1IS7gBrI46Jh09yz5qsDX7Ix3Pb5pRhu5FODBDRwiC727FKOiSCTfXI91DwAwDsMOGCBKVTh3EiERxMALDBSr5VUaysJfMAYHAZiv_vad394ktipdT04StLIaDRz6zrcc67jigsyEjZE1nggiSsn3AxxLxLf-i8lha_jux04OuWN3b2PrxLWU5e61mPTQZPfz1JoeV445jD4iBv0b1XTNcynFxxlJq5Z1nNTkmOnNzKx5b8bqrHiu-Pd0Bgmbee8f5Kd5e4Zcds6wQy10KOnid_8_7v_jkFKyNUe51S9pfNKm5xPP2GZwIr3PuZhXV434K5wE0HGnRDPm-XFokXFxEcB3hDFf4t0TJyZLR0_GD4ReBc5T0zsCURqTxeQ8J3qL6Z1Q8j5UCWGWzQzzRv5lUVAQ0pAk6K3h9VsD9oQUoxdDluAVC3-TcTmjfUx9VXxPUJ8qnbzbCdgwcFQ2jlpwscxR9qqKTAHRCEjS7jhhjQSmJvn6A3e36lpLaFrqqufI7SGBJfcaV8DPs6tRnUeV0XmwwWuVxhT_ZiDHM9bbzlpV1DGod4DWnBNQwf9MzeY6CMcA3ZPlCK1uO7dgkWRHZM1dz-RGstXeyats5lSktKNm00)
 
-    Vigente --> Vigente: update() sin tocar activeToMonth\n(edita título/monto/día, no reescribe el pasado)
-    Vigente --> Cerrada: update({ activeToMonth: mesActual })
-
-    Cerrada --> [*]
-
-    state "Nueva versión" as Nueva
-    Cerrada --> Nueva: create({ activeFromMonth: mesSiguiente, ...cambios })
-    Nueva --> Vigente: (la nueva fila es la regla "Vigente" desde ese momento)
-
-    note right of Vigente
-        activeToMonth = NULL
-        Elegible para generación mensual
-        mientras targetMonth esté dentro
-        de [activeFromMonth, activeToMonth|∞]
-    end note
-
-    note right of Cerrada
-        Las transacciones ya generadas
-        con source_recurring_rule_id
-        apuntando a esta fila NO se tocan
-        (ON DELETE SET NULL si se borra la regla)
-    end note
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/estado-recurring-rule.puml`](diagrams/estado-recurring-rule.puml). Incluye la nota sobre "editar" una regla vigente.*
 
 "Editar" una regla recurrente vigente que ya generó transacciones en el pasado, en la práctica,
 significa: cerrar la fila actual (`activeToMonth = mes anterior al cambio`) y crear una fila nueva

@@ -1,0 +1,29 @@
+@startuml clases-dto-balance-series
+!theme plain
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 250
+
+class DailyFlowRow {
+  +day : string "YYYY-MM-DD"
+  +income : number "centavos"
+  +expense : number "centavos"
+  ..
+  fila cruda del repositorio: un día con movimientos
+}
+class BalanceSeriesPointDTO {
+  +day : string "YYYY-MM-DD"
+  +net : number "centavos"
+  +cumulative : number "centavos"
+}
+class BalanceSeriesDTO {
+  +month : string "YYYY-MM"
+  +points : BalanceSeriesPointDTO[]
+  +min : number "centavos"
+  +max : number "centavos"
+  +closing : number "centavos"
+}
+
+BalanceSeriesDTO "1" *-- "many" BalanceSeriesPointDTO : points
+
+@enduml
