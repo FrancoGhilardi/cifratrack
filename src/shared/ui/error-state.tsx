@@ -21,7 +21,10 @@ interface ErrorStateProps {
  */
 export function ErrorState({ message, showReloadButton = false, className = '' }: ErrorStateProps) {
   return (
-    <Card className={`bg-orange-50 dark:bg-orange-950/20 border-0 ${className}`}>
+    <Card
+      role="alert"
+      className={`bg-orange-50 dark:bg-orange-950/20 border-0 ${className}`}
+    >
       <CardContent className="py-4">
         <div className="flex items-start space-x-3">
           <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />

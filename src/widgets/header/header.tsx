@@ -1,9 +1,11 @@
 "use client";
 
-import { LogOut, Menu, User } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { cn } from "@/shared/lib/utils";
+import { useActiveRoute } from "@/shared/lib/hooks/useActiveRoute";
+import { getNavItemByPath } from "@/widgets/navigation/nav-items";
 
 interface HeaderProps {
   userName?: string;
@@ -14,6 +16,17 @@ interface HeaderProps {
   onOpenNavigation?: () => void;
 }
 
+/** Iniciales para el avatar (máximo dos). */
+function getInitials(name?: string): string {
+  if (!name) return "US";
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export function Header({
   userName,
   userEmail,
@@ -22,6 +35,9 @@ export function Header({
   showNavigationTrigger = false,
   onOpenNavigation,
 }: HeaderProps) {
+  const { pathname } = useActiveRoute();
+  const section = getNavItemByPath(pathname);
+
   return (
     <header
       className={cn(
@@ -29,48 +45,58 @@ export function Header({
         className,
       )}
     >
-      <div className="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-        <div className="flex min-w-0 items-center gap-3">
-          {showNavigationTrigger && onOpenNavigation && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0 lg:hidden"
-              onClick={onOpenNavigation}
-              aria-label="Abrir menú"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          )}
+      <div className="flex h-[58px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+        {showNavigationTrigger && onOpenNavigation && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 lg:hidden"
+            onClick={onOpenNavigation}
+            aria-label="Abrir menú"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
 
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
-            <User className="h-4 w-4" />
-          </div>
+        <span className="min-w-0 truncate font-mono text-[10.5px] uppercase tracking-[0.15em] text-muted-foreground">
+          {section?.name ?? "cifratrack"}
+        </span>
 
-          <div className="min-w-0 leading-tight">
-            <span className="block truncate text-sm font-medium text-foreground">
-              {userName ? userName : "Usuario"}
-            </span>
-            {userEmail && (
-              <span className="hidden truncate text-xs text-muted-foreground sm:block">
-                {userEmail}
-              </span>
-            )}
-          </div>
-        </div>
+        <div className="flex-1" />
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onLogout}
-            className="px-2 sm:px-3"
-          >
-            <LogOut className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Salir</span>
-          </Button>
+
+          <div className="flex items-center gap-2.5 border-l border-border pl-3 sm:ml-1">
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-app-nav-active font-mono text-[11px] text-app-nav-accent"
+              aria-hidden="true"
+            >
+              {getInitials(userName)}
+            </span>
+
+            <div className="hidden min-w-0 leading-tight sm:block">
+              <span className="block truncate text-[12.5px] font-medium text-foreground">
+                {userName ? userName : "Usuario"}
+              </span>
+              {userEmail && (
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  {userEmail}
+                </span>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onLogout}
+              aria-label="Cerrar sesión"
+              className="shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </header>

@@ -45,33 +45,26 @@ export function MonthSelector({
   const shortLabel = `${monthAbbrev} ${year}`;
 
   return (
-    <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-xl border border-border bg-card p-2 shadow-sm sm:flex-nowrap">
+    <div className="inline-flex max-w-full items-center gap-0.5 rounded-full border border-border bg-card p-1">
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
-        className="h-9 w-9 shrink-0"
+        className="h-8 w-8 shrink-0 rounded-full"
         onClick={onPreviousMonth}
         aria-label="Mes anterior"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
 
-      <div className="min-w-[7.5rem] flex-1 px-1 text-center sm:min-w-[9rem]">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Periodo
-        </p>
-        <p className="text-sm font-semibold capitalize sm:hidden">
-          {shortLabel}
-        </p>
-        <p className="hidden text-sm font-semibold capitalize sm:block">
-          {monthLabel}
-        </p>
-      </div>
+      <span className="min-w-[6.5rem] px-1 text-center text-[13px] capitalize sm:min-w-[8rem]">
+        <span className="sm:hidden">{shortLabel}</span>
+        <span className="hidden sm:inline">{monthLabel}</span>
+      </span>
 
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
-        className="h-9 w-9 shrink-0"
+        className="h-8 w-8 shrink-0 rounded-full"
         onClick={onNextMonth}
         disabled={isCurrentMonth}
         aria-label="Mes siguiente"
@@ -83,7 +76,7 @@ export function MonthSelector({
         <Button
           variant="ghost"
           size="sm"
-          className="h-9 w-full px-3 text-sm sm:w-auto"
+          className="h-8 shrink-0 rounded-full bg-app-nav-active px-3 font-mono text-[10px] uppercase tracking-[0.1em] text-app-nav-accent hover:bg-app-nav-active"
           onClick={onCurrentMonth}
         >
           Hoy

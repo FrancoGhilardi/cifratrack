@@ -7,6 +7,7 @@ import {
   paymentMethods,
 } from "@/shared/db/schema";
 import type { DashboardSummaryDTO } from "@/entities/dashboard/model/dashboard-summary.dto";
+import type { DailyFlowRow } from "@/entities/dashboard/model/balance-series.dto";
 import type { IDashboardRepository } from "@/entities/dashboard/repo";
 
 /**
@@ -168,5 +169,36 @@ export class DashboardRepository implements IDashboardRepository {
         pending: pendingCount,
       },
     };
+  }
+
+  /**
+   * Ingresos y egresos por día de un mes.
+   * Usa el índice (user_id, occurred_month) y agrupa en la base.
+   */
+  async getDailyFlowByMonth(
+    userId: string,
+    month: string,
+  ): Promise<DailyFlowRow[]> {
+    const rows = await db
+      .select({
+        day: transactions.occurredOn,
+        income: sql<number>`CAST(COALESCE(SUM(CASE WHEN ${transactions.kind} = 'income' THEN ${transactions.amount} ELSE 0 END), 0) AS INTEGER)`,
+        expense: sql<number>`CAST(COALESCE(SUM(CASE WHEN ${transactions.kind} = 'expense' THEN ${transactions.amount} ELSE 0 END), 0) AS INTEGER)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.occurredMonth, month),
+        ),
+      )
+      .groupBy(transactions.occurredOn)
+      .orderBy(transactions.occurredOn);
+
+    return rows.map((row) => ({
+      day: row.day,
+      income: row.income || 0,
+      expense: row.expense || 0,
+    }));
   }
 }

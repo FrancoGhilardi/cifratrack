@@ -70,6 +70,12 @@ Todas con `isDefault: true` (ver §3.2 para las restricciones que eso implica).
 - `transactions.occurred_month` es una columna generada, indexada por `(user_id, occurred_month)`.
 - Los listados **no** devuelven transacciones futuras: filtro `occurred_on <= today`.
 
+### 3.7 Serie diaria de saldo (dashboard)
+- `GET /api/dashboard/balance-series?month=YYYY-MM` → `{ ok: true, data: BalanceSeriesDTO }`.
+- `BalanceSeriesDTO`: `{ month, points: [{ day, net, cumulative }], min, max, closing }`. Todos los montos en **centavos**.
+- Regla de construcción (`buildBalanceSeries`, `src/features/dashboard/lib/balance-series.ts`): un punto por cada día del mes, incluidos los días sin movimientos (`net: 0`, el acumulado se sostiene); las filas fuera del mes pedido se ignoran; `min`/`max` siempre incluyen el 0 de base (así un mes íntegramente positivo o negativo no queda pegado al piso/techo del gráfico).
+- Este endpoint **no** dispara la generación de transacciones recurrentes — de eso se encarga `GET /api/dashboard/summary`, que el cliente pide en paralelo (evita duplicar el trabajo de generación).
+
 ---
 
 ## 4) API / Backend: contratos
@@ -94,6 +100,7 @@ Todas extienden `AppError` (`code`, `statusCode`, `details?`):
 ```
 POST   /api/auth/register
 GET    /api/dashboard/summary?month=YYYY-MM
+GET    /api/dashboard/balance-series?month=YYYY-MM
 GET/POST        /api/transactions
 GET/PATCH/DELETE /api/transactions/:id
 GET    /api/transactions/summary

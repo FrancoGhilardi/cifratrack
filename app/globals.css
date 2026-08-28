@@ -47,6 +47,29 @@
   --auth-panel-soft: oklch(0.68 0.03 165);
   --auth-panel-line: oklch(0.3 0.02 165);
   --auth-panel-accent: oklch(0.78 0.13 165);
+
+  /* --- App (panel, header, menú lateral) --- */
+  --app-nav: oklch(0.976 0.003 165);
+  --app-nav-ink: oklch(0.21 0.008 165);
+  --app-nav-soft: oklch(0.55 0.012 165);
+  --app-nav-line: oklch(0.9 0.006 165);
+  --app-nav-hover: oklch(0.945 0.004 165);
+  --app-nav-active: oklch(0.94 0.02 168);
+  --app-nav-accent: oklch(0.52 0.09 168);
+
+  /* Semánticos de signo (independientes del acento de marca) */
+  --app-pos: oklch(0.52 0.09 168);
+  --app-neg: oklch(0.56 0.1 45);
+
+  /* Rampa de categorías (gráficos y listas) */
+  --app-cat-1: oklch(0.52 0.09 168);
+  --app-cat-2: oklch(0.7 0.08 250);
+  --app-cat-3: oklch(0.56 0.1 45);
+  --app-cat-4: oklch(0.66 0.1 85);
+  --app-cat-5: oklch(0.58 0.08 300);
+  --app-cat-6: oklch(0.57 0.05 195);
+  --app-cat-7: oklch(0.58 0.07 65);
+  --app-cat-8: oklch(0.6 0.07 135);
 }
 
 .dark {
@@ -88,6 +111,27 @@
   --auth-accent-tint: oklch(0.24 0.03 168);
   --auth-panel: oklch(0.16 0.015 165);
   --auth-panel-line: oklch(0.26 0.02 165);
+
+  /* --- App (dark) --- */
+  --app-nav: oklch(0.16 0.008 165);
+  --app-nav-ink: oklch(0.955 0.004 165);
+  --app-nav-soft: oklch(0.66 0.012 165);
+  --app-nav-line: oklch(0.25 0.01 165);
+  --app-nav-hover: oklch(0.21 0.008 165);
+  --app-nav-active: oklch(0.245 0.012 168);
+  --app-nav-accent: oklch(0.78 0.13 165);
+
+  --app-pos: oklch(0.78 0.13 165);
+  --app-neg: oklch(0.77 0.09 40);
+
+  --app-cat-1: oklch(0.73 0.12 168);
+  --app-cat-2: oklch(0.75 0.07 250);
+  --app-cat-3: oklch(0.68 0.09 45);
+  --app-cat-4: oklch(0.74 0.09 85);
+  --app-cat-5: oklch(0.67 0.08 300);
+  --app-cat-6: oklch(0.66 0.05 195);
+  --app-cat-7: oklch(0.65 0.06 65);
+  --app-cat-8: oklch(0.68 0.07 135);
 }
 
 body {
@@ -163,6 +207,24 @@ textarea::placeholder {
   --color-auth-panel-soft: var(--auth-panel-soft);
   --color-auth-panel-line: var(--auth-panel-line);
   --color-auth-panel-accent: var(--auth-panel-accent);
+
+  --color-app-nav: var(--app-nav);
+  --color-app-nav-ink: var(--app-nav-ink);
+  --color-app-nav-soft: var(--app-nav-soft);
+  --color-app-nav-line: var(--app-nav-line);
+  --color-app-nav-hover: var(--app-nav-hover);
+  --color-app-nav-active: var(--app-nav-active);
+  --color-app-nav-accent: var(--app-nav-accent);
+  --color-app-pos: var(--app-pos);
+  --color-app-neg: var(--app-neg);
+  --color-app-cat-1: var(--app-cat-1);
+  --color-app-cat-2: var(--app-cat-2);
+  --color-app-cat-3: var(--app-cat-3);
+  --color-app-cat-4: var(--app-cat-4);
+  --color-app-cat-5: var(--app-cat-5);
+  --color-app-cat-6: var(--app-cat-6);
+  --color-app-cat-7: var(--app-cat-7);
+  --color-app-cat-8: var(--app-cat-8);
 }
 
 @layer base {

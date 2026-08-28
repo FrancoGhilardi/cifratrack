@@ -34,6 +34,9 @@ export function useRecurringRuleMutations() {
       queryClient.invalidateQueries({ queryKey: recurringKeys.lists() });
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: dashboardKeys.summary(month) });
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.balanceSeries(month),
+      });
       toast.success("Transacciones recurrentes generadas");
     },
     onError: (error) =>
