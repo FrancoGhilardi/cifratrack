@@ -12,6 +12,7 @@ import { TransactionForm } from "./transaction-form";
 import { useTransaction } from "../hooks/useTransaction";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { BRAND_SERIF } from "@/shared/ui/brand-fonts";
 import type { CreateTransactionInput } from "@/entities/transaction/model/transaction.schema";
 
 interface TransactionDialogProps {
@@ -65,13 +66,16 @@ export function TransactionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-4xl overflow-y-auto sm:max-h-[90vh] sm:max-w-3xl">
         <DialogHeader className="pr-8">
-          <DialogTitle>
-            {isEditing ? "Editar Movimiento" : "Nuevo Movimiento"}
+          <DialogTitle
+            style={{ fontFamily: BRAND_SERIF }}
+            className="text-[20px] font-medium tracking-tight"
+          >
+            {isEditing ? "Editar movimiento" : "Nuevo movimiento"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[13px]">
             {isEditing
-              ? "Modifica los datos del movimiento y guarda los cambios."
-              : "Completa los datos para crear un nuevo movimiento."}
+              ? "Modificá los datos del movimiento y guardá los cambios."
+              : "Completá los datos para crear un nuevo movimiento."}
           </DialogDescription>
         </DialogHeader>
 

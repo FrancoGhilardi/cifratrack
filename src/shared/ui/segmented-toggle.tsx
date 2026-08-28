@@ -9,6 +9,8 @@ interface SegmentedToggleProps<T extends string> {
   /** Etiqueta del grupo para lectores de pantalla. */
   ariaLabel: string;
   className?: string;
+  /** Deshabilita el control sin ocultarlo (ej. tipo no editable en edición). */
+  disabled?: boolean;
 }
 
 /**
@@ -22,13 +24,16 @@ export function SegmentedToggle<T extends string>({
   options,
   ariaLabel,
   className,
+  disabled = false,
 }: SegmentedToggleProps<T>) {
   return (
     <div
       role="radiogroup"
       aria-label={ariaLabel}
+      aria-disabled={disabled || undefined}
       className={cn(
         "inline-flex gap-0.5 rounded-full bg-app-nav-active p-0.5",
+        disabled && "opacity-50",
         className,
       )}
     >
@@ -40,10 +45,12 @@ export function SegmentedToggle<T extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
+            disabled={disabled}
             onClick={() => onChange(option.value)}
             className={cn(
               "rounded-full px-3 py-1 text-[11.5px] font-medium transition-colors",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-nav-accent)]",
+              "disabled:cursor-not-allowed",
               selected
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
