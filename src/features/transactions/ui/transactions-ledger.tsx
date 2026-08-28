@@ -36,6 +36,8 @@ export function getAmountSign(transaction: TransactionDTO) {
   return transaction.kind === "income" ? "+" : "−";
 }
 
+const SORTABLE_COLUMN_IDS = new Set(["occurredOn", "title", "amount"]);
+
 interface SortableHeaderProps {
   label: string;
   columnId: string;
@@ -173,7 +175,7 @@ export function TransactionsLedger({
         cell: ({ row }) => (
           <div className="flex min-w-0 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-[13.5px]">{row.original.title}</span>
+              <span className="min-w-0 truncate text-[13.5px]">{row.original.title}</span>
               {row.original.sourceRecurringRuleId && (
                 <span className="inline-flex items-center rounded-full bg-app-nav-active px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-app-nav-accent">
                   Recurrente
@@ -283,6 +285,10 @@ export function TransactionsLedger({
             {headerGroup.headers.map((header) => {
               const isAmount = header.column.id === "amount";
               const isActions = header.column.id === "actions";
+              const isTitle = header.column.id === "title";
+              const isSortable = SORTABLE_COLUMN_IDS.has(header.column.id);
+              const isActive = header.column.id === sorting[0]?.id;
+
               return (
                 <TableHead
                   key={header.id}
@@ -290,15 +296,16 @@ export function TransactionsLedger({
                     "h-auto py-2.5",
                     isAmount && "text-right",
                     isActions && "w-[72px]",
+                    isTitle && "max-w-[320px]",
                   )}
                   aria-sort={
-                    header.column.id === sorting[0]?.id
-                      ? sorting[0]?.desc
-                        ? "descending"
-                        : "ascending"
-                      : header.column.id === "occurredOn" || header.column.id === "title" || header.column.id === "amount"
-                        ? "none"
-                        : undefined
+                    !isSortable
+                      ? undefined
+                      : isActive
+                        ? sorting[0]?.desc
+                          ? "descending"
+                          : "ascending"
+                        : "none"
                   }
                 >
                   {header.isPlaceholder
@@ -317,7 +324,13 @@ export function TransactionsLedger({
             className="group border-b border-border/60 last:border-0 hover:bg-app-nav-hover"
           >
             {row.getVisibleCells().map((cell) => (
-              <TableCell key={cell.id} className="py-3">
+              <TableCell
+                key={cell.id}
+                className={cn(
+                  "py-3",
+                  cell.column.id === "title" && "max-w-[320px] whitespace-normal",
+                )}
+              >
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </TableCell>
             ))}

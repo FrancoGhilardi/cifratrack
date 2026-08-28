@@ -49,7 +49,7 @@ export function TransactionCardList({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="truncate text-[13.5px]">{transaction.title}</span>
+                <span className="min-w-0 truncate text-[13.5px]">{transaction.title}</span>
                 {transaction.sourceRecurringRuleId && (
                   <span className="inline-flex items-center rounded-full bg-app-nav-active px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-app-nav-accent">
                     Recurrente

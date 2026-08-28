@@ -61,7 +61,7 @@
   --app-pos: oklch(0.52 0.09 168);
   --app-neg: oklch(0.56 0.1 45);
   /* Estado pendiente: ni positivo ni negativo, es "todavía no" */
-  --app-pend: oklch(0.63 0.11 75);
+  --app-pend: oklch(0.57 0.13 80);
 
   /* Rampa de categorías (gráficos y listas) */
   --app-cat-1: oklch(0.52 0.09 168);
