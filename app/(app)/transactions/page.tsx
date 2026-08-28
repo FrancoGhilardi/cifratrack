@@ -14,12 +14,15 @@ import { TableLoadingOverlay } from "@/shared/ui/table-loading-overlay";
 import { Pagination } from "@/shared/ui/pagination";
 import { PageHeader } from "@/shared/ui/page-header";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { ErrorState } from "@/shared/ui/error-state";
+import { Button } from "@/shared/ui/button";
+import { MonthSelector } from "@/shared/ui/month-selector";
 import { Plus } from "lucide-react";
 import { useCrudDialogState } from "@/shared/lib/hooks/useCrudDialogState";
 import { useMemo } from "react";
 import type { SortingState } from "@tanstack/react-table";
 import { Month } from "@/shared/lib/date";
-import { formatMonthLabel } from "@/shared/lib/utils/month-label";
+import { useControlledMonthNavigation } from "@/shared/lib/hooks/useControlledMonthNavigation";
 
 export default function TransactionsPage() {
   const {
@@ -36,8 +39,14 @@ export default function TransactionsPage() {
     setSort,
   } = useTransactionsTable();
 
-  // Query separada para las cards (solo filtra por mes, sin otros filtros)
-  const summaryQuery = useTransactionsSummaryQuery(params.month || "");
+  const month = params.month || Month.current().toString();
+  const monthNav = useControlledMonthNavigation({
+    month,
+    onMonthChange: (nextMonth) => updateParams({ month: nextMonth, page: 1 }),
+  });
+
+  // Query separada para el resumen (solo filtra por mes, sin otros filtros)
+  const summaryQuery = useTransactionsSummaryQuery(month);
 
   const mutations = useTransactionMutations();
   const { state: dialogState, actions: dialogActions } = useCrudDialogState();
@@ -68,24 +77,35 @@ export default function TransactionsPage() {
     [params.sortBy, params.sortOrder],
   );
 
-  if (isError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-100">
-        <p className="text-destructive mb-4">Error al cargar transacciones</p>
-        <p className="text-sm text-muted-foreground">{error?.message}</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Movimientos"
-        description="Gestiona tus ingresos y egresos"
-        actionIcon={Plus}
-        actionText="Nuevo Movimiento"
-        onAction={dialogActions.openCreate}
+        description="Ingresos y egresos del período seleccionado."
+        action={
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <MonthSelector
+              currentMonth={monthNav.month}
+              monthLabel={monthNav.monthLabel}
+              isCurrentMonth={monthNav.isCurrentMonth}
+              onPreviousMonth={monthNav.goToPreviousMonth}
+              onNextMonth={monthNav.goToNextMonth}
+              onCurrentMonth={monthNav.goToCurrentMonth}
+            />
+            <Button onClick={dialogActions.openCreate} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4" />
+              Nuevo movimiento
+            </Button>
+          </div>
+        }
       />
+
+      {isError && (
+        <ErrorState
+          message={error?.message ?? "No pudimos cargar los movimientos."}
+          showReloadButton
+        />
+      )}
 
       {/* Tira de resumen */}
       {summaryQuery.isLoading ? (
@@ -93,7 +113,7 @@ export default function TransactionsPage() {
       ) : (
         <TransactionSummaryStrip
           summary={summaryQuery.summary}
-          monthLabel={formatMonthLabel(params.month || Month.current().toString())}
+          monthLabel={monthNav.monthLabel}
         />
       )}
 
@@ -120,19 +140,20 @@ export default function TransactionsPage() {
       ) : (
         <>
           <div className="relative">
-            <TableLoadingOverlay show={isFetching} className="rounded-lg" />
+            <TableLoadingOverlay show={isFetching} />
             <TransactionsTable
               transactions={transactions}
               sorting={sorting}
               onSortingChange={handleSortChange}
               onEdit={dialogActions.openEdit}
               onDelete={dialogActions.openDelete}
+              onCreate={dialogActions.openCreate}
             />
           </div>
 
           {/* Paginación */}
           {meta && meta.totalPages > 1 && (
-            <div className="rounded-lg border bg-card p-4">
+            <div className="border-t border-border/60 pt-3">
               <Pagination
                 currentPage={meta.page}
                 totalPages={meta.totalPages}
@@ -160,7 +181,7 @@ export default function TransactionsPage() {
         open={!!dialogState.deleteId}
         onOpenChange={(open) => !open && dialogActions.closeDelete()}
         title="Eliminar movimiento"
-        description="¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer."
+        description="¿Querés eliminar este movimiento? No se puede deshacer."
         onConfirm={handleDeleteConfirm}
         confirmText="Eliminar"
         isLoading={mutations.delete.isPending}
