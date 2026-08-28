@@ -29,6 +29,7 @@ import type {
   TransactionWithNames,
 } from "@/entities/transaction/repo";
 import type { TransactionSummaryDTO } from "@/entities/transaction/model/transaction-summary.dto";
+import { buildTransactionSummary } from "./lib/transaction-summary";
 import { Transaction as TransactionEntity } from "@/entities/transaction/model/transaction.entity";
 import type { Transaction } from "@/entities/transaction/model/transaction.entity";
 import { NotFoundError, ValidationError } from "@/shared/lib/errors";
@@ -733,6 +734,7 @@ export class TransactionRepository implements ITransactionRepository {
   ): Promise<TransactionSummaryDTO> {
     const rows = await db
       .select({
+        kind: transactions.kind,
         status: transactions.status,
         total: sql<number>`CAST(SUM(${transactions.amount}) AS INTEGER)`,
         count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
@@ -742,34 +744,11 @@ export class TransactionRepository implements ITransactionRepository {
         and(
           eq(transactions.userId, userId),
           eq(transactions.occurredMonth, month),
-          eq(transactions.kind, "expense"),
         ),
       )
-      .groupBy(transactions.status);
+      .groupBy(transactions.kind, transactions.status);
 
-    let totalPaid = 0;
-    let paidCount = 0;
-    let totalPending = 0;
-    let pendingCount = 0;
-
-    for (const row of rows) {
-      if (row.status === "paid") {
-        totalPaid = row.total || 0;
-        paidCount = row.count || 0;
-      }
-      if (row.status === "pending") {
-        totalPending = row.total || 0;
-        pendingCount = row.count || 0;
-      }
-    }
-
-    return {
-      month,
-      totalPaid,
-      paidCount,
-      totalPending,
-      pendingCount,
-    };
+    return buildTransactionSummary(rows, month);
   }
 
   /**

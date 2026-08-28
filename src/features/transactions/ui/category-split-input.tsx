@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 
 import { useCategories } from "@/features/categories/hooks/useCategories";
-import { formatCurrency } from "@/shared/lib/money";
+import { useCurrency } from "@/shared/lib/hooks/useCurrency";
+import { cn } from "@/shared/lib/utils";
 import {
   calculateRemainingAmount,
   centsToString,
@@ -42,6 +43,7 @@ export function CategorySplitInput({
   onChange,
   error,
 }: CategorySplitInputProps) {
+  const { format } = useCurrency();
   const { data: categories, isLoading } = useCategories({ kind });
   const [isSplitMode, setIsSplitMode] = useState(value.length > 1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
@@ -156,13 +158,17 @@ export function CategorySplitInput({
               : "Asigna el monto completo a una sola categoría."}
           </p>
           {isSplitMode && (
-            <p className="text-sm text-muted-foreground">
-              Total: {formatCurrency(totalAmount, "ARS")} | Asignado:{" "}
-              {formatCurrency(totalAllocated, "ARS")} | Restante:{" "}
+            <p className="font-mono text-[12.5px] tabular-nums text-muted-foreground">
+              Total: {format(totalAmount)} | Asignado: {format(totalAllocated)} |
+              Restante:{" "}
               <span
-                className={remaining < 0 ? "font-medium text-destructive" : ""}
+                className={cn(
+                  "font-medium",
+                  remaining < 0 && "text-app-neg",
+                  remaining === 0 && "text-app-pos",
+                )}
               >
-                {formatCurrency(remaining, "ARS")}
+                {format(remaining)}
               </span>
             </p>
           )}

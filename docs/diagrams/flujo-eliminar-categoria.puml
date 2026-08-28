@@ -1,0 +1,36 @@
+@startuml flujo-eliminar-categoria
+!theme plain
+skinparam backgroundColor white
+skinparam wrapWidth 250
+
+participant "Browser" as B
+participant "DELETE /api/categories/:id" as R
+participant "DeleteCategoryUseCase" as UC
+participant "CategoryRepository" as Repo
+
+B -> R : DELETE /api/categories/:id
+R -> UC : execute(id, userId)
+UC -> Repo : findById(id, userId)
+alt no existe / no es del usuario
+  Repo --> UC : null
+  UC --> R : throw DomainError("Categoría no encontrada")
+end
+alt category.isDefault
+  UC --> R : throw DomainError("No se pueden eliminar categorías por defecto")
+end
+UC -> Repo : hasTransactions(id, userId)
+alt tiene transacciones asociadas
+  Repo --> UC : true
+  UC --> R : throw DomainError("... Puedes desactivarla en su lugar")
+end
+UC -> Repo : delete(id, userId)
+Repo --> UC : void
+UC --> R : void
+R --> B : 200 { ok: true, data: null }
+
+note over B, Repo
+  El mismo patrón (guarda isDefault + guarda hasTransactions)
+  aplica a DeletePaymentMethodUseCase.
+end note
+
+@enduml

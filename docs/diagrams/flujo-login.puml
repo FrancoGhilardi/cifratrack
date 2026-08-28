@@ -1,0 +1,42 @@
+@startuml flujo-login
+!theme plain
+skinparam backgroundColor white
+skinparam wrapWidth 250
+
+participant "Browser" as B
+participant "Auth.js\n(authorize)" as NA
+participant "rate-limit.ts\n(Upstash)" as RL
+participant "AuthenticateUserUseCase" as UC
+participant "UserRepository" as Repo
+participant "PostgreSQL" as DB
+
+B -> NA : signIn("credentials", { email, password })
+NA -> NA : loginSchema.parse(credentials)
+NA -> RL : checkLoginRateLimit(ip)
+alt Sin Upstash configurado
+  RL --> NA : true (fail-open)
+else Límite excedido (5 req/min por IP)
+  RL --> NA : false
+  NA --> B : RateLimitedSignInError
+end
+NA -> UC : execute({ email, password })
+UC -> Repo : findByEmail(email)
+Repo -> DB : SELECT ... WHERE email = $1
+alt Usuario no existe
+  DB --> Repo : null
+  Repo --> UC : null
+  UC -> UC : verifyPassword(password, DUMMY_HASH)\n(paga el mismo costo bcrypt que el caso real)
+  UC --> NA : throw AuthenticationError("Credenciales inválidas")
+else Usuario existe
+  DB --> Repo : row
+  Repo --> UC : User
+  UC -> UC : verifyPassword(password, user.hashedPassword)
+  alt Password incorrecto
+    UC --> NA : throw AuthenticationError("Credenciales inválidas")
+  else Password correcto
+    UC --> NA : User
+  end
+end
+NA --> B : null (credenciales inválidas) | session JWT (7 días)
+
+@enduml

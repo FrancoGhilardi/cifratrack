@@ -1,0 +1,179 @@
+@startuml clases-dominio
+!theme plain
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 250
+
+class Transaction {
+  +id : string
+  +userId : string
+  +kind : "income"|"expense"
+  +title : string
+  +description : string?
+  +amount : number "centavos"
+  +paymentMethodId : string?
+  +isFixed : boolean
+  +status : "pending"|"paid"
+  +occurredOn : string "YYYY-MM-DD"
+  +dueOn : string?
+  +paidOn : string?
+  +occurredMonth : string "YYYY-MM"
+  +sourceRecurringRuleId : string?
+  +split : TransactionSplit?
+  +createdAt : Date
+  +updatedAt : Date
+  --
+  +{static} create(data) : Transaction
+  +{static} fromPersistence(data) : Transaction
+  +toDTO() : TransactionDTO
+  +withSplit(split) : Transaction
+  +markAsPaid(paidOn) : Transaction
+  +isIncome() : boolean
+  +isExpense() : boolean
+  +isPending() : boolean
+  +isPaid() : boolean
+  -validate() : void
+}
+
+class TransactionSplit {
+  +splits : Array<Split>
+  --
+  +getTotal() : number
+  +matchesAmount(amount) : boolean
+  +toPersistence() : Split[]
+  +{static} fromPersistence(data) : TransactionSplit
+  -validate() : void
+}
+
+class RecurringRule {
+  +id : string
+  +userId : string
+  +title : string
+  +description : string?
+  +amount : number
+  +kind : "income"|"expense"
+  +dayOfMonth : number
+  +status : "pending"|"paid"
+  +paymentMethodId : string?
+  +activeFromMonth : Month
+  +activeToMonth : Month?
+  +createdAt : Date
+  +updatedAt : Date
+  --
+  +{static} create(props) : RecurringRule
+  +{static} fromDB(data) : RecurringRule
+  +toDTO() : dto
+  -validate() : void
+}
+
+class Category {
+  +id : string
+  +userId : string
+  +kind : "income"|"expense"
+  +name : string
+  +isActive : boolean
+  +isDefault : boolean
+  --
+  +{static} fromPersistence(data) : Category
+  +toDTO() : CategoryDTO
+  +isIncome() : boolean
+  +isExpense() : boolean
+  +canBeDeleted() : boolean
+}
+
+class PaymentMethod {
+  +id : string
+  +userId : string
+  +name : string
+  +isActive : boolean
+  +isDefault : boolean
+  --
+  +{static} fromPersistence(data) : PaymentMethod
+  +toDTO() : PaymentMethodDTO
+  +canBeDeleted() : boolean
+}
+
+class Investment {
+  +id : string
+  +userId : string
+  +platform : string
+  +title : string
+  +yieldProviderId : string?
+  +principal : number "decimal, NO Money"
+  +tna : number "porcentaje"
+  +days : number?
+  +isCompound : boolean
+  +startedOn : Date
+  +notes : string?
+  --
+  +{static} create(data) : Investment
+  +{static} fromDB(data) : Investment
+  +getEndDate() : Date?
+  +hasEnded() : boolean
+  +getDaysRemaining() : number?
+  -validate() : void
+}
+
+class InvestmentYieldCalculator {
+  +calculate(principal, tna, days, isCompound) : InvestmentYieldResult
+  +calculateTEA(principal, finalAmount, days) : number
+  +calculateFinalAmount(principal, tna, days) : number
+  +calculateDaysForTargetYield(principal, tna, targetYield) : number
+}
+
+class User {
+  +id : string
+  +email : string
+  +hashedPassword : string
+  +name : string?
+  +currency : string
+  +timezone : string
+}
+
+class Money {
+  -cents : number
+  --
+  +{static} fromCents(cents) : Money
+  +{static} fromPesos(pesos) : Money
+  +{static} zero() : Money
+  +toCents() : number
+  +toPesos() : number
+  +format(locale, currency) : string
+  +add(other) : Money
+  +subtract(other) : Money
+  +multiply(factor) : Money
+  +divide(divisor) : Money
+  +isGreaterThan(other) : boolean
+  +isLessThan(other) : boolean
+  +equals(other) : boolean
+  +isZero() : boolean
+}
+
+class Month {
+  +{static} parse(value) : Month
+  +isBefore(other) : boolean
+  +isAfter(other) : boolean
+  +toString() : string
+}
+
+Transaction "1" o-- "0..1" TransactionSplit : split
+Investment ..> InvestmentYieldCalculator : usa (servicio de dominio)
+RecurringRule "1" *-- "1" Month : activeFromMonth
+RecurringRule "1" *-- "0..1" Month : activeToMonth
+
+note as N1
+  Transaction e Investment validan invariantes en el constructor
+  salvo skipValidation = true (usado exclusivamente por
+  fromPersistence/fromDB al reconstruir desde la base de datos).
+
+  Money es el VO de dinero para transacciones/recurrentes (centavos).
+  Investment.principal/tna son number decimal nativo — NO pasan por
+  Money (ver docs/reglas-de-negocio.md §3.4).
+
+  Category/PaymentMethod no tienen validate() propio hoy — su única
+  regla de negocio (canBeDeleted) delega en isDefault; la regla de
+  "sin transacciones asociadas" vive en el UseCase (hasTransactions
+  vía repo), no en la entidad.
+end note
+
+@enduml

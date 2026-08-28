@@ -1,0 +1,29 @@
+@startuml clases-dto-transaction-summary
+!theme plain
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 250
+
+class SummaryGroupRow {
+  +kind : "income"|"expense"
+  +status : "pending"|"paid"
+  +total : number? "centavos, null si SUM sin filas"
+  +count : number? "null si COUNT sin filas"
+  ..
+  fila cruda agrupada por kind + status (repo)
+}
+class TransactionSummaryDTO {
+  +month : string "YYYY-MM"
+  +totalPaid : number "centavos, solo egresos"
+  +paidCount : number
+  +totalPending : number "centavos, solo egresos"
+  +pendingCount : number
+  +totalIncome : number "centavos, todo kind=income"
+  +incomeCount : number
+  +totalExpenses : number "centavos, todo kind=expense"
+  +expenseCount : number
+}
+
+SummaryGroupRow ..> TransactionSummaryDTO : buildTransactionSummary(rows, month)
+
+@enduml

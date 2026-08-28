@@ -1,0 +1,40 @@
+@startuml estado-recurring-rule
+!theme plain
+skinparam backgroundColor white
+skinparam wrapWidth 250
+
+[*] --> Vigente : create({ activeFromMonth, activeToMonth: null })
+
+Vigente --> Vigente : update() sin tocar activeToMonth\n(edita título/monto/día, no reescribe el pasado)
+Vigente --> Cerrada : update({ activeToMonth: mesActual })
+
+Cerrada --> [*]
+
+state "Nueva versión" as Nueva
+Cerrada --> Nueva : create({ activeFromMonth: mesSiguiente, ...cambios })
+Nueva --> Vigente : (la nueva fila es la regla "Vigente" desde ese momento)
+
+note right of Vigente
+  activeToMonth = NULL
+  Elegible para generación mensual
+  mientras targetMonth esté dentro
+  de [activeFromMonth, activeToMonth|∞]
+end note
+
+note right of Cerrada
+  Las transacciones ya generadas
+  con source_recurring_rule_id
+  apuntando a esta fila NO se tocan
+  (ON DELETE SET NULL si se borra la regla)
+end note
+
+note as N1
+  "Editar" una regla recurrente vigente que ya generó
+  transacciones en el pasado, en la práctica, significa:
+  cerrar la fila actual (activeToMonth = mes anterior al
+  cambio) y crear una fila nueva desde el mes del cambio
+  en adelante — nunca se reescribe activeFromMonth/datos
+  de una regla ya cerrada. Ver docs/reglas-de-negocio.md §3.3.
+end note
+
+@enduml

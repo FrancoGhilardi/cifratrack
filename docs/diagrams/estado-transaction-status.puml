@@ -1,0 +1,30 @@
+@startuml estado-transaction-status
+!theme plain
+skinparam backgroundColor white
+skinparam wrapWidth 250
+
+[*] --> paid : create() sin status\n(default)
+[*] --> pending : create({ status: "pending", dueOn: requerido })
+
+pending --> paid : markAsPaid(paidOn)
+paid --> paid : markAsPaid(paidOn)\n(idempotente, no-op de negocio)
+
+note right of pending
+  CHECK chk_tx_pending_due_on en DB:
+  status=pending exige due_on NOT NULL
+end note
+
+note right of paid
+  Solo relevante para egresos fijos
+  (isFixed=true) — el resto de las
+  transacciones nace y queda en "paid"
+end note
+
+note as N1
+  No hay transición paid -> pending en el dominio actual
+  (no existe método markAsPending() en Transaction);
+  revertir un pago requiere editar la transacción
+  con los datos correctos.
+end note
+
+@enduml

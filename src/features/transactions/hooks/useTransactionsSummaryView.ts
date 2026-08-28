@@ -9,8 +9,16 @@ export interface TransactionsSummary {
   paidCount: number;
   totalPending: number;
   pendingCount: number;
+  totalIncome: number;
+  incomeCount: number;
+  totalExpenses: number;
+  expenseCount: number;
   hasPaidTransactions: boolean;
   hasPendingTransactions: boolean;
+  hasIncome: boolean;
+  hasExpenses: boolean;
+  /** Porcentaje pagado sobre los egresos del mes. 0 si no hay egresos. */
+  paidShare: number;
 }
 
 /**
@@ -28,14 +36,25 @@ export function useTransactionsSummaryView(
     const paidCount = summary?.paidCount ?? 0;
     const totalPending = summary?.totalPending ?? 0;
     const pendingCount = summary?.pendingCount ?? 0;
+    const totalIncome = summary?.totalIncome ?? 0;
+    const incomeCount = summary?.incomeCount ?? 0;
+    const totalExpenses = summary?.totalExpenses ?? 0;
+    const expenseCount = summary?.expenseCount ?? 0;
 
     return {
       totalPaid,
       paidCount,
       totalPending,
       pendingCount,
+      totalIncome,
+      incomeCount,
+      totalExpenses,
+      expenseCount,
       hasPaidTransactions: paidCount > 0,
       hasPendingTransactions: pendingCount > 0,
+      hasIncome: incomeCount > 0,
+      hasExpenses: expenseCount > 0,
+      paidShare: totalExpenses > 0 ? (totalPaid / totalExpenses) * 100 : 0,
     };
   }, [summary]);
 }

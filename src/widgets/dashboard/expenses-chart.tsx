@@ -9,7 +9,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { BRAND_SERIF } from "@/shared/ui/brand-fonts";
 import { CategoryLedger } from "./category-ledger";
-import { getCategoryColor } from "./category-colors";
+import { getCategoryColor } from "@/shared/lib/category-colors";
 import type { ChartDataPoint } from "./category-pie-chart";
 
 const CategoryPieChart = dynamic(

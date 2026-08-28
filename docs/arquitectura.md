@@ -3,7 +3,7 @@
 > Documentación de arquitectura, infraestructura y ciclo de vida de un request.
 > `CLAUDE.md` apunta acá para contexto extendido. Mantener sincronizado con el código
 > en cada cambio que afecte capas, infraestructura o el pipeline de un request.
-> Última verificación contra código: 2026-07-16.
+> Última verificación contra código: 2026-08-28.
 
 ---
 
@@ -13,33 +13,9 @@ CifraTrack es una app de control financiero personal construida con **Next.js 16
 **TypeScript strict**, siguiendo **Clean Architecture / DDD por capas** con organización
 **Feature-Sliced**. No hay backend separado: los Route Handlers de Next.js son el backend.
 
-```mermaid
-flowchart LR
-    subgraph Client["Navegador"]
-        UI["React 19 (Client Components)\nTanStack Query + React Hook Form"]
-    end
+![Diagrama de capas de arquitectura](https://www.plantuml.com/plantuml/svg/RL5DKzim4BtxLsnpSYX9e0TccWD39g6G3e6GZuP3BekqiLNBahfQGw3J_zwn0zE4wSKZwxrz-zxJHHHagKeBoByg8wIaOkme31YJJv9JIH0i6fV4mhY0Z2KyeYeozfNJGsyzmtDkXFPmvSlW7JcPouibO5A2BhFx54qRhAmiQ2i3Qp9NaXDGv8HuZ_NC65P6ImvVJawInD96G3omoN81RMfXursI15G5PWIjMtoY3BNd5c24eJMrxEy4_bc2renG2Pn-XVGD7xvZiRrs2tHpGLN0VKNy0fzXHx_sle1ldij6U3bE_knlfQrqVqOuFOFq1x4Y2psuzPg0AoUcf7OpDIT-8lve9x3VldGbGbeQhIqz8rDxxGQLvBKcLf9xDg-aqpPaADH8JLOVClbA2AxHQKiSrmv3w64mlQEZ7jTGLs8pDvYE3mUNaOOOAQvTPDNR44h557j7lIgIge5Ttk772eEFHZoR_qmo1TyrPR3lIsUNqxk3laOeVWUDKB0fHAFW8qQ2rjH7oPZczpThbywhq5pl2fnU7J2N8Gh676QaJLoxb548h2cD69STWm_AU8Us_MPYD9uVfXXCnn5eAyGE8sY2abYXzckNbiW5IQVUTGonURTEDFhDn-N3eiwp74EdSmwJ5VHXGw9o-3w_kqqcg-QwhdemtL6MmsGvR4vD5_Md-PjUGHz6R5vVBS7TRD8CTBldExVG1vMJAcvyPjmCXMxgRBLIJRbyM40Vzep2-vCboGKvNPKs-Gi0)
 
-    subgraph Server["Next.js 16 (Vercel / Node runtime)"]
-        MW["proxy.ts (middleware)\nAuth.js authorized() gate"]
-        API["Route Handlers\napp/api/**/route.ts"]
-        UC["UseCases\nsrc/features/*/usecases"]
-        REPO["Repositories\nsrc/features/*/repo.impl.ts"]
-    end
-
-    subgraph Data["Datos"]
-        PG[("PostgreSQL\n(Supabase)")]
-        REDIS[("Upstash Redis\n(rate limiting, opcional)")]
-        EXT["APIs externas de mercado\n(market-data, server-side)"]
-    end
-
-    UI -- "fetch JSON" --> MW
-    MW --> API
-    API --> UC
-    UC --> REPO
-    REPO -- "Drizzle ORM" --> PG
-    API -. "checkLoginRateLimit" .-> REDIS
-    UC -. "market-data usecases" .-> EXT
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/arquitectura-capas.puml`](diagrams/arquitectura-capas.puml).*
 
 ---
 
@@ -65,43 +41,9 @@ Ver `docs/reglas-de-negocio.md` para las reglas de negocio concretas que estas c
 
 ## 3) Ciclo de vida de un request autenticado
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant MW as proxy.ts (middleware)
-    participant R as Route Handler
-    participant H as withApiHandler
-    participant U as UseCase
-    participant Repo as Repository (Drizzle)
-    participant DB as PostgreSQL
+![Diagrama de ciclo de vida de un request autenticado](https://www.plantuml.com/plantuml/svg/RLF1RkCs4BtpArxt906sPAJjnK3JZUEWRj5WjqxS08jS9kJKOasJof2AuopsO_e1FVNMQtwieAniuyKU11tcpNjlvWtVnaIIkgq3oNrd4-lK2Os5xpkEQUpi7wptsh7w9ZMyPRIEh5TnOtrBGblSaTwi9NJUd0SN1Bl69dvLZvd8Qxxa66dDPywkFJJxnF8AjHDgRwn93Kw-doZLaYIhRKi-uSrCmYwol055p8vBhOJ7VPNYhI-srXZ7En8kU-JbpJ5q6Rh4M90tRk1Q7WDsDZLdhNsDM1mZLf7FAN9VMdt1pcs8DWNPt_fYBlRfoGq-SkKO-px4j1Q--ktN7Z2VAJN3-1INDvZYfulh-lsxgslKrDew2Vb8EjdWeoANiEmIeNt-zyvPJIXg5zRMZr0BhsrCBAD37tMfAHKovNXyYYMcyFoOYXBHUkWcPn8KkyW3euJ4Qsjew1dCP9gYnCFptuIpBZNLdn653c5Z6R_SN6U5REhAUaIEzlaVhu3FgZDCyUta1CB62ki4mi7lZvgSotUp4lT3LLKAwAsSXw_o_Ey-0xrH-LjcamjCSHnRyH7t7Sj-XBjWzbUwuIsDq1oA-5IgnKlVCDlu5CAnO_V0w2BBpmQ6uUZ5oAqlVESrmR23TZOVxYkMbYGo7JHHuu6SDTHhGmUF3y7qiNq81jO_FF_bh0aAM7nUq7UJ2NxlktB85o91-lbwXHMcsPIco1K_ikuI5mUJ8_Jl9fPgzG8Sj8NNZc8UmlCwQ1jkVP6Q_8Gm3rko1utw2ys19nyhfX1kGwM5AN7TjIR_d8sfgAggL3rcV8fvjdyOV3Xu5BqfJcAVo52fvhD3W0DhsCMXUx1yuPCrr6_SXAtrDcGRmsg_KkoNai_X9T0jjKmWpA_VvOiOTdeocU0ZmcQA91sFO2WHFg48cvf5Cg5mR8EFNALOAlMMlUcsJlq7)
 
-    B->>MW: GET/POST /api/transactions
-    alt Ruta pública (/login, /register, /api/auth)
-        MW-->>R: next() sin chequeo
-    else Ruta protegida
-        MW->>MW: auth() vía Auth.js (cookie JWT)
-        alt Sin sesión
-            MW-->>B: 302 redirect a /login?callbackUrl=...
-        else Con sesión
-            MW-->>R: next()
-        end
-    end
-    R->>H: withApiHandler({ query, bodySchema, handler })
-    H->>H: auth() → resuelve userId de la sesión (nunca del cliente)
-    H->>H: parsea query / valida body con Zod
-    alt Zod inválido
-        H-->>B: 400 ValidationError
-    end
-    H->>U: usecase.execute(userId, params)
-    U->>U: valida reglas de negocio (throws DomainError/ValidationError)
-    U->>Repo: repo.create/update/list(...)
-    Repo->>DB: query Drizzle (parametrizada)
-    DB-->>Repo: rows
-    Repo-->>U: Entidad de dominio
-    U-->>H: Entidad de dominio
-    H->>R: handler mapea a DTO
-    R-->>B: 200 { ok: true, data } (ok/err de response.ts)
-```
+*Diagrama PlantUML — fuente editable: [`docs/diagrams/arquitectura-request-lifecycle.puml`](diagrams/arquitectura-request-lifecycle.puml).*
 
 `withApiHandler` (`src/shared/lib/api-handler.ts`) centraliza: chequeo de sesión (salvo `public: true`),
 parseo de `query`/`body`, y el `try/catch` uniforme (`ZodError` → `ValidationError` 400,
@@ -198,8 +140,12 @@ Widgets nuevos en `src/widgets/dashboard/` (reemplazan a `SummaryCards`, **elimi
   decorativa/`aria-hidden`, relee tokens de color en cada frame para seguir el tema).
 - `FlowTiles` — dos tiles (ingresos/egresos) con su proporción sobre el movimiento total del mes.
 - `CategoryLedger` — filas de libro mayor por categoría (punto de color, importe mono, hairline de proporción).
-- `category-colors.ts` — rampa de 8 colores de categoría (`getCategoryColor(index)`), como referencias a
-  tokens CSS (`var(--app-cat-N)`), consumida tanto por `CategoryLedger` como por `CategoryPieChart`.
+
+`src/shared/lib/category-colors.ts` — rampa de 8 colores de categoría (`getCategoryColor(index)`), como
+referencias a tokens CSS (`var(--app-cat-N)`). Vive en `shared/lib/` (mudado desde `widgets/dashboard/`) porque
+la consumen tanto los widgets del panel (`CategoryLedger`, `ExpensesChart`/`CategoryPieChart`) como el feature
+de movimientos (`transaction-filters-bar.tsx`, `transactions-ledger.tsx`, `transaction-card-list.tsx`) — un
+feature no puede importar un widget, así que la utilidad compartida se subió a `shared/`.
 
 **Paleta con scope de app**: la superficie del menú lateral (clara en tema claro, tinta oscura en tema oscuro
 — a diferencia del panel de auth, que es oscuro en ambos temas), los semánticos de signo (`--app-pos`/`--app-neg`)
@@ -209,6 +155,39 @@ y la rampa de categorías viven en tokens `--app-*` (`app/globals.css`, `:root` 
 **Lógica pura del feature**: `src/features/dashboard/lib/` es la ubicación de la lógica de negocio pura del
 feature dashboard, testeable sin DB/React (vitest `environment: node`) — hoy contiene `balance-series.ts`
 (`buildBalanceSeries`, ver `docs/reglas-de-negocio.md` §3.7).
+
+### 5.3) UI de movimientos (`/transactions`)
+
+Continúa la estética del acceso y el panel (serif, mono en versalitas, mono tabular, hairlines en vez de
+cajas) en `src/features/transactions/ui/`:
+
+- `TransactionSummaryStrip` — tira de 4 métricas del mes (Ingresos, Egresos, Pagado, Pendiente) con barra de
+  proporción pagado/pendiente. Reemplaza a `TransactionSummaryCards` (**eliminado**).
+- `TransactionFiltersBar` — barra de filtros: búsqueda, `SegmentedToggle` para tipo/estado, select de forma de
+  pago, chips de categoría con color de la rampa. El mes ya no vive acá (pasó al encabezado, ver más abajo).
+  Reemplaza a `TransactionFilters` (**eliminado**).
+- `TransactionsLedger` (desktop, `md+`) — libro mayor: hairlines, cabecera ordenable con `aria-sort`, una sola
+  columna de importe con signo + color por token (`getAmountTone`/`getAmountSign`, exportados desde acá).
+- `TransactionCardList` (mobile, `<md`) — mismo lenguaje que el libro mayor en fichas, reusa
+  `getAmountTone`/`getAmountSign` de `TransactionsLedger`.
+- `TransactionsTable` — contenedor delgado que elige `TransactionsLedger` o `TransactionCardList` según
+  breakpoint; conserva la firma de props histórica para no acoplar la página a la implementación interna.
+- `transactions-skeleton.tsx` — `TransactionSummaryStripSkeleton` / `TransactionsLedgerSkeleton`, con la forma
+  real del contenido (no placeholders genéricos).
+
+**Lógica pura del feature**: `src/features/transactions/lib/transaction-summary.ts` —
+`buildTransactionSummary(rows, month)` reduce filas agrupadas por `kind`+`status` a `TransactionSummaryDTO`
+(ver `docs/reglas-de-negocio.md` §3.1 y `docs/diagramas-clases.md`), testeable sin DB.
+
+**Navegación de mes controlada por URL**: `src/shared/lib/hooks/useControlledMonthNavigation.ts` — variante de
+`useMonthNavigation` (panel, estado local) para pantallas donde el mes vive afuera del hook (la URL, vía
+`useTableParams`). Comparte `formatMonthLabel` (`src/shared/lib/utils/month-label.ts`) con el hook de estado
+local para no duplicar el formateo "agosto 2026". El encabezado de `/transactions` combina este hook con
+`MonthSelector` (mismo componente que usa el panel).
+
+**Token de estado pendiente**: `--app-pend` (`app/globals.css`, junto a `--app-pos`/`--app-neg`) — semántico de
+signo para "todavía no" (egresos con `status: "pending"`), distinto del arcilla de egreso (`--app-neg`) y
+afinado para contraste AA en ambos temas (`text-app-pend` sobre `bg-card`).
 
 ---
 

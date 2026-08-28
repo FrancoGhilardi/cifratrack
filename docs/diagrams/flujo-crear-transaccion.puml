@@ -1,0 +1,35 @@
+@startuml flujo-crear-transaccion
+!theme plain
+skinparam backgroundColor white
+skinparam wrapWidth 250
+
+participant "Browser" as B
+participant "POST /api/transactions" as R
+participant "UpsertTransactionUseCase" as UC
+participant "TransactionRepository" as Repo
+participant "PostgreSQL (transacción)" as DB
+
+B -> R : { title, amount, kind, split: [{categoryId, allocatedAmount}, ...] }
+R -> UC : create(userId, data)
+alt sin split
+  UC --> R : throw ValidationError("Debe especificar al menos una categoría")
+end
+UC -> UC : validateSplits(amount, split)\n(suma == amount, sin duplicados, montos > 0)
+alt suma no coincide
+  UC --> R : throw ValidationError
+end
+UC -> Repo : create(userId, data)
+Repo -> DB : BEGIN
+Repo -> DB : SELECT categories/payment_methods WHERE id IN (...) AND user_id = $userId
+alt algún id no pertenece al usuario
+  DB --> Repo : menos filas de las esperadas
+  Repo --> UC : throw ValidationError (rollback)
+end
+Repo -> DB : INSERT transactions
+Repo -> DB : INSERT transaction_categories (splits)
+Repo -> DB : COMMIT
+Repo --> UC : TransactionWithNames
+UC --> R : TransactionWithNames
+R --> B : 201 { ok: true, data: TransactionDTO }
+
+@enduml

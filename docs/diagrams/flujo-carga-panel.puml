@@ -1,0 +1,45 @@
+@startuml flujo-carga-panel
+!theme plain
+skinparam backgroundColor white
+skinparam wrapWidth 250
+
+participant "Browser\n(DashboardPageClient)" as B
+participant "useDashboardSummary" as SQ
+participant "GET /api/dashboard/summary" as SR
+participant "GenerateMonthlyRecurringTransactionsUseCase" as GenUC
+participant "GetDashboardSummaryUseCase" as SumUC
+participant "useBalanceSeries" as BQ
+participant "GET /api/dashboard/balance-series" as BR
+participant "GetBalanceSeriesUseCase" as BalUC
+participant "DashboardRepository" as Repo
+
+par En paralelo (TanStack Query)
+  B -> SQ : useDashboardSummary(month)
+  SQ -> SR : GET ?month=YYYY-MM
+  SR -> GenUC : execute({ userId, month })\n(genera recurrentes del mes, idempotente)
+  GenUC --> SR : void
+  SR -> SumUC : execute(userId, month)
+  SumUC --> SR : DashboardSummaryDTO
+  SR --> SQ : 200 { ok: true, data }
+  SQ --> B : summary
+else
+  B -> BQ : useBalanceSeries(month)
+  BQ -> BR : GET ?month=YYYY-MM
+  BR -> BalUC : execute(userId, month)
+  BalUC -> Repo : getDailyFlowByMonth(userId, month)
+  Repo --> BalUC : DailyFlowRow[] (solo días con movimientos)
+  BalUC -> BalUC : buildBalanceSeries(month, rows)\n(rellena días, acumula, min/max/closing)
+  BalUC --> BR : BalanceSeriesDTO
+  BR --> BQ : 200 { ok: true, data }
+  BQ --> B : series
+end
+B -> B : BalanceHero(summary, series) + FlowTiles(summary) + ExpensesChart(summary)
+
+note over B, Repo
+  GET /api/dashboard/balance-series NO dispara
+  GenerateMonthlyRecurringTransactionsUseCase: ya lo hace
+  /summary en paralelo, así que duplicarlo sería trabajo
+  redundante. Ver docs/reglas-de-negocio.md §3.7.
+end note
+
+@enduml

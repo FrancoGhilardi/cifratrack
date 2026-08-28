@@ -1,0 +1,32 @@
+@startuml flujo-registro
+!theme plain
+skinparam backgroundColor white
+skinparam wrapWidth 250
+
+participant "Browser" as B
+participant "POST /api/auth/register" as R
+participant "RegisterUserUseCase" as UC
+participant "PostgreSQL (transacción)" as DB
+
+B -> R : { email, password, username? }
+R -> UC : execute(input)
+UC -> DB : emailExists(email)?
+alt Email ya registrado
+  DB --> UC : true
+  UC --> R : throw ConflictError
+else Email libre
+  UC -> DB : BEGIN
+  UC -> DB : INSERT users (password hasheado con bcrypt)
+  UC -> DB : INSERT categories (DEFAULT_CATEGORIES, isDefault=true)
+  UC -> DB : INSERT payment_methods (DEFAULT_PAYMENT_METHODS, isDefault=true)
+  UC -> DB : COMMIT
+  note over UC, DB
+    si una constraint única falla en el commit
+    (race condition), se relanza como ConflictError
+  end note
+  DB --> UC : User
+  UC --> R : User
+  R --> B : 201 { ok: true, data: UserDTO }
+end
+
+@enduml

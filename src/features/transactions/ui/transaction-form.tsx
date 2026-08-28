@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
+import { SegmentedToggle } from "@/shared/ui/segmented-toggle";
 
 import { CategorySplitInput } from "./category-split-input";
 import { type TransactionDTO } from "../mappers/transaction.mapper";
@@ -68,6 +69,19 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+const KIND_OPTIONS = [
+  { value: "income", label: "Ingreso" },
+  { value: "expense", label: "Egreso" },
+] as const;
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+      {children}
+    </span>
+  );
+}
 
 interface TransactionFormProps {
   transaction?: TransactionDTO;
@@ -224,14 +238,8 @@ export function TransactionForm({
         onSubmit={form.handleSubmit(handleFormSubmit)}
         className="space-y-5"
       >
-        <section className="space-y-4 rounded-xl border bg-card/60 p-4 sm:p-5">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold">Detalle del movimiento</h3>
-            <p className="text-sm text-muted-foreground">
-              Define el tipo, el nombre y una referencia breve para este
-              movimiento.
-            </p>
-          </div>
+        <section className="space-y-4 border-t border-border/60 pt-5 first:border-t-0 first:pt-0">
+          <SectionLabel>Datos</SectionLabel>
 
           <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
             <FormField
@@ -241,19 +249,13 @@ export function TransactionForm({
                 <FormItem>
                   <FormLabel>Tipo de movimiento</FormLabel>
                   <FormControl>
-                    <Select
+                    <SegmentedToggle
                       value={field.value}
-                      onValueChange={field.onChange}
+                      onChange={field.onChange}
+                      options={KIND_OPTIONS}
+                      ariaLabel="Tipo de movimiento"
                       disabled={isEdit}
-                    >
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Selecciona el tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="income">Ingreso</SelectItem>
-                        <SelectItem value="expense">Egreso</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -298,13 +300,8 @@ export function TransactionForm({
           />
         </section>
 
-        <section className="space-y-4 rounded-xl border bg-card/60 p-4 sm:p-5">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold">Monto y medio</h3>
-            <p className="text-sm text-muted-foreground">
-              Carga el importe y, si corresponde, la forma de pago asociada.
-            </p>
-          </div>
+        <section className="space-y-4 border-t border-border/60 pt-5">
+          <SectionLabel>Importe y pago</SectionLabel>
 
           <div className="grid gap-4 md:grid-cols-2">
             <FormField
@@ -319,7 +316,7 @@ export function TransactionForm({
                       step="0.01"
                       inputMode="decimal"
                       placeholder="0.00"
-                      className="h-11"
+                      className="h-11 text-right font-mono tabular-nums"
                       {...field}
                     />
                   </FormControl>
@@ -382,13 +379,8 @@ export function TransactionForm({
           )}
         </section>
 
-        <section className="space-y-4 rounded-xl border bg-card/60 p-4 sm:p-5">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold">Fechas y estado</h3>
-            <p className="text-sm text-muted-foreground">
-              Define cuándo ocurrió el movimiento y su seguimiento si aplica.
-            </p>
-          </div>
+        <section className="space-y-4 border-t border-border/60 pt-5">
+          <SectionLabel>Fechas y estado</SectionLabel>
 
           <div
             className={cn(
@@ -471,13 +463,8 @@ export function TransactionForm({
           </div>
         </section>
 
-        <section className="space-y-4 rounded-xl border bg-card/60 p-4 sm:p-5">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold">Categorías</h3>
-            <p className="text-sm text-muted-foreground">
-              Asigna el monto completo o distribúyelo entre varias categorías.
-            </p>
-          </div>
+        <section className="space-y-4 border-t border-border/60 pt-5">
+          <SectionLabel>Categorías</SectionLabel>
 
           <FormField
             control={form.control}

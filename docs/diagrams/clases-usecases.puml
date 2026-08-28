@@ -1,0 +1,119 @@
+@startuml clases-usecases
+!theme plain
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 250
+
+class "ListUseCase<T>" as ListUseCase {
+  <<generic base>>
+  -repo : ListRepo
+  --
+  +execute(userId, filters?) : TResult
+}
+class "GetByIdUseCase<T>" as GetByIdUseCase {
+  <<generic base>>
+  -repo : FindByIdRepo
+  -resourceLabel : string
+  --
+  +execute(id, userId) : TEntity
+  ..
+  throws NotFoundError si no existe
+}
+class DeleteUseCase {
+  <<generic base>>
+  -repo : DeleteRepo
+  --
+  +execute(id, userId) : void
+}
+
+class UpsertTransactionUseCase {
+  -repository : ITransactionRepository
+  --
+  +create(userId, data) : TransactionWithNames
+  +update(id, userId, data) : TransactionWithNames
+  -validateSplits(amount, splits) : void
+}
+class DeleteTransactionUseCase
+class ListTransactionsUseCase
+class GetTransactionByIdUseCase
+class GetTransactionsSummaryUseCase
+
+class UpsertRecurringRuleUseCase
+class DeleteRecurringRuleUseCase
+class ListRecurringRulesUseCase
+class GetRecurringRuleByIdUseCase
+class GenerateMonthlyRecurringTransactionsUseCase {
+  -repo : IRecurringRuleRepository
+  --
+  +execute(userId, month) : void
+  ..
+  idempotente: filtra reglas ya generadas
+}
+
+class UpsertCategoryUseCase {
+  bloquea edición si isDefault
+}
+class DeleteCategoryUseCase {
+  bloquea si isDefault o hasTransactions
+}
+class ListCategoriesUseCase
+class GetCategoryByIdUseCase
+
+class UpsertPaymentMethodUseCase {
+  bloquea edición si isDefault
+}
+class DeletePaymentMethodUseCase {
+  bloquea si isDefault o hasTransactions
+}
+class ListPaymentMethodsUseCase
+class GetPaymentMethodByIdUseCase
+
+class UpsertInvestmentUseCase
+class DeleteInvestmentUseCase
+class ListInvestmentsUseCase
+class GetInvestmentByIdUseCase
+
+class AuthenticateUserUseCase {
+  -userRepository : IUserRepository
+  --
+  +execute(input) : User
+  ..
+  mitiga timing attack con hash dummy
+}
+class RegisterUserUseCase {
+  inserta seeds de categorías/formas de pago
+}
+class ChangePasswordUseCase
+class GetProfileUseCase
+class UpdateProfileUseCase
+
+class GetDashboardSummaryUseCase
+class GetBalanceSeriesUseCase {
+  -dashboardRepository : IDashboardRepository
+  --
+  +execute(userId, month) : BalanceSeriesDTO
+  ..
+  delega el relleno/acumulado en
+  buildBalanceSeries (función pura)
+}
+class GetLiveYieldsUseCase
+
+DeleteUseCase <|-- DeleteTransactionUseCase : podría extender\n(hoy clase propia por reglas futuras)
+GetByIdUseCase <|-- GetTransactionByIdUseCase
+ListUseCase <|-- ListTransactionsUseCase
+
+UpsertTransactionUseCase --> ITransactionRepository
+GenerateMonthlyRecurringTransactionsUseCase --> IRecurringRuleRepository
+AuthenticateUserUseCase --> IUserRepository
+GetBalanceSeriesUseCase --> IDashboardRepository
+
+note as N1
+  El diagrama muestra la intención arquitectónica (ListUseCase/GetByIdUseCase/
+  DeleteUseCase genéricos para passthrough puro, ver src/shared/lib/usecases/).
+  Antes de asumir que un UseCase concreto extiende la base genérica, verificar
+  el archivo — los que tienen reglas de negocio propias (Upsert*, Delete* de
+  categorías/formas de pago, GenerateMonthly*) están escritos como clase
+  independiente, sin herencia.
+end note
+
+@enduml

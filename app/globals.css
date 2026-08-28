@@ -60,6 +60,8 @@
   /* Semánticos de signo (independientes del acento de marca) */
   --app-pos: oklch(0.52 0.09 168);
   --app-neg: oklch(0.56 0.1 45);
+  /* Estado pendiente: ni positivo ni negativo, es "todavía no" */
+  --app-pend: oklch(0.57 0.13 80);
 
   /* Rampa de categorías (gráficos y listas) */
   --app-cat-1: oklch(0.52 0.09 168);
@@ -123,6 +125,7 @@
 
   --app-pos: oklch(0.78 0.13 165);
   --app-neg: oklch(0.77 0.09 40);
+  --app-pend: oklch(0.8 0.1 80);
 
   --app-cat-1: oklch(0.73 0.12 168);
   --app-cat-2: oklch(0.75 0.07 250);
@@ -217,6 +220,7 @@ textarea::placeholder {
   --color-app-nav-accent: var(--app-nav-accent);
   --color-app-pos: var(--app-pos);
   --color-app-neg: var(--app-neg);
+  --color-app-pend: var(--app-pend);
   --color-app-cat-1: var(--app-cat-1);
   --color-app-cat-2: var(--app-cat-2);
   --color-app-cat-3: var(--app-cat-3);

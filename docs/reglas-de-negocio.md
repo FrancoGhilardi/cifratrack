@@ -2,7 +2,7 @@
 
 > Documentación exhaustiva de dominio, arquitectura y convenciones. `CLAUDE.md` apunta acá
 > para contexto extendido — mantener sincronizado con el código, no con la intención original.
-> Última verificación contra código: 2026-07-16.
+> Última verificación contra código: 2026-08-28.
 
 ---
 
@@ -44,6 +44,11 @@ Para passthrough puro (`list`, `get-by-id`, `delete` sin reglas propias) extende
 - `TransactionSplit` (VO en `src/entities/transaction/model/transaction-split.vo.ts`) valida que la suma de `allocatedAmount` coincida con el monto total de la transacción, sin categorías duplicadas ni montos ≤ 0.
 - Los `categoryId`/`paymentMethodId` que llegan del cliente deben pertenecer al usuario de la sesión (aislamiento multi-tenant) — las FKs solo garantizan existencia, no ownership.
 - Respuesta de error uniforme para "no existe" y "existe pero es de otro usuario" (no filtrar cuál de los dos casos ocurrió).
+- **Resumen del mes (`GET /api/transactions/summary?month=YYYY-MM`, `TransactionSummaryDTO`):** todos los montos en centavos.
+  - `totalPaid`/`paidCount` y `totalPending`/`pendingCount` son **solo egresos** (semántica histórica: "deuda del usuario"). Un ingreso con `status: "pending"` nunca se cuenta acá.
+  - `totalIncome`/`incomeCount` y `totalExpenses`/`expenseCount` son los totales del mes por tipo (`kind`), sin filtrar por `status`.
+  - La agregación vive en `buildTransactionSummary` (`src/features/transactions/lib/transaction-summary.ts`), función pura que reduce filas `{ kind, status, total, count }` agrupadas por `kind` + `status` — la separa de la query de Drizzle para poder testearla sin DB.
+  - Este endpoint **no** dispara la generación de recurrentes del mes (a diferencia de otras vistas que sí la disparan al entrar); es una lectura pura sobre `transactions`.
 
 ### 3.2 Categorías y formas de pago
 - Tienen flag `isDefault` (seeds por usuario) y no pueden editarse el nombre/tipo si `isDefault === true` (`upsert-*.usecase.ts` lo bloquea).
@@ -103,7 +108,7 @@ GET    /api/dashboard/summary?month=YYYY-MM
 GET    /api/dashboard/balance-series?month=YYYY-MM
 GET/POST        /api/transactions
 GET/PATCH/DELETE /api/transactions/:id
-GET    /api/transactions/summary
+GET    /api/transactions/summary?month=YYYY-MM
 GET/POST        /api/categories
 GET/PATCH/DELETE /api/categories/:id
 GET/POST        /api/payment-methods
