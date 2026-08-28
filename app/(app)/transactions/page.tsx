@@ -5,7 +5,7 @@ import {
   useTransactionsSummaryQuery,
 } from "@/features/transactions/hooks";
 import { TransactionsTable } from "@/features/transactions/ui/transactions-table";
-import { TransactionFilters } from "@/features/transactions/ui/transaction-filters";
+import { TransactionFiltersBar } from "@/features/transactions/ui/transaction-filters-bar";
 import { TransactionDialog } from "@/features/transactions/ui/transaction-dialog";
 import { TransactionSummaryStrip } from "@/features/transactions/ui/transaction-summary-strip";
 import { useTransactionMutations } from "@/features/transactions/hooks/useTransactionMutations";
@@ -98,9 +98,8 @@ export default function TransactionsPage() {
       )}
 
       {/* Filtros */}
-      <div className="rounded-lg border bg-card p-4">
-        <TransactionFilters
-          month={params.month}
+      <div className="border-y border-border/60 py-3">
+        <TransactionFiltersBar
           kind={params.kind}
           status={params.status}
           paymentMethodId={params.paymentMethodId}

@@ -2,16 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchDebounce } from "@/shared/lib/hooks/useSearchDebounce";
-import {
-  ChevronDown,
-  ChevronUp,
-  Search,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
 import {
   Select,
   SelectContent,
@@ -19,21 +12,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
-import { Badge } from "@/shared/ui/badge";
+import { SegmentedToggle } from "@/shared/ui/segmented-toggle";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
-import { Month } from "@/shared/lib/date";
+import { getCategoryColor } from "@/shared/lib/category-colors";
 import { cn } from "@/shared/lib/utils";
 
-export interface TransactionFiltersProps {
-  month?: string;
+export interface TransactionFiltersBarProps {
   kind?: "income" | "expense";
   status?: "pending" | "paid";
   paymentMethodId?: string;
   categoryIds?: string[];
   q?: string;
   onFiltersChange: (filters: {
-    month?: string;
     kind?: "income" | "expense";
     status?: "pending" | "paid";
     paymentMethodId?: string;
@@ -43,8 +34,19 @@ export interface TransactionFiltersProps {
   onReset: () => void;
 }
 
-export function TransactionFilters({
-  month,
+const KIND_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "income", label: "Ingresos" },
+  { value: "expense", label: "Egresos" },
+] as const;
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "paid", label: "Pagado" },
+  { value: "pending", label: "Pendiente" },
+] as const;
+
+export function TransactionFiltersBar({
   kind,
   status,
   paymentMethodId,
@@ -52,7 +54,7 @@ export function TransactionFilters({
   q,
   onFiltersChange,
   onReset,
-}: TransactionFiltersProps) {
+}: TransactionFiltersBarProps) {
   const { data: incomeCategories } = useCategories({ kind: "income" });
   const { data: expenseCategories } = useCategories({ kind: "expense" });
   const { data: paymentMethods } = usePaymentMethods({ isActive: true });
@@ -64,13 +66,6 @@ export function TransactionFilters({
       : kind === "expense"
         ? expenseCategories || []
         : [...(incomeCategories || []), ...(expenseCategories || [])];
-
-  const handleMonthChange = useCallback(
-    (newMonth: string) => {
-      onFiltersChange({ month: newMonth });
-    },
-    [onFiltersChange],
-  );
 
   const handleKindChange = useCallback(
     (newKind: string) => {
@@ -171,57 +166,45 @@ export function TransactionFilters({
   const advancedFiltersVisible =
     showAdvancedFilters || advancedFiltersCount > 0;
 
-  const renderMainFilters = (showMonth: boolean) => (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {showMonth && (
-        <div className="min-w-0 space-y-2">
-          <Label htmlFor="transactions-month">Mes</Label>
-          <Input
-            id="transactions-month"
-            type="month"
-            value={month || Month.current().toString()}
-            onChange={(e) => handleMonthChange(e.target.value)}
-            className="h-11 w-full min-w-0"
-          />
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label>Tipo</Label>
-        <Select value={kind || "all"} onValueChange={handleKindChange}>
-          <SelectTrigger className="h-11">
-            <SelectValue placeholder="Todos los tipos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los tipos</SelectItem>
-            <SelectItem value="income">Ingresos</SelectItem>
-            <SelectItem value="expense">Egresos</SelectItem>
-          </SelectContent>
-        </Select>
+  const renderSegmentedFilters = () => (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          Tipo
+        </span>
+        <SegmentedToggle
+          value={kind ?? "all"}
+          onChange={handleKindChange}
+          options={KIND_OPTIONS}
+          ariaLabel="Filtrar por tipo de movimiento"
+        />
       </div>
 
-      <div className="space-y-2">
-        <Label>Estado</Label>
-        <Select value={status || "all"} onValueChange={handleStatusChange}>
-          <SelectTrigger className="h-11">
-            <SelectValue placeholder="Todos los estados" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="pending">Pendiente</SelectItem>
-            <SelectItem value="paid">Pagado</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          Estado
+        </span>
+        <SegmentedToggle
+          value={status ?? "all"}
+          onChange={handleStatusChange}
+          options={STATUS_OPTIONS}
+          ariaLabel="Filtrar por estado"
+        />
       </div>
 
-      <div className="space-y-2">
-        <Label>Forma de pago</Label>
+      <div className="flex min-w-[13rem] items-center gap-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          Pago
+        </span>
         <Select
           value={paymentMethodId || "all"}
           onValueChange={handlePaymentMethodChange}
         >
-          <SelectTrigger className="h-11">
-            <SelectValue placeholder="Todas las formas" />
+          <SelectTrigger
+            className="h-9 rounded-full text-[13px]"
+            aria-label="Filtrar por forma de pago"
+          >
+            <SelectValue placeholder="Todas" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las formas</SelectItem>
@@ -238,155 +221,176 @@ export function TransactionFilters({
 
   return (
     <div className="space-y-4">
-      {/* Barra de búsqueda y reset */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      {/* Búsqueda + reset */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por título o descripción..."
+            placeholder="Buscar por título o descripción"
             value={searchValue}
             onChange={handleSearchChange}
-            className="h-11 pl-9"
+            aria-label="Buscar movimientos"
+            className="h-10 rounded-full pl-9 text-[13.5px]"
           />
         </div>
+
         {activeFiltersCount > 0 && (
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
             onClick={onReset}
-            className="h-11 w-full sm:w-auto"
+            className="h-10 shrink-0 rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground"
           >
-            <X className="h-4 w-4 mr-1" />
+            <X className="h-3.5 w-3.5" />
             Limpiar ({activeFiltersCount})
           </Button>
         )}
       </div>
 
-      <div className="grid gap-3 md:hidden">
-        <div className="min-w-0 space-y-2">
-          <Label htmlFor="transactions-month-mobile">Mes</Label>
-          <Input
-            id="transactions-month-mobile"
-            type="month"
-            value={month || Month.current().toString()}
-            onChange={(e) => handleMonthChange(e.target.value)}
-            className="h-11 w-full min-w-0"
-          />
-        </div>
+      {/* Disclosure mobile */}
+      <div className="md:hidden">
         <Button
           type="button"
           variant="outline"
           onClick={() => setShowAdvancedFilters((current) => !current)}
-          className="flex h-11 w-full items-center justify-between px-3"
+          className="flex h-10 w-full items-center justify-between rounded-full px-3"
         >
-          <span className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4" />
+          <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.1em]">
+            <SlidersHorizontal className="h-3.5 w-3.5" />
             Filtros avanzados
             {advancedFiltersCount > 0 && (
-              <Badge variant="secondary" className="ml-1">
+              <span className="rounded-full bg-app-nav-active px-1.5 py-0.5 text-app-nav-accent">
                 {advancedFiltersCount}
-              </Badge>
+              </span>
             )}
           </span>
           {advancedFiltersVisible ? (
-            <ChevronUp className="h-4 w-4" />
+            <ChevronUp className="h-3.5 w-3.5" />
           ) : (
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-3.5 w-3.5" />
           )}
         </Button>
       </div>
 
-      <div className="hidden md:block">{renderMainFilters(true)}</div>
-
+      {/* Segmentados: siempre visibles en desktop, en disclosure en mobile */}
+      <div className="hidden md:block">{renderSegmentedFilters()}</div>
       <div
         className={cn(
-          "space-y-4 border-t pt-4 md:border-0 md:pt-0",
-          !advancedFiltersVisible && "hidden md:block",
+          "space-y-4 border-t border-border/60 pt-4 md:hidden",
+          !advancedFiltersVisible && "hidden",
         )}
       >
-        <div className="md:hidden">{renderMainFilters(false)}</div>
-
-        {/* Filtro de categorías (multi-select con badges) */}
-        {availableCategories.length > 0 && (
-          <div className="space-y-2">
-            <Label>Categorías</Label>
-            <div className="flex flex-wrap gap-2">
-              {availableCategories.map((category) => {
-                const isSelected = categoryIds.includes(category.id);
-                return (
-                  <Badge
-                    key={category.id}
-                    variant={isSelected ? "default" : "outline"}
-                    className="cursor-pointer px-3 py-1 hover:opacity-80 transition-opacity"
-                    onClick={() => handleCategoryToggle(category.id)}
-                  >
-                    {category.name}
-                    {isSelected && <X className="h-3 w-3 ml-1" />}
-                  </Badge>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {renderSegmentedFilters()}
       </div>
+
+      {/* Categorías: chips con color de la rampa */}
+      {availableCategories.length > 0 && (
+        <div
+          className={cn(
+            "flex flex-wrap gap-2",
+            !advancedFiltersVisible && "hidden md:flex",
+          )}
+        >
+          {availableCategories.map((category, index) => {
+            const isSelected = categoryIds.includes(category.id);
+            const color = getCategoryColor(index);
+
+            return (
+              <button
+                key={category.id}
+                type="button"
+                role="checkbox"
+                aria-checked={isSelected}
+                onClick={() => handleCategoryToggle(category.id)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition-colors",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-nav-accent)]",
+                  isSelected
+                    ? "border-transparent bg-app-nav-active text-app-nav-accent"
+                    : "border-border/70 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-2 w-2 shrink-0 rounded-[2px]"
+                  style={{ background: color }}
+                />
+                {category.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Chips de filtros activos */}
       {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap gap-2 border-t pt-3">
+        <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
           {kind && (
-            <Badge variant="secondary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-app-nav-active px-2.5 py-1 font-mono text-[10.5px] text-app-nav-accent">
               {kind === "income" ? "Ingresos" : "Egresos"}
               <button
+                type="button"
                 onClick={() => onFiltersChange({ kind: undefined })}
-                className="ml-1 hover:text-destructive"
+                aria-label={`Quitar filtro: ${kind === "income" ? "Ingresos" : "Egresos"}`}
+                className="hover:text-app-neg"
               >
                 <X className="h-3 w-3" />
               </button>
-            </Badge>
+            </span>
           )}
           {status && (
-            <Badge variant="secondary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-app-nav-active px-2.5 py-1 font-mono text-[10.5px] text-app-nav-accent">
               {status === "pending" ? "Pendiente" : "Pagado"}
               <button
+                type="button"
                 onClick={() => onFiltersChange({ status: undefined })}
-                className="ml-1 hover:text-destructive"
+                aria-label={`Quitar filtro: ${status === "pending" ? "Pendiente" : "Pagado"}`}
+                className="hover:text-app-neg"
               >
                 <X className="h-3 w-3" />
               </button>
-            </Badge>
+            </span>
           )}
           {paymentMethodId && (
-            <Badge variant="secondary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-app-nav-active px-2.5 py-1 font-mono text-[10.5px] text-app-nav-accent">
               {getPaymentMethodName(paymentMethodId)}
               <button
+                type="button"
                 onClick={() => onFiltersChange({ paymentMethodId: undefined })}
-                className="ml-1 hover:text-destructive"
+                aria-label={`Quitar filtro: ${getPaymentMethodName(paymentMethodId)}`}
+                className="hover:text-app-neg"
               >
                 <X className="h-3 w-3" />
               </button>
-            </Badge>
+            </span>
           )}
           {categoryIds.map((categoryId) => (
-            <Badge key={categoryId} variant="secondary">
+            <span
+              key={categoryId}
+              className="inline-flex items-center gap-1 rounded-full bg-app-nav-active px-2.5 py-1 font-mono text-[10.5px] text-app-nav-accent"
+            >
               {getCategoryName(categoryId)}
               <button
+                type="button"
                 onClick={() => handleCategoryToggle(categoryId)}
-                className="ml-1 hover:text-destructive"
+                aria-label={`Quitar filtro: ${getCategoryName(categoryId)}`}
+                className="hover:text-app-neg"
               >
                 <X className="h-3 w-3" />
               </button>
-            </Badge>
+            </span>
           ))}
           {q && (
-            <Badge variant="secondary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-app-nav-active px-2.5 py-1 font-mono text-[10.5px] text-app-nav-accent">
               Búsqueda: &quot;{q}&quot;
               <button
+                type="button"
                 onClick={() => onFiltersChange({ q: undefined })}
-                className="ml-1 hover:text-destructive"
+                aria-label={`Quitar filtro de búsqueda: ${q}`}
+                className="hover:text-app-neg"
               >
                 <X className="h-3 w-3" />
               </button>
-            </Badge>
+            </span>
           )}
         </div>
       )}
