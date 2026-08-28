@@ -7,7 +7,7 @@ import {
 import { TransactionsTable } from "@/features/transactions/ui/transactions-table";
 import { TransactionFilters } from "@/features/transactions/ui/transaction-filters";
 import { TransactionDialog } from "@/features/transactions/ui/transaction-dialog";
-import { TransactionSummaryCards } from "@/features/transactions/ui/transaction-summary-cards";
+import { TransactionSummaryStrip } from "@/features/transactions/ui/transaction-summary-strip";
 import { useTransactionMutations } from "@/features/transactions/hooks/useTransactionMutations";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { TableLoadingOverlay } from "@/shared/ui/table-loading-overlay";
@@ -18,6 +18,8 @@ import { Plus } from "lucide-react";
 import { useCrudDialogState } from "@/shared/lib/hooks/useCrudDialogState";
 import { useMemo } from "react";
 import type { SortingState } from "@tanstack/react-table";
+import { Month } from "@/shared/lib/date";
+import { formatMonthLabel } from "@/shared/lib/utils/month-label";
 
 export default function TransactionsPage() {
   const {
@@ -85,14 +87,14 @@ export default function TransactionsPage() {
         onAction={dialogActions.openCreate}
       />
 
-      {/* Cards de resumen */}
+      {/* Tira de resumen */}
       {summaryQuery.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
+        <Skeleton className="h-32 w-full" />
       ) : (
-        <TransactionSummaryCards summary={summaryQuery.summary} />
+        <TransactionSummaryStrip
+          summary={summaryQuery.summary}
+          monthLabel={formatMonthLabel(params.month || Month.current().toString())}
+        />
       )}
 
       {/* Filtros */}
