@@ -5,7 +5,7 @@ import {
   calculatePercentage,
   getPercentageValue,
 } from "@/shared/lib/utils/percentage";
-import { getCategoryColor } from "./category-colors";
+import { getCategoryColor } from "@/shared/lib/category-colors";
 
 interface CategoryLedgerProps {
   items: Array<{ categoryId: string; categoryName: string; total: number }>;
